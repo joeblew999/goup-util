@@ -1,0 +1,19 @@
+# Build artifacts
+.bin/
+*.exe
+*.app
+*.apk
+*.ipa
+*.msix
+
+# Generated icons and assets
+icon.png
+icon.ico
+icon.icns
+Assets.xcassets/
+drawable-*/
+*.syso
+
+# OS files
+.DS_Store
+Thumbs.db

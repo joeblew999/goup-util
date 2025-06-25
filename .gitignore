@@ -1,0 +1,16 @@
+# Binaries
+.bin
+goup-util
+
+# Go workspace (local development)
+go.work
+go.work.sum
+
+
+# Example build outputs
+examples/*/.bin/
+examples/*/icon-source.png
+examples/*/Assets.xcassets/
+examples/*/drawable-*/
+
+

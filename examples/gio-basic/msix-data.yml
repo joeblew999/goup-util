@@ -1,0 +1,7 @@
+name: "MyCompany.ExampleGioApp"
+publisher: "CN=MyCompany"
+version: "1.0.0.0"
+displayName: "Example Gio App"
+publisherDisplayName: "MyCompany"
+executable: "example-gio-app.exe"
+description: "An example Gio application."
