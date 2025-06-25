@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/joeblew99/goup-util/pkg/icons"
-	"github.com/joeblew99/goup-util/pkg/project"
+	"github.com/joeblew999/goup-util/pkg/icons"
+	"github.com/joeblew999/goup-util/pkg/project"
 	"github.com/spf13/cobra"
 )
 

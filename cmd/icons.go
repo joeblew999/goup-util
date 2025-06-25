@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/joeblew99/goup-util/pkg/service"
+	"github.com/joeblew999/goup-util/pkg/service"
 	"github.com/spf13/cobra"
 )
 

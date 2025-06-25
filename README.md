@@ -7,7 +7,7 @@ Cross-platform SDK manager and build tool for Go applications.
 ## Installation
 
 ```bash
-go install github.com/joeblew99/goup-util@latest
+go install github.com/joeblew999/goup-util@latest
 ```
 
 ## Build

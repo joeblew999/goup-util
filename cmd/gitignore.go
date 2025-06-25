@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/joeblew99/goup-util/pkg/gitignore"
+	"github.com/joeblew999/goup-util/pkg/gitignore"
 	"github.com/spf13/cobra"
 )
 

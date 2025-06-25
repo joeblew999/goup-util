@@ -1,4 +1,4 @@
-module github.com/joeblew99/goup-util
+module github.com/joeblew999/goup-util
 
 go 1.23.0
 

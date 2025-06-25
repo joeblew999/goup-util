@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/joeblew99/goup-util/pkg/config"
-	"github.com/joeblew99/goup-util/pkg/installer"
-	"github.com/joeblew99/goup-util/pkg/utils"
+	"github.com/joeblew999/goup-util/pkg/config"
+	"github.com/joeblew999/goup-util/pkg/installer"
+	"github.com/joeblew999/goup-util/pkg/utils"
 	"github.com/spf13/cobra"
 )
 

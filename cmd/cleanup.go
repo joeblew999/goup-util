@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/joeblew99/goup-util/pkg/config"
+	"github.com/joeblew999/goup-util/pkg/config"
 	"github.com/spf13/cobra"
 )
 

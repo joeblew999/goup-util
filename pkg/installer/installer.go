@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/joeblew99/goup-util/pkg/config"
+	"github.com/joeblew999/goup-util/pkg/config"
 )
 
 // SDK represents a software development kit.

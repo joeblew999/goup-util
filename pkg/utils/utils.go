@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/joeblew99/goup-util/pkg/config"
-	"github.com/joeblew99/goup-util/pkg/installer"
+	"github.com/joeblew999/goup-util/pkg/config"
+	"github.com/joeblew999/goup-util/pkg/installer"
 )
 
 // utils.go provides centralized utility functions to reduce code duplication

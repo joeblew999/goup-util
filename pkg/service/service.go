@@ -3,11 +3,11 @@ package service
 import (
 	"fmt"
 
-	"github.com/joeblew99/goup-util/pkg/config"
-	"github.com/joeblew99/goup-util/pkg/gitignore"
-	"github.com/joeblew99/goup-util/pkg/icons"
-	"github.com/joeblew99/goup-util/pkg/project"
-	"github.com/joeblew99/goup-util/pkg/workspace"
+	"github.com/joeblew999/goup-util/pkg/config"
+	"github.com/joeblew999/goup-util/pkg/gitignore"
+	"github.com/joeblew999/goup-util/pkg/icons"
+	"github.com/joeblew999/goup-util/pkg/project"
+	"github.com/joeblew999/goup-util/pkg/workspace"
 )
 
 // ServiceConfig configures service behavior

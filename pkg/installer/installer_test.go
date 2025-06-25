@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/joeblew99/goup-util/pkg/config"
+	"github.com/joeblew999/goup-util/pkg/config"
 )
 
 func TestResolveInstallPath(t *testing.T) {

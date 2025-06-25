@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/joeblew99/goup-util/pkg/workspace"
+	"github.com/joeblew999/goup-util/pkg/workspace"
 	"github.com/spf13/cobra"
 )
 
