@@ -20,14 +20,11 @@ jobs:
     # - name: Run tests
     #   run: go test ./...
     
-    - name: Build all platforms
+    - name: Build all platforms using self build
       run: |
+        go run . self build
         mkdir -p dist
-        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=${GITHUB_REF#refs/tags/}" -o dist/goup-util-linux-amd64 .
-        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w -X main.version=${GITHUB_REF#refs/tags/}" -o dist/goup-util-darwin-amd64 .
-        GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w -X main.version=${GITHUB_REF#refs/tags/}" -o dist/goup-util-darwin-arm64 .
-        GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X main.version=${GITHUB_REF#refs/tags/}" -o dist/goup-util-windows-amd64.exe .
-        GOOS=windows GOARCH=arm64 go build -ldflags="-s -w -X main.version=${GITHUB_REF#refs/tags/}" -o dist/goup-util-windows-arm64.exe .
+        mv goup-util-* dist/
     
     - name: Create Release
       uses: softprops/action-gh-release@v1
