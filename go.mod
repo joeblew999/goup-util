@@ -1,6 +1,6 @@
 module github.com/joeblew999/goup-util
 
-go 1.22
+go 1.25.0
 
 require (
 	github.com/JackMordaunt/icns v1.0.0
