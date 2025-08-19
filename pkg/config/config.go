@@ -51,7 +51,7 @@ func GetCacheDir() string {
 	switch runtime.GOOS {
 	case "darwin": // macOS
 		if home, err := os.UserHomeDir(); err == nil {
-			return filepath.Join(home, "Library", "Caches", "goup-util")
+			return filepath.Join(home, "goup-util-cache")
 		}
 	case "linux":
 		if cacheHome := os.Getenv("XDG_CACHE_HOME"); cacheHome != "" {
@@ -80,7 +80,7 @@ func GetSDKDir() string {
 	switch runtime.GOOS {
 	case "darwin": // macOS
 		if home, err := os.UserHomeDir(); err == nil {
-			return filepath.Join(home, "Library", "Application Support", "goup-util", "sdks")
+			return filepath.Join(home, "goup-util-sdks")
 		}
 	case "linux":
 		if dataHome := os.Getenv("XDG_DATA_HOME"); dataHome != "" {

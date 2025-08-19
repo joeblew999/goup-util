@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 
 	"github.com/joeblew999/goup-util/pkg/config"
+	"github.com/joeblew999/goup-util/pkg/constants"
 	"github.com/joeblew999/goup-util/pkg/icons"
+	"github.com/joeblew999/goup-util/pkg/installer"
 	"github.com/joeblew999/goup-util/pkg/project"
 	"github.com/spf13/cobra"
 )
@@ -27,8 +29,21 @@ var buildCmd = &cobra.Command{
 			return fmt.Errorf("invalid platform: %s. Valid platforms: %v", platform, validPlatforms)
 		}
 
-		// Create and validate project
-		proj, err := project.NewGioProject(appDir)
+		// Check for custom output directory flag first
+		customOutput, _ := cmd.Flags().GetString("output")
+
+		// Create and validate project with potential custom output
+		var proj *project.GioProject
+		var err error
+
+		if customOutput != "" {
+			// Use custom output directory
+			proj, err = project.NewGioProjectWithOutput(appDir, customOutput)
+		} else {
+			// Use default behavior (artifacts in project directory)
+			proj, err = project.NewGioProject(appDir)
+		}
+
 		if err != nil {
 			return fmt.Errorf("failed to create project: %w", err)
 		}
@@ -114,11 +129,23 @@ func buildAndroid(appDir, appName, outputDir string, skipIcons bool) error {
 	// Use OS-specific SDK directory only
 	sdkRoot := config.GetSDKDir()
 
+	// Check for required Android components
+	ndkPath := filepath.Join(sdkRoot, "ndk-bundle")
+	if _, err := os.Stat(ndkPath); os.IsNotExist(err) {
+		fmt.Printf("⚠️  Android NDK not found. Installing...\n")
+		// Auto-install NDK
+		if err := installNDK(sdkRoot); err != nil {
+			return fmt.Errorf("failed to install NDK: %w", err)
+		}
+	}
+
 	// Set Android environment variables with absolute paths
 	env := os.Environ()
 	javaHome := filepath.Join(sdkRoot, "openjdk", "17", "jdk-17.0.11+9", "Contents", "Home")
 	env = append(env, "JAVA_HOME="+javaHome)
 	env = append(env, "ANDROID_SDK_ROOT="+sdkRoot)
+	env = append(env, "ANDROID_HOME="+sdkRoot)
+	env = append(env, "ANDROID_NDK_ROOT="+ndkPath)
 
 	// Build with gogio
 	apkPath := filepath.Join(outputDir, appName+".apk")
@@ -205,6 +232,25 @@ func buildWindows(appDir, appName, outputDir string, skipIcons bool) error {
 	return nil
 }
 
+// installNDK installs the Android NDK if not present
+func installNDK(sdkRoot string) error {
+	fmt.Printf("📦 Installing Android NDK...\n")
+	
+	// Use the installer package to install NDK
+	ndkSDK := &installer.SDK{
+		Name:        "Android NDK",
+		Version:     "latest",
+		InstallPath: "ndk-bundle",
+	}
+	
+	cache, err := installer.NewCache(filepath.Join(config.GetCacheDir(), "cache.json"))
+	if err != nil {
+		return fmt.Errorf("failed to create cache: %w", err)
+	}
+	
+	return installer.Install(ndkSDK, cache)
+}
+
 func buildAll(appDir, appName, outputDir string, skipIcons bool) error {
 	fmt.Printf("Building %s for all platforms...\n", appName)
 
@@ -247,11 +293,11 @@ func generateIcons(appDir, platform string) error {
 	var outputPath string
 	switch platform {
 	case "android":
-		outputPath = appDir
+		outputPath = filepath.Join(appDir, constants.BuildDir)
 	case "ios", "macos":
-		outputPath = filepath.Join(appDir, "Assets.xcassets")
+		outputPath = filepath.Join(appDir, constants.BuildDir, "Assets.xcassets")
 	case "windows":
-		outputPath = filepath.Join(appDir, ".bin")
+		outputPath = filepath.Join(appDir, constants.BuildDir)
 		platform = "windows-msix" // Use the correct platform name
 	default:
 		return nil // Skip icon generation for unknown platforms
@@ -278,6 +324,7 @@ func contains(slice []string, item string) bool {
 
 func init() {
 	buildCmd.Flags().BoolVar(&skipIcons, "skip-icons", false, "Skip icon generation")
+	buildCmd.Flags().String("output", "", "Custom output directory for build artifacts")
 	rootCmd.AddCommand(buildCmd)
 }
 

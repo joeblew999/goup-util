@@ -7,6 +7,8 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+
+	"github.com/joeblew999/goup-util/pkg/constants"
 )
 
 // Config holds configuration for icon generation
@@ -62,18 +64,18 @@ func GenerateForProject(cfg ProjectConfig) error {
 	var outputPath string
 	switch cfg.Platform {
 	case "android":
-		outputPath = cfg.ProjectPath
+		outputPath = filepath.Join(cfg.ProjectPath, constants.BuildDir)
 	case "ios", "macos":
-		outputPath = filepath.Join(cfg.ProjectPath, "Assets.xcassets")
-		// Ensure Assets.xcassets directory exists
+		outputPath = filepath.Join(cfg.ProjectPath, constants.BuildDir, "Assets.xcassets")
+		// Ensure Assets.xcassets directory exists in build artifacts
 		if err := os.MkdirAll(outputPath, 0755); err != nil {
 			return fmt.Errorf("failed to create Assets.xcassets directory: %w", err)
 		}
 	case "windows", "windows-msix", "windows-ico":
-		outputPath = filepath.Join(cfg.ProjectPath, ".bin")
-		// Ensure .bin directory exists
+		outputPath = filepath.Join(cfg.ProjectPath, constants.BuildDir)
+		// Ensure build directory exists
 		if err := os.MkdirAll(outputPath, 0755); err != nil {
-			return fmt.Errorf("failed to create .bin directory: %w", err)
+			return fmt.Errorf("failed to create build directory: %w", err)
 		}
 	default:
 		outputPath = cfg.ProjectPath

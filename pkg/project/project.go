@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/joeblew999/goup-util/pkg/constants"
 )
 
 // GioProject represents a Gio application project
@@ -37,7 +39,45 @@ func NewGioProject(rootDir string) (*GioProject, error) {
 	project := &GioProject{
 		RootDir:   absPath,
 		Name:      appName,
-		OutputDir: filepath.Join(absPath, ".bin"),
+		OutputDir: filepath.Join(absPath, constants.BinDir),
+	}
+
+	return project, nil
+}
+
+// NewGioProjectWithOutput creates a new GioProject with a custom output directory
+func NewGioProjectWithOutput(rootDir, outputBaseDir string) (*GioProject, error) {
+	// Validate that the directory exists
+	if _, err := os.Stat(rootDir); os.IsNotExist(err) {
+		return nil, fmt.Errorf("project directory does not exist: %s", rootDir)
+	}
+
+	// Convert to absolute path
+	absPath, err := filepath.Abs(rootDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get absolute path: %w", err)
+	}
+
+	// Derive app name from directory
+	appName := filepath.Base(absPath)
+
+	// Set output directory - use custom base if provided
+	var outputDir string
+	if outputBaseDir != "" {
+		// Convert output base to absolute path
+		absOutputBase, err := filepath.Abs(outputBaseDir)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get absolute output path: %w", err)
+		}
+		outputDir = filepath.Join(absOutputBase, constants.BinDir)
+	} else {
+		outputDir = filepath.Join(absPath, constants.BinDir)
+	}
+
+	project := &GioProject{
+		RootDir:   absPath,
+		Name:      appName,
+		OutputDir: outputDir,
 	}
 
 	return project, nil
@@ -51,9 +91,9 @@ func (p *GioProject) Paths() *ProjectPaths {
 		Root:         p.RootDir,
 		Output:       p.OutputDir,
 		SourceIcon:   filepath.Join(p.RootDir, "icon-source.png"),
-		AndroidIcons: p.RootDir,
-		IOSIcons:     filepath.Join(p.RootDir, "Assets.xcassets"),
-		WindowsIcons: p.OutputDir,
+		AndroidIcons: filepath.Join(p.RootDir, constants.BuildDir),
+		IOSIcons:     filepath.Join(p.RootDir, constants.BuildDir, "Assets.xcassets"),
+		WindowsIcons: filepath.Join(p.RootDir, constants.BuildDir),
 		GoMod:        filepath.Join(p.RootDir, "go.mod"),
 		MainGo:       filepath.Join(p.RootDir, "main.go"),
 		MSIXData:     filepath.Join(p.RootDir, "msix-data.yml"),
@@ -64,10 +104,10 @@ func (p *GioProject) Paths() *ProjectPaths {
 type ProjectPaths struct {
 	project      *GioProject // Reference to parent project
 	Root         string      // Root directory
-	Output       string      // Build output directory (.bin)
+	Output       string      // Build output directory (constants.BinDir)
 	SourceIcon   string      // Source icon file (icon-source.png)
 	AndroidIcons string      // Android icons output directory
-	IOSIcons     string      // iOS icons output directory (Assets.xcassets)
+	IOSIcons     string      // iOS icons output directory (build/Assets.xcassets)
 	WindowsIcons string      // Windows icons output directory
 	GoMod        string      // go.mod file
 	MainGo       string      // main.go file
@@ -102,7 +142,7 @@ func (p *GioProject) EnsureDirectories() error {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
-	// Create Assets.xcassets for iOS if it doesn't exist
+	// Create Assets.xcassets for iOS in build directory if it doesn't exist
 	if err := os.MkdirAll(paths.IOSIcons, 0755); err != nil {
 		return fmt.Errorf("failed to create iOS assets directory: %w", err)
 	}

@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/joeblew999/goup-util/pkg/constants"
 	"github.com/joeblew999/goup-util/pkg/gitignore"
 	"github.com/spf13/cobra"
 )
@@ -57,27 +58,31 @@ var gitignoreCmd = &cobra.Command{
 
 		// Show recommended patterns for Gio projects
 		fmt.Printf("\n💡 Recommended patterns for Gio projects:\n")
+
+		// Get core build artifact patterns from constants
+		corePatterns := constants.CommonGitIgnorePatterns()
+
 		recommended := []string{
 			"# Build artifacts",
-			".bin/",
+		}
+		recommended = append(recommended, corePatterns...)
+		recommended = append(recommended, []string{
 			"*.exe",
 			"*.app",
 			"*.apk",
 			"*.ipa",
 			"*.msix",
 			"",
-			"# Generated icons and assets",
+			"# Generated icons",
 			"icon.png",
 			"icon.ico",
 			"icon.icns",
-			"Assets.xcassets/",
-			"drawable-*/",
 			"*.syso",
 			"",
 			"# OS files",
 			".DS_Store",
 			"Thumbs.db",
-		}
+		}...)
 
 		for _, pattern := range recommended {
 			if pattern == "" {

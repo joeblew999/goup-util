@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/joeblew999/goup-util/pkg/config"
+	"github.com/joeblew999/goup-util/pkg/constants"
 	"github.com/joeblew999/goup-util/pkg/gitignore"
 	"github.com/joeblew999/goup-util/pkg/icons"
 	"github.com/joeblew999/goup-util/pkg/project"
@@ -271,7 +272,7 @@ func (s *GioService) performHealthChecks(projectPath string) []string {
 	// Check gitignore patterns
 	gi := gitignore.New(projectPath)
 	if err := gi.Load(); err == nil {
-		missingPatterns := []string{".bin/", "Assets.xcassets/", "drawable-*/"}
+		missingPatterns := constants.CommonGitIgnorePatterns()
 		for _, pattern := range missingPatterns {
 			if !gi.HasPattern(pattern) {
 				if s.config.Verbose {

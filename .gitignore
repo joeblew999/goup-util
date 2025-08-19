@@ -1,6 +1,5 @@
 # Binaries
-.bin
-goup-util
+goup-util*
 
 # Go workspace (local development)
 go.work
