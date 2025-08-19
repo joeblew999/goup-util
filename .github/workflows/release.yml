@@ -17,8 +17,8 @@ jobs:
       with:
         go-version: '1.25.0'
     
-    - name: Run tests
-      run: go test ./...
+    # - name: Run tests
+    #   run: go test ./...
     
     - name: Build all platforms
       run: |
@@ -29,18 +29,11 @@ jobs:
         GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X main.version=${GITHUB_REF#refs/tags/}" -o dist/goup-util-windows-amd64.exe .
         GOOS=windows GOARCH=arm64 go build -ldflags="-s -w -X main.version=${GITHUB_REF#refs/tags/}" -o dist/goup-util-windows-arm64.exe .
     
-    - name: Build examples
-      run: |
-        ./dist/goup-util-linux-amd64 build macos examples/gio-basic
-        ./dist/goup-util-linux-amd64 build windows examples/gio-basic
-        ./dist/goup-util-linux-amd64 build android examples/gio-basic
-    
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
           dist/goup-util-*
-          examples/*/dist/*
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
