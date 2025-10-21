@@ -2,15 +2,32 @@
 
 ## Project Overview
 
-/Users/apple/workspace/go/src/github.com/joeblew999/goup-util IS the file path !!! MUST rememebr this !!
+**goup-util** is a specialized build tool for creating **cross-platform hybrid applications** using Go and Gio UI.
 
-**goup-util** is a cross-platform SDK manager and build tool for Go applications, specifically designed for building Gio UI applications for Android, iOS, macOS, and Windows platforms.
+### The Real Mission
+
+Enable developers to build **one codebase** that runs everywhere:
+- 🖥️ Desktop: macOS, Windows, Linux
+- 📱 Mobile: iOS, Android  
+- 🌐 Web: Browser (via WASM)
+
+**Key capability**: Hybrid apps mixing **native Gio UI** (for shell/controls) with **native webviews** (for rich content).
+
+### Why This Matters
+
+Traditional cross-platform tools require multiple languages (Swift, Kotlin, JavaScript). **goup-util enables pure Go development** for hybrid apps by:
+1. Managing platform SDKs (Android SDK, Xcode tools)
+2. Building platform-specific binaries from Go source
+3. Handling native integrations (webviews, icons, packaging)
+4. Supporting the full app lifecycle (build → package → release)
 
 ### Key Principles
+- **Pure Go development**: One language for all platforms
+- **Hybrid architecture**: Native UI + webview content
 - **Idempotent operations**: All operations are safe to run multiple times
 - **DRY (Don't Repeat Yourself)**: Centralized path management and shared utilities
 - **Developer-focused**: Clean CLI interface with clear commands
-- **Cross-platform**: Supports macOS, Linux, Windows, Android, and iOS
+- **True cross-platform**: Web, desktop, and mobile from single codebase
 
 ## Project Structure
 
@@ -32,12 +49,43 @@ goup-util/
 │   ├── workspace/        # Go workspace utilities
 │   └── ...
 ├── examples/             # Example Gio applications
-│   ├── gio-basic/
-│   ├── gio-plugin-hyperlink/
-│   └── gio-plugin-webviewer/
+│   ├── gio-basic/                # Simple Gio UI demo
+│   ├── gio-plugin-hyperlink/     # Hyperlink plugin demo
+│   └── gio-plugin-webviewer/     # Multi-tab webview browser (THE KEY EXAMPLE)
 ├── docs/                 # End-user documentation
+│   ├── agents/           # AI assistant collaboration guides
+│   └── WEBVIEW-ANALYSIS.md  # Cross-platform webview deep dive
+├── .src/                 # Dependency source code (gitignored)
+│   └── gio-plugins/      # gio-plugins source for reference
 └── main.go              # Entry point
 
+```
+
+## The Hybrid App Vision
+
+**goup-util exists to make this possible**:
+
+```
+┌─────────────────────────────────────┐
+│     Your App (Pure Go)              │
+│                                     │
+│  ┌─────────────────────────────┐   │
+│  │  Gio UI (Native Controls)   │   │
+│  │  - Tabs, buttons, layout    │   │
+│  │  - Native performance       │   │
+│  └─────────────────────────────┘   │
+│                                     │
+│  ┌─────────────────────────────┐   │
+│  │  Native WebView             │   │
+│  │  - Rich web content         │   │
+│  │  - HTML/CSS/JavaScript      │   │
+│  │  - Platform webview engine  │   │
+│  └─────────────────────────────┘   │
+│                                     │
+│  ↕ Go ↔ JavaScript Bridge          │
+└─────────────────────────────────────┘
+
+Built once → Runs on all platforms
 ```
 
 ## Development Workflow
@@ -58,34 +106,53 @@ go test ./...
 go test -v integration_test.go
 ```
 
-### Testing Changes
+### Building Hybrid Apps
 
 ```bash
-# Use 'go run .' to test changes without building
-go run . build macos examples/gio-basic
+# The webviewer example is THE reference implementation
+go run . build macos examples/gio-plugin-webviewer
+go run . build windows examples/gio-plugin-webviewer
+go run . build android examples/gio-plugin-webviewer
+go run . build ios examples/gio-plugin-webviewer
+
+# Install required SDKs
 go run . install android-sdk
-go run . icons examples/gio-basic
+go run . install android-ndk
+
+# Generate platform icons
+go run . icons examples/gio-plugin-webviewer
 ```
 
 ## Key Commands to Understand
 
-- `build` - Build Gio applications for different platforms (macos, windows, android, ios)
-- `install` - Install SDKs (Android SDK, NDK, etc.)
+- `build <platform> <app>` - Build Gio apps for different platforms (macos, windows, android, ios)
+- `install <sdk>` - Install platform SDKs (Android SDK, NDK, etc.)
 - `self build` - Build goup-util binaries for distribution
-- `icons` - Generate platform-specific icons from source images
-- `package` - Package built apps for distribution
-- `workspace` - Manage Go workspace files
-- `gitignore` - Manage .gitignore templates
+- `icons <app>` - Generate platform-specific icons from source images
+- `package <app>` - Package built apps for distribution
+- `workspace` - Manage Go workspace files for multi-module projects
+- `gitignore` - Manage .gitignore templates for Gio projects
 
 ## Important Files
 
 - `cmd/*.go` - All CLI command implementations
 - `pkg/config/` - Config file handling and directory management
 - `pkg/installer/` - SDK installation logic
-- `go.mod` - Dependencies (cobra, progressbar, icns, etc.)
+- `examples/gio-plugin-webviewer/main.go` - **THE KEY EXAMPLE** - Multi-tab browser showing full webview capabilities
+- `go.mod` - Dependencies (cobra, progressbar, icns, gio-plugins, etc.)
 - `.gitignore` - Build binaries are excluded (goup-util*)
 
 ## Common Tasks
+
+### Understanding Webview Integration
+
+**This is the core use case**. Study these files:
+
+1. **Local example**: `examples/gio-plugin-webviewer/main.go`
+2. **Plugin source**: `.src/gio-plugins/webviewer/`
+3. **Demo app**: `.src/gio-plugins/webviewer/demo/demo.go`
+4. **Analysis**: `docs/WEBVIEW-ANALYSIS.md`
+5. **Agent guide**: `docs/agents/gio-plugins.md`
 
 ### Adding a New Command
 
@@ -108,18 +175,31 @@ go run . icons examples/gio-basic
 
 ## Dependencies
 
-Key external packages:
+### Core Dependencies
 - `github.com/spf13/cobra` - CLI framework
 - `github.com/schollz/progressbar/v3` - Progress display
 - `github.com/JackMordaunt/icns` - macOS icon generation
-- Platform-specific SDK tools (Android SDK, Xcode, etc.)
+
+### Gio Ecosystem (THE IMPORTANT ONES)
+- `gioui.org` - Core Gio UI framework
+- `github.com/gioui-plugins/gio-plugins` - Native plugins
+  - **webviewer** - Native webview integration (WKWebView, WebView2, etc.)
+  - **hyperlink** - Open URLs in system browser
+  - **auth** - OAuth flows
+  - **explorer** - File system access
+
+### Platform Tools
+- Android SDK, NDK - For Android builds
+- Xcode - For iOS/macOS builds  
+- WebView2 - For Windows (Edge-based webview)
 
 ## Testing Guidelines
 
 - Test commands using `go run .` before building
-- Use example projects in `examples/` for integration testing
+- **Use the webviewer example for integration testing**
 - Verify idempotency (running twice should produce same result)
 - Test on target platforms when modifying build logic
+- Check webview behavior on each platform (they differ!)
 
 ## CI/CD
 
@@ -130,43 +210,11 @@ Key external packages:
 
 ## Future Plans (See TODO.md)
 
-- UTM integration for Windows VM testing
-- Winget package management for Windows dependencies
-- Automated testing infrastructure
-
-## Tips for Claude
-
-1. **Always test with `go run .`** - Don't build binaries during development
-2. **Maintain idempotency** - Operations should be safe to run multiple times
-3. **Follow existing patterns** - Look at similar commands for consistency
-4. **Update docs/** - Keep end-user docs in sync with code changes
-5. **Check .gitignore** - Don't commit build binaries (goup-util*)
-6. **Use examples/** - Test changes with the example Gio projects
-7. **Cross-platform awareness** - Code runs on macOS, Linux, and Windows
-
-## Common Debugging
-
-```bash
-# Check configuration
-go run . config
-
-# List available SDKs
-go run . list
-
-# Verbose output (add -v flag if available)
-go run . build macos examples/gio-basic -v
-
-# Check Go workspace
-go run . workspace list
-```
-
-## Code Style
-
-- Follow standard Go conventions
-- Use `cobra` for CLI structure
-- Error handling with clear messages
-- Progress bars for long operations
-- Idempotent file operations
+- **UTM integration** - Automated Windows VM testing from macOS
+- **Winget** - Windows package management for dependencies
+- **Automated testing infrastructure** - Test builds on all platforms
+- **JavaScript ↔ Go bridge patterns** - Better hybrid app communication
+- **Production templates** - Ready-to-use hybrid app starters
 
 ## Source Code References (.src/)
 
@@ -192,6 +240,9 @@ grep -r "pattern" .src/gio-plugins/
 
 # View platform-specific code
 ls .src/gio-plugins/webviewer/webview/webview_*.go
+
+# Read the webview demo (our example is based on this)
+cat .src/gio-plugins/webviewer/demo/demo.go
 ```
 
 ### Agent Collaboration
@@ -203,3 +254,57 @@ For AI assistants working on this project:
 3. **See agent guides** - Read `docs/agents/README.md` for collaboration patterns
 
 The agent documentation helps multiple AI assistants work effectively on the codebase by providing context about dependencies, patterns, and architecture.
+
+## Tips for Claude
+
+1. **The webviewer example is CRITICAL** - This shows the real use case
+2. **Always test with `go run .`** - Don't build binaries during development
+3. **Maintain idempotency** - Operations should be safe to run multiple times
+4. **Follow existing patterns** - Look at similar commands for consistency
+5. **Update docs/** - Keep end-user docs in sync with code changes
+6. **Check .gitignore** - Don't commit build binaries (goup-util*)
+7. **Use examples/** - Test changes with the example Gio projects
+8. **Cross-platform awareness** - Code runs on macOS, Linux, Windows, Android, iOS
+9. **Hybrid apps are the goal** - Native UI + webview content in pure Go
+10. **Read .src/ dependencies** - Source code is available locally
+
+## Common Debugging
+
+```bash
+# Check configuration
+go run . config
+
+# List available SDKs
+go run . list
+
+# Verbose output (add -v flag if available)
+go run . build macos examples/gio-basic -v
+
+# Check Go workspace
+go run . workspace list
+
+# Test webviewer on desktop (fastest iteration)
+go run . build macos examples/gio-plugin-webviewer
+open examples/gio-plugin-webviewer/.bin/macos/gio-plugin-webviewer.app
+```
+
+## Code Style
+
+- Follow standard Go conventions
+- Use `cobra` for CLI structure
+- Error handling with clear messages
+- Progress bars for long operations
+- Idempotent file operations
+- Platform-specific code in separate files (`*_darwin.go`, `*_android.go`, etc.)
+
+## The Big Picture
+
+**goup-util is a developer tool for building a specific class of apps:**
+
+**Cross-platform hybrid applications where:**
+- Shell/controls are native Gio UI (Go)
+- Content can be web (via native webviews)
+- Everything is written in Go
+- Deploys to web, desktop, and mobile from one codebase
+
+This is about **enabling pure Go development** for the kind of apps that traditionally require Swift + Kotlin + JavaScript. The webview integration is what makes hybrid apps possible while keeping native performance.
