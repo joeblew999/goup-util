@@ -13,3 +13,6 @@ examples/*/Assets.xcassets/
 examples/*/drawable-*/
 
 
+
+# Source code references (for reading dependencies)
+.src/

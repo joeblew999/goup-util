@@ -2,6 +2,8 @@
 
 ## Project Overview
 
+/Users/apple/workspace/go/src/github.com/joeblew999/goup-util IS the file path !!! MUST rememebr this !!
+
 **goup-util** is a cross-platform SDK manager and build tool for Go applications, specifically designed for building Gio UI applications for Android, iOS, macOS, and Windows platforms.
 
 ### Key Principles
@@ -165,3 +167,39 @@ go run . workspace list
 - Error handling with clear messages
 - Progress bars for long operations
 - Idempotent file operations
+
+## Source Code References (.src/)
+
+The `.src/` folder contains cloned source code of key dependencies for easy reference. This folder is gitignored and local-only.
+
+### Available Sources
+
+- **gio-plugins** (`.src/gio-plugins/`) - Gio UI native plugins
+  - WebViewer implementation and examples
+  - Platform-specific code for macOS, iOS, Android, Windows, Linux
+  - See [docs/agents/gio-plugins.md](docs/agents/gio-plugins.md) for detailed guide
+
+### Usage
+
+When working with dependencies:
+
+```bash
+# Clone a new dependency for reference
+git clone --depth 1 https://github.com/org/repo .src/repo
+
+# Search for implementations
+grep -r "pattern" .src/gio-plugins/
+
+# View platform-specific code
+ls .src/gio-plugins/webviewer/webview/webview_*.go
+```
+
+### Agent Collaboration
+
+For AI assistants working on this project:
+
+1. **Read source before asking** - Check `.src/` for dependency behavior
+2. **Update agent docs** - Add guides in `docs/agents/` when learning new patterns
+3. **See agent guides** - Read `docs/agents/README.md` for collaboration patterns
+
+The agent documentation helps multiple AI assistants work effectively on the codebase by providing context about dependencies, patterns, and architecture.
