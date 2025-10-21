@@ -88,6 +88,49 @@ goup-util/
 Built once → Runs on all platforms
 ```
 
+## CRITICAL: Gio Version Compatibility
+
+**VERSION MANAGEMENT IS CRITICAL** - Gio and gio-plugins version mismatches cause runtime panics!
+
+### The Problem
+
+- Using `gioui.org v0.8.0` with `gio-plugins v0.8.0` causes: `panic: Gio version not supported`
+- The version tags don't guarantee compatibility - specific commit hashes are required
+- See issue: https://github.com/gioui-plugins/gio-plugins/issues/104
+
+### The Solution
+
+**Always use these specific versions** (as of 2025-10-21):
+
+```bash
+# For projects using gio-plugins (webviewer, hyperlink, etc.)
+go get gioui.org@1a17e9ea3725cf5bcb8bdd363e8c6b310669e936
+go get github.com/gioui-plugins/gio-plugins@main
+go mod tidy
+
+# For projects using only Gio UI (no plugins)
+go get gioui.org@1a17e9ea3725cf5bcb8bdd363e8c6b310669e936
+go mod tidy
+```
+
+This gives you:
+- `gioui.org v0.8.1-0.20250526181049-1a17e9ea3725` (commit after v0.8.0 tag)
+- `github.com/gioui-plugins/gio-plugins v0.8.1-0.20250616220248-653221ccd770` (main branch)
+
+### When Adding New Examples
+
+1. **ALWAYS** use the version commands above after `go mod init`
+2. **NEVER** use `@latest` tags - they are incompatible
+3. **TEST** the app actually launches before committing
+4. **UPDATE** this section if recommended versions change
+
+### Version Management TODO
+
+goup-util should eventually automate this:
+- `goup-util init <project>` - Initialize with correct versions
+- `goup-util doctor` - Check and fix version compatibility
+- Auto-update go.mod when building examples
+
 ## Development Workflow
 
 ### Building the Tool
@@ -226,6 +269,13 @@ The `.src/` folder contains cloned source code of key dependencies for easy refe
   - WebViewer implementation and examples
   - Platform-specific code for macOS, iOS, Android, Windows, Linux
   - See [docs/agents/gio-plugins.md](docs/agents/gio-plugins.md) for detailed guide
+
+- **robotgo** (`.src/robotgo/`) - Desktop automation and screenshots
+  - Screenshot capabilities (CaptureScreen, CaptureImg, SaveCapture)
+  - Multi-display support, keyboard/mouse automation
+  - Platform-specific C code for macOS, Windows, Linux
+  - See [docs/agents/robotgo.md](docs/agents/robotgo.md) for detailed guide
+  - **Note**: Used optionally via build tags to avoid CGO in main build
 
 ### Usage
 

@@ -77,6 +77,12 @@ We provide a [Taskfile](https://taskfile.dev) for common operations:
 # Install Task first (if you don't have it)
 brew install go-task/tap/go-task
 
+# IMPORTANT: Fix Gio version compatibility (MUST DO FIRST!)
+task fix-versions
+
+# Check version compatibility
+task doctor
+
 # See all available tasks
 task --list
 
@@ -115,6 +121,7 @@ task setup    # One command to set everything up
 task demo     # See hybrid-dashboard in action!
 ```
 
+```bash
 git clone https://github.com/joeblew999/goup-util.git
 cd goup-util
 ```

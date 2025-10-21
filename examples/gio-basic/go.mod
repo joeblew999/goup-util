@@ -3,7 +3,7 @@ module example-gio-app
 go 1.24.4
 
 require (
-	gioui.org v0.8.0
+	gioui.org v0.8.1-0.20250526181049-1a17e9ea3725
 	gioui.org/x v0.8.0
 )
 

@@ -6,13 +6,44 @@ vars:
   GOUP: go run .
   BASIC_EXAMPLE: examples/gio-basic
   WEBVIEWER_EXAMPLE: examples/gio-plugin-webviewer
+  HYPERLINK_EXAMPLE: examples/gio-plugin-hyperlink
   HYBRID_EXAMPLE: examples/hybrid-dashboard
+  # CRITICAL: These specific commit hashes are required for compatibility
+  # See CLAUDE.md "Gio Version Compatibility" section
+  GIO_VERSION: 1a17e9ea3725cf5bcb8bdd363e8c6b310669e936
+  GIO_PLUGINS_VERSION: main
 
 tasks:
   default:
     desc: Show available tasks
     cmds:
       - task --list
+
+  # Version management (CRITICAL for compatibility)
+  fix-versions:
+    desc: Fix Gio version compatibility in all examples
+    cmds:
+      - echo "Fixing versions in all examples (see CLAUDE.md for details)..."
+      - cd {{.BASIC_EXAMPLE}} && go get gioui.org@{{.GIO_VERSION}} && go mod tidy
+      - cd {{.WEBVIEWER_EXAMPLE}} && go get gioui.org@{{.GIO_VERSION}} && go get github.com/gioui-plugins/gio-plugins@{{.GIO_PLUGINS_VERSION}} && go mod tidy
+      - cd {{.HYPERLINK_EXAMPLE}} && go get gioui.org@{{.GIO_VERSION}} && go get github.com/gioui-plugins/gio-plugins@{{.GIO_PLUGINS_VERSION}} && go mod tidy
+      - cd {{.HYBRID_EXAMPLE}} && go get gioui.org@{{.GIO_VERSION}} && go get github.com/gioui-plugins/gio-plugins@{{.GIO_PLUGINS_VERSION}} && go mod tidy
+      - echo "Version compatibility fixed. All examples use Gio commit {{.GIO_VERSION}}"
+
+  doctor:
+    desc: Check Gio version compatibility in examples
+    cmds:
+      - echo "Checking Gio versions in all examples..."
+      - echo "Expected gioui.org v0.8.1-0.20250526181049-1a17e9ea3725"
+      - echo ""
+      - echo "gio-basic:"
+      - cd {{.BASIC_EXAMPLE}} && grep "gioui.org v" go.mod || echo "  No go.mod found"
+      - echo "gio-plugin-webviewer:"
+      - cd {{.WEBVIEWER_EXAMPLE}} && grep "gioui.org v" go.mod || echo "  No go.mod found"
+      - echo "gio-plugin-hyperlink:"
+      - cd {{.HYPERLINK_EXAMPLE}} && grep "gioui.org v" go.mod || echo "  No go.mod found"
+      - echo "hybrid-dashboard:"
+      - cd {{.HYBRID_EXAMPLE}} && grep "gioui.org v" go.mod || echo "  No go.mod found"
 
   # Development tasks
   dev:

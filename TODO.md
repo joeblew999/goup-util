@@ -22,16 +22,39 @@ See [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md) for comprehensive improvement a
 
 ---
 
-### 2. Update Documentation  
-**Problem**: README doesn't reflect what tool actually does  
+### 2. Update Documentation
+**Problem**: README doesn't reflect what tool actually does
 **Impact**: People don't understand the value proposition
 
-- [ ] **Rewrite README** - show hybrid app capability
+- [x] **Rewrite README** - show hybrid app capability ✅ (2025-10-21)
 - [ ] **Quick start guide** that actually works end-to-end
 - [ ] **Example showcase** - what you can build
-- [ ] **Platform support matrix** - what's tested vs what's possible
+- [x] **Platform support matrix** - what's tested vs what's possible ✅ (2025-10-21)
 
 **Implementation**: 1-2 hours, do ASAP
+
+---
+
+### 2.5. Screenshot Command (NEW - High Priority)
+**Problem**: Need automated screenshots for docs/marketing
+**Impact**: Can't show what the tool produces visually
+
+**Solution**: Add `goup-util screenshot` command using platform CLI tools
+
+**Tasks**:
+- [ ] Implement screenshot command in `cmd/screenshot.go`
+  - Desktop: `screencapture` (macOS), PowerShell (Windows), `scrot` (Linux)
+  - iOS Simulator: `xcrun simctl io booted screenshot`
+  - Android: `adb exec-out screencap -p`
+- [ ] Add Taskfile tasks: `screenshot:desktop`, `screenshot:ios`, `screenshot:android`, `screenshot:all`
+- [ ] Generate screenshots for all examples to `docs/screenshots/`
+- [ ] Update README with actual screenshots
+
+**Strategy**: See [docs/SCREENSHOT-STRATEGY.md](docs/SCREENSHOT-STRATEGY.md)
+**Approach**: Platform CLI tools (no CGO), optional robotgo integration later
+**Implementation**: Week 1-2
+
+**Note**: Considered go-vgo/robotgo (has screenshot + keyboard/mouse automation). Good for future, but starting simple with CLI tools for faster implementation and no CGO dependency.
 
 ---
 
