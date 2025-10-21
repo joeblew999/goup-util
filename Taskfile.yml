@@ -190,4 +190,4 @@ tasks:
       - task: workspace:init
       - echo "Installing Android NDK..."
       - task: install:ndk
-      - echo "Setup complete! Try: task demo"
+      - echo "Setup complete! Try task demo"

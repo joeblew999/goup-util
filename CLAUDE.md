@@ -411,3 +411,137 @@ This shows:
 5. **Update CLAUDE.md** when adding new patterns
 
 This helps AI assistants maintain documentation quality.
+
+## Taskfile Maintenance
+
+**CRITICAL**: When adding new commands, examples, or features, **ALWAYS update Taskfile.yml**!
+
+### Why This Matters
+
+The Taskfile is the **primary developer interface**. Users run `task --list` to discover what they can do. If you add a feature but don't add a task for it, **nobody will know it exists**.
+
+### When to Update Taskfile
+
+**Add a new task whenever you:**
+- ✅ Create a new example app (`examples/new-app/`)
+- ✅ Add a new command to `cmd/`
+- ✅ Add a new platform target
+- ✅ Create a new workflow or common operation
+- ✅ Add testing or deployment capabilities
+
+### Task Naming Convention
+
+Follow this pattern:
+```yaml
+# Format: <action>:<target>:<platform>
+task build:hybrid:macos        # Build hybrid-dashboard for macOS
+task build:hybrid:ios          # Build hybrid-dashboard for iOS
+task run:hybrid                # Build and run hybrid-dashboard
+task build:examples:android    # Build all examples for Android
+```
+
+**Categories:**
+- `run:*` - Build and launch (for quick testing)
+- `build:*` - Build only
+- `install:*` - Install SDKs/dependencies
+- `test:*` - Run tests
+- `clean:*` - Clean up artifacts
+- `workspace:*` - Workspace management
+- `setup` - One-time setup tasks
+- `demo` - Quick demonstrations
+
+### Example: Adding a New Example App
+
+When you create `examples/new-app/`:
+
+```yaml
+# Add these tasks to Taskfile.yml
+
+vars:
+  NEW_APP_EXAMPLE: examples/new-app
+
+tasks:
+  run:new-app:
+    desc: Build and run new-app example (macOS)
+    cmds:
+      - "{{.GOUP}} build macos {{.NEW_APP_EXAMPLE}}"
+      - open {{.NEW_APP_EXAMPLE}}/.bin/new-app.app
+
+  build:new-app:macos:
+    desc: Build new-app for macOS
+    cmds:
+      - "{{.GOUP}} build macos {{.NEW_APP_EXAMPLE}}"
+
+  build:new-app:ios:
+    desc: Build new-app for iOS
+    cmds:
+      - "{{.GOUP}} build ios {{.NEW_APP_EXAMPLE}}"
+
+  build:new-app:android:
+    desc: Build new-app for Android
+    cmds:
+      - "{{.GOUP}} build android {{.NEW_APP_EXAMPLE}}"
+```
+
+**Then update the composite tasks:**
+```yaml
+  build:examples:macos:
+    desc: Build all examples for macOS
+    cmds:
+      - "{{.GOUP}} build macos {{.BASIC_EXAMPLE}}"
+      - "{{.GOUP}} build macos {{.WEBVIEWER_EXAMPLE}}"
+      - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
+      - "{{.GOUP}} build macos {{.NEW_APP_EXAMPLE}}"  # ADD THIS
+```
+
+### Testing Your Tasks
+
+Before committing, **always test**:
+```bash
+# Verify task syntax
+task --list
+
+# Test the new task
+task run:new-app
+
+# Test composite tasks still work
+task build:examples:macos
+```
+
+### Taskfile Anti-Patterns
+
+**DON'T:**
+- ❌ Add features without corresponding tasks
+- ❌ Use inconsistent naming
+- ❌ Forget to update composite tasks (build:examples:all, etc.)
+- ❌ Hardcode paths (use vars instead)
+- ❌ Create duplicate tasks
+
+**DO:**
+- ✅ Keep tasks simple and composable
+- ✅ Use descriptive names
+- ✅ Add helpful descriptions
+- ✅ Test before committing
+- ✅ Update README if adding major workflows
+
+### Quick Reference
+
+```bash
+# See all tasks
+task --list
+
+# Run a task
+task demo
+
+# Run with verbose output
+task -v demo
+
+# See what a task will do (dry run)
+task --dry demo
+```
+
+### Remember
+
+**The Taskfile is the front door.** Keep it updated, or features will be invisible to users.
+
+**Golden Rule**: If you can do it with `go run .`, there should be a task for it.
