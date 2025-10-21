@@ -4,22 +4,11 @@ Cross-platform SDK manager and build tool for Go applications.
 
 **Developer-focused, idempotent, and DRY design.**
 
-## Installation
-
-```bash
-go install github.com/joeblew999/goup-util@latest
-```
 
 ## Build
 
-Use [Task](https://taskfile.dev/) for development operations:
-
-```bash
-# Build the tool
-task build
-
-# List all available tasks
-task --list
+```sh
+go run . self ...
 ```
 
 ## Architecture
