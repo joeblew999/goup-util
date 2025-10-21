@@ -68,6 +68,53 @@ A specialized build tool that enables you to create **hybrid applications** usin
 ### Install
 
 ```bash
+
+## Using Taskfile (Recommended)
+
+We provide a [Taskfile](https://taskfile.dev) for common operations:
+
+```bash
+# Install Task first (if you don't have it)
+brew install go-task/tap/go-task
+
+# See all available tasks
+task --list
+
+# Quick demo - builds and runs hybrid-dashboard
+task demo
+
+# Build and run specific examples
+task run:hybrid        # Hybrid dashboard with embedded server
+task run:webviewer     # Multi-tab browser
+task run:basic         # Simple Gio app
+
+# Build for different platforms
+task build:hybrid:macos
+task build:hybrid:ios
+task build:hybrid:android
+task build:hybrid:all   # All platforms
+
+# SDK management
+task install:ndk        # Install Android NDK
+task list:sdks          # Show available SDKs
+
+# Development
+task workspace:init     # Initialize Go workspace
+task clean             # Clean build artifacts
+task test              # Run tests
+
+# Full setup from scratch
+task setup             # Initialize workspace + install NDKs
+```
+
+**Quick start with Task:**
+```bash
+git clone https://github.com/joeblew999/goup-util.git
+cd goup-util
+task setup    # One command to set everything up
+task demo     # See hybrid-dashboard in action!
+```
+
 git clone https://github.com/joeblew999/goup-util.git
 cd goup-util
 ```

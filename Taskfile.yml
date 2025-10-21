@@ -1,0 +1,193 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  GOUP: go run .
+  BASIC_EXAMPLE: examples/gio-basic
+  WEBVIEWER_EXAMPLE: examples/gio-plugin-webviewer
+  HYBRID_EXAMPLE: examples/hybrid-dashboard
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  # Development tasks
+  dev:
+    desc: Build goup-util for development
+    cmds:
+      - go build -o goup-util .
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test ./...
+
+  # Build goup-util itself
+  build:self:
+    desc: Build goup-util binaries for all platforms
+    cmds:
+      - "{{.GOUP}} self build"
+
+  # Example app tasks
+  run:hybrid:
+    desc: Build and run hybrid-dashboard example (macOS)
+    cmds:
+      - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
+      - open {{.HYBRID_EXAMPLE}}/.bin/hybrid-dashboard.app
+
+  run:webviewer:
+    desc: Build and run webviewer example (macOS)
+    cmds:
+      - "{{.GOUP}} build macos {{.WEBVIEWER_EXAMPLE}}"
+      - open {{.WEBVIEWER_EXAMPLE}}/.bin/gio-plugin-webviewer.app
+
+  run:basic:
+    desc: Build and run basic example (macOS)
+    cmds:
+      - "{{.GOUP}} build macos {{.BASIC_EXAMPLE}}"
+      - open {{.BASIC_EXAMPLE}}/.bin/gio-basic.app
+
+  # Build examples for different platforms
+  build:hybrid:macos:
+    desc: Build hybrid-dashboard for macOS
+    cmds:
+      - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
+
+  build:hybrid:ios:
+    desc: Build hybrid-dashboard for iOS
+    cmds:
+      - "{{.GOUP}} build ios {{.HYBRID_EXAMPLE}}"
+
+  build:hybrid:android:
+    desc: Build hybrid-dashboard for Android
+    cmds:
+      - "{{.GOUP}} build android {{.HYBRID_EXAMPLE}}"
+
+  build:hybrid:all:
+    desc: Build hybrid-dashboard for all platforms
+    cmds:
+      - task: build:hybrid:macos
+      - task: build:hybrid:ios
+      - task: build:hybrid:android
+
+  # Build all examples
+  build:examples:macos:
+    desc: Build all examples for macOS
+    cmds:
+      - "{{.GOUP}} build macos {{.BASIC_EXAMPLE}}"
+      - "{{.GOUP}} build macos {{.WEBVIEWER_EXAMPLE}}"
+      - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
+
+  build:examples:ios:
+    desc: Build all examples for iOS
+    cmds:
+      - "{{.GOUP}} build ios {{.BASIC_EXAMPLE}}"
+      - "{{.GOUP}} build ios {{.WEBVIEWER_EXAMPLE}}"
+      - "{{.GOUP}} build ios {{.HYBRID_EXAMPLE}}"
+
+  build:examples:android:
+    desc: Build all examples for Android
+    cmds:
+      - "{{.GOUP}} build android {{.BASIC_EXAMPLE}}"
+      - "{{.GOUP}} build android {{.WEBVIEWER_EXAMPLE}}"
+      - "{{.GOUP}} build android {{.HYBRID_EXAMPLE}}"
+
+  # SDK management
+  install:ndk:
+    desc: Install Android NDK
+    cmds:
+      - "{{.GOUP}} install ndk-bundle"
+
+  install:android-sdk:
+    desc: Install Android SDK
+    cmds:
+      - "{{.GOUP}} install android-sdk"
+
+  list:sdks:
+    desc: List available SDKs
+    cmds:
+      - "{{.GOUP}} list"
+
+  # Workspace management
+  workspace:init:
+    desc: Initialize Go workspace
+    cmds:
+      - go work init
+      - go work use .
+      - go work use {{.BASIC_EXAMPLE}}
+      - go work use {{.WEBVIEWER_EXAMPLE}}
+      - go work use {{.HYBRID_EXAMPLE}}
+
+  workspace:list:
+    desc: List workspace modules
+    cmds:
+      - "{{.GOUP}} workspace list"
+
+  # Icon generation
+  icons:hybrid:
+    desc: Generate icons for hybrid-dashboard
+    cmds:
+      - "{{.GOUP}} icons macos {{.HYBRID_EXAMPLE}}"
+      - "{{.GOUP}} icons android {{.HYBRID_EXAMPLE}}"
+      - "{{.GOUP}} icons ios {{.HYBRID_EXAMPLE}}"
+
+  # Configuration
+  config:
+    desc: Show goup-util configuration
+    cmds:
+      - "{{.GOUP}} config"
+
+  # Cleanup
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf {{.BASIC_EXAMPLE}}/.bin
+      - rm -rf {{.BASIC_EXAMPLE}}/.build
+      - rm -rf {{.WEBVIEWER_EXAMPLE}}/.bin
+      - rm -rf {{.WEBVIEWER_EXAMPLE}}/.build
+      - rm -rf {{.HYBRID_EXAMPLE}}/.bin
+      - rm -rf {{.HYBRID_EXAMPLE}}/.build
+      - rm -f goup-util goup-util-*
+
+  clean:all:
+    desc: Clean everything including downloaded SDKs
+    cmds:
+      - task: clean
+      - "{{.GOUP}} cleanup"
+
+  # Quick demo workflow
+  demo:
+    desc: Quick demo - build and run hybrid-dashboard
+    cmds:
+      - echo "🚀 Building hybrid-dashboard example..."
+      - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
+      - echo "Build complete! Launching app..."
+      - open {{.HYBRID_EXAMPLE}}/.bin/hybrid-dashboard.app
+      - echo "💡 The app should now be running on your screen!"
+      - echo "📊 Watch the real-time stats update"
+      - echo "🔗 Click 'Call Go Function' to test the bridge"
+
+  # Full test workflow
+  test:all:
+    desc: Build and test all examples on all platforms
+    cmds:
+      - echo "Building for macOS..."
+      - task: build:examples:macos
+      - echo "Building for iOS..."
+      - task: build:examples:ios
+      - echo "Building for Android..."
+      - task: build:examples:android
+      - echo "All examples built successfully!"
+
+  # Development setup
+  setup:
+    desc: Initial setup for development
+    cmds:
+      - echo "Setting up goup-util development environment..."
+      - task: workspace:init
+      - echo "Installing Android NDK..."
+      - task: install:ndk
+      - echo "Setup complete! Try: task demo"
