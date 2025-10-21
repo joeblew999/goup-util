@@ -545,3 +545,117 @@ task --dry demo
 **The Taskfile is the front door.** Keep it updated, or features will be invisible to users.
 
 **Golden Rule**: If you can do it with `go run .`, there should be a task for it.
+
+## Testing Taskfile Targets
+
+**IMPORTANT**: The Taskfile is our PRIMARY testing mechanism right now. Always verify tasks work!
+
+### Why Test Tasks?
+
+Currently, goup-util has **limited unit tests**. The Taskfile tasks serve as:
+- ✅ Integration tests (build → run workflows)
+- ✅ Smoke tests (does it build at all?)
+- ✅ Platform compatibility tests
+- ✅ User workflow validation
+
+**If a task is broken, users can't use the tool!**
+
+### Test Before Committing
+
+**Always run these before pushing**:
+
+```bash
+# 1. Verify all tasks are listed
+task --list
+
+# 2. Test info/config tasks (fast)
+task config
+task list:sdks
+task workspace:list
+
+# 3. Test icon generation (fast)
+task icons:hybrid
+
+# 4. Test at least one build (moderate)
+task run:hybrid      # Builds + launches
+
+# 5. Run Go tests (if they exist)
+task test
+```
+
+### Full Task Test Suite
+
+Create a test script to verify all tasks:
+
+```bash
+#!/bin/bash
+# test-tasks.sh
+
+echo "Testing Taskfile targets..."
+
+# Info tasks
+task config || echo "❌ config failed"
+task list:sdks || echo "❌ list:sdks failed"
+task workspace:list || echo "❌ workspace:list failed"
+
+# Icon tasks
+task icons:hybrid || echo "❌ icons:hybrid failed"
+
+# Build tasks (one per platform to save time)
+task build:hybrid:macos || echo "❌ build:hybrid:macos failed"
+
+# Run task (check if app launches)
+task run:hybrid || echo "❌ run:hybrid failed"
+
+echo "✓ Task testing complete"
+```
+
+### Common Task Issues
+
+**Problem**: Task fails with "invalid keys in command"
+- **Cause**: YAML syntax error (usually unescaped colons in strings)
+- **Fix**: Use single quotes or escape colons
+
+**Problem**: Task fails with "command not found"
+- **Cause**: Wrong path to binary or missing dependency
+- **Fix**: Check {{.GOUP}} variable, verify binary exists
+
+**Problem**: Task hangs
+- **Cause**: Waiting for user input or long operation
+- **Fix**: Add timeout or make operation non-interactive
+
+### Task Testing Checklist
+
+When modifying Taskfile.yml:
+
+- [ ] Run `task --list` (verify syntax)
+- [ ] Test the modified task
+- [ ] Test any dependent tasks
+- [ ] Verify task description is clear
+- [ ] Check task works on clean environment
+- [ ] Update this checklist if adding new categories
+
+### Integration with CI/CD
+
+**Future**: Add GitHub Actions workflow to test all tasks:
+
+```yaml
+# .github/workflows/test-tasks.yml
+name: Test Taskfile
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-task@v1
+      - run: task test
+      - run: task build:hybrid:macos
+      # etc.
+```
+
+### Remember
+
+**Every task is a promise to users.** If `task run:hybrid` doesn't work, you've broken that promise.
+
+Test your tasks. Keep them working. They're the user interface.
