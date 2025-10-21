@@ -308,3 +308,106 @@ open examples/gio-plugin-webviewer/.bin/macos/gio-plugin-webviewer.app
 - Deploys to web, desktop, and mobile from one codebase
 
 This is about **enabling pure Go development** for the kind of apps that traditionally require Swift + Kotlin + JavaScript. The webview integration is what makes hybrid apps possible while keeping native performance.
+
+## Documentation Best Practices
+
+### Screenshots for README
+
+**IMPORTANT**: The README should have visual proof that this works!
+
+Use the Playwright MCP to capture screenshots of running apps:
+
+1. **Desktop Apps** (macOS):
+```bash
+# Launch the app
+open examples/gio-plugin-webviewer/.bin/gio-plugin-webviewer.app
+
+# Use Playwright MCP to capture
+mcp__playwright__browser_take_screenshot
+# Save to: docs/screenshots/webviewer-macos.png
+```
+
+2. **Mobile Simulators** (iOS/Android):
+```bash
+# iOS Simulator
+open -a Simulator
+xcrun simctl install booted examples/gio-plugin-webviewer/.bin/gio-plugin-webviewer.app
+xcrun simctl launch booted com.example.gio-plugin-webviewer
+
+# Capture with screenshot tool
+# Save to: docs/screenshots/webviewer-ios.png
+
+# Android Emulator
+adb install examples/gio-plugin-webviewer/.bin/gio-plugin-webviewer.apk
+adb shell am start -n com.example.webviewer/.MainActivity
+
+# Capture
+adb exec-out screencap -p > docs/screenshots/webviewer-android.png
+```
+
+3. **README Structure**:
+```markdown
+# goup-util
+
+![macOS Screenshot](docs/screenshots/webviewer-macos.png)
+![iOS Screenshot](docs/screenshots/webviewer-ios.png)
+![Android Screenshot](docs/screenshots/webviewer-android.png)
+
+Build cross-platform hybrid apps in pure Go...
+```
+
+### Example Apps Should Be Complete
+
+**Current Issue**: webviewer example only loads external URLs (https://google.com)
+
+**Better**: Include embedded web server with example content
+
+```go
+// examples/hybrid-app-complete/
+// 
+// main.go - Gio UI + embedded HTTP server
+package main
+
+import (
+    "embed"
+    "net/http"
+    
+    "gioui.org/app"
+    "github.com/gioui-plugins/gio-plugins/webviewer"
+)
+
+//go:embed web/*
+var webContent embed.FS
+
+func main() {
+    // Start embedded web server
+    go func() {
+        http.Handle("/", http.FileServer(http.FS(webContent)))
+        http.ListenAndServe("localhost:8080", nil)
+    }()
+    
+    // Launch Gio app with webview pointing to localhost
+    // ...
+}
+
+// web/index.html - HTML/CSS/JS content
+// web/app.js - JavaScript that calls Go functions
+// web/styles.css - Styling
+```
+
+This shows:
+- ✅ Embedded web content (no external dependencies)
+- ✅ Go HTTP server (real backend)
+- ✅ Go ↔ JavaScript bridge (function calls)
+- ✅ Complete, working example
+- ✅ Can be used as template for real apps
+
+### When Creating Documentation
+
+1. **Always include screenshots** - Visual proof is powerful
+2. **Show it running** - Not just code, but actual output
+3. **Complete examples** - Should work out of the box
+4. **Link screenshots in README** - First thing people see
+5. **Update CLAUDE.md** when adding new patterns
+
+This helps AI assistants maintain documentation quality.

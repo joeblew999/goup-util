@@ -1,49 +1,242 @@
-# todo
+# goup-util TODO
 
-### UTM
+**Status**: Tool works! Builds hybrid apps for macOS, iOS, Android successfully.  
+**Next**: Polish the experience and expand platform support.
 
-In infra repo, we need to add UTM to the pkg/dep, so its alwas installed. 
+See [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md) for comprehensive improvement analysis.
 
+---
 
-### utm windows
+## 🔥 High Priority (Do First)
 
-From your Mac, we need to then use UTM to install windows 11, with the exact config we need. 
+### 1. Better Developer Experience
+**Problem**: Builds are silent, errors are cryptic, no progress feedback  
+**Impact**: Makes tool frustrating to use
 
-We need to do all this from golang.
+- [ ] **Rich progress bars** with download speed, ETA, file sizes
+- [ ] **Better error messages** with actionable suggestions and docs links
+- [ ] **Structured logging** with --verbose mode
+- [ ] **Build stage visibility** (Dependencies → Compilation → Packaging)
 
-https://github.com/naveenrajm7/
-https://github.com/naveenrajm7/packer-plugin-utm 
+**Implementation**: Week 1-2 quick win from roadmap
 
-THis will then allow use to git clone our infra project, and then run our code there for testing.
+---
 
+### 2. Update Documentation  
+**Problem**: README doesn't reflect what tool actually does  
+**Impact**: People don't understand the value proposition
 
-### utm Winget
+- [ ] **Rewrite README** - show hybrid app capability
+- [ ] **Quick start guide** that actually works end-to-end
+- [ ] **Example showcase** - what you can build
+- [ ] **Platform support matrix** - what's tested vs what's possible
 
-When we are inside the windows machine that UTM creates, we need to call winget to install the same base things that we have on a mac
+**Implementation**: 1-2 hours, do ASAP
 
-- git
-- go
-- vscoee
-- vscode extensions.
+---
 
-that will allow use to run all the code on our infra repo.
+### 3. Webview Integration Improvements
+**Problem**: Core feature but not well documented/supported  
+**Impact**: People can't build production hybrid apps
 
-We need to do all this from golang. 
+- [ ] **Go ↔ JavaScript bridge** - declarative API for function exposure
+- [ ] **TypeScript definitions generator** - type-safe bridge from Go types
+- [ ] **DevTools integration** - forward console.log, enable network inspection
+- [ ] **Hot reload** for web content during development
+- [ ] **Production example** - real hybrid app showing best practices
 
-github.com/crazy-max/winget-pkg
+**Implementation**: Phase 3 of roadmap (Q3 2025)
 
-https://github.com/mbarbita/go-winget/blob/main/go-winget.go
+---
 
+### 4. Windows Testing Automation
+**Problem**: Can't easily test Windows builds from macOS  
+**Impact**: Windows support is untested, might be broken
 
-### Winget MDM
+**The UTM Vision** (from old TODO):
 
-https://github.com/jantari/rewinged
+```
+┌─────────────────────────────────────────┐
+│     macOS Development Machine           │
+│                                          │
+│  ┌────────────────────────────────┐     │
+│  │  UTM (Virtual Machine)         │     │
+│  │                                │     │
+│  │  ┌──────────────────────────┐  │     │
+│  │  │  Windows 11              │  │     │
+│  │  │                          │  │     │
+│  │  │  - Git (via winget)      │  │     │
+│  │  │  - Go (via winget)       │  │     │
+│  │  │  - VSCode (via winget)   │  │     │
+│  │  │                          │  │     │
+│  │  │  → Run goup-util tests   │  │     │
+│  │  │  → Build Windows apps    │  │     │
+│  │  └──────────────────────────┘  │     │
+│  └────────────────────────────────┘     │
+└─────────────────────────────────────────┘
 
-Might be useful later ... It Servers winget Manifeests.
+Automated via:
+1. Packer + UTM plugin creates VM image
+2. Go code provisions VM with winget packages
+3. CI/CD runs tests in VM automatically
+```
 
-SO i could host this, pop my package manifests in, and then install off the Server on any Windows machine ?
-Must run behind caddy https.
+**Tasks**:
+- [ ] **UTM automation** - Create Windows 11 VM from Go code
+  - Use: https://github.com/naveenrajm7/packer-plugin-utm
+- [ ] **Winget provisioning** - Install dev tools in VM
+  - Use: https://github.com/mbarbita/go-winget
+- [ ] **Test runner** - Execute goup-util tests in Windows VM
+- [ ] **CI integration** - Run Windows tests on every commit
 
+**Implementation**: Phase 4 (Q4 2025) or when Windows support needed
 
+---
 
+## 🚀 Medium Priority
 
+### 5. Performance Improvements
+- [ ] **Incremental builds** - hash-based caching, skip unchanged
+- [ ] **Parallel builds** - build multiple platforms concurrently
+- [ ] **Parallel icon generation** - 5-10x faster
+- [ ] **Docker build cache** - consistent, fast CI/CD builds
+
+**Implementation**: Phase 2 (Q2 2025)
+
+---
+
+### 6. Configuration System
+- [ ] **goup.yaml** - project configuration file
+- [ ] **Platform-specific settings** - bundle IDs, permissions, signing
+- [ ] **Build profiles** - debug, release, staging
+- [ ] **CLI overrides** - flags override config file
+
+**Implementation**: Week 2 quick win + ongoing
+
+---
+
+### 7. Testing & Deployment
+- [ ] **Simulator/emulator automation** - `goup-util test ios --simulator`
+- [ ] **Device deployment** - `goup-util deploy android --device`
+- [ ] **Store helpers** - `goup-util deploy appstore --testflight`
+- [ ] **CI/CD templates** - GitHub Actions, CircleCI configs
+
+**Implementation**: Phase 4 (Q4 2025)
+
+---
+
+## 🔮 Future (Nice to Have)
+
+### 8. Cross-Compilation Fixes
+- [ ] **Linux cross-compile** - Docker-based builds from macOS
+- [ ] **Windows cross-compile** - Docker or remote builds
+- [ ] **Better CGo detection** - warn early about cross-compile issues
+
+### 9. Plugin System
+- [ ] **Custom commands** - extend goup-util via plugins
+- [ ] **Build hooks** - pre-build, post-build, pre-deploy
+- [ ] **Plugin marketplace** - share community plugins
+
+### 10. Enhanced Examples
+- [ ] **Hybrid dashboard** - Gio UI + web charts/graphs
+- [ ] **Offline-first app** - IndexedDB + Go backend sync
+- [ ] **Camera integration** - Native camera + Go processing
+- [ ] **Push notifications** - FCM/APNs integration
+- [ ] **OAuth flow** - Authentication with webview
+
+---
+
+## ✅ Completed
+
+- [x] **Core build system** - macOS, iOS, Android working
+- [x] **Webviewer example** - Multi-tab browser builds successfully
+- [x] **Icon generation** - All platforms supported
+- [x] **SDK management** - Caching, auto-install works
+- [x] **Workspace support** - Multi-module projects
+- [x] **Documentation** - CLAUDE.md, agents/, IMPROVEMENTS.md, WEBVIEW-ANALYSIS.md
+- [x] **Testing** - Validated on real platforms
+- [x] **Deep analysis** - Know what needs improvement
+
+---
+
+## 📊 Progress Tracking
+
+**Current Phase**: Proof of Concept → Production Ready  
+**Next Milestone**: Week 1-4 Quick Wins (Better UX)  
+**Long-term Goal**: Best Go hybrid app framework
+
+---
+
+## 🎯 This Week
+
+Focus on **immediate impact**:
+
+1. **Tonight**: Update README (1 hour)
+2. **This week**: Better build feedback (2-3 days)
+3. **Next week**: Production example app (3-4 days)
+
+Small wins → momentum → adoption → ecosystem
+
+---
+
+## 💡 Ideas Parking Lot
+
+Random ideas to evaluate later:
+
+- **Winget MDM** (https://github.com/jantari/rewinged) - Host winget manifests for internal tools
+- **Desktop PWA mode** - Gio app that IS a web browser for PWAs
+- **Bridge tooling** - Auto-generate bridge code from OpenAPI specs
+- **Visual builder** - GUI for designing Gio layouts
+- **Hot reload for Go** - Recompile and restart on code changes
+- **Remote build farm** - Build iOS apps without owning a Mac
+
+---
+
+**See also**:
+- [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md) - Comprehensive improvement roadmap
+- [docs/WEBVIEW-ANALYSIS.md](docs/WEBVIEW-ANALYSIS.md) - Cross-platform webview deep dive
+- [docs/agents/](docs/agents/) - AI assistant collaboration guides
+
+## 🎯 Screenshot & Documentation Tasks
+
+### Capture App Screenshots
+Use Playwright MCP or native tools to create visual documentation:
+
+- [ ] **macOS webviewer** - Running desktop app with tabs/browser
+- [ ] **iOS simulator** - App running in iPhone simulator
+- [ ] **Android emulator** - App running in Android emulator
+- [ ] **All three side-by-side** - Show cross-platform capability
+
+Save to `docs/screenshots/` and link in README.
+
+### Create Complete Hybrid Example
+
+**Problem**: Current webviewer just loads Google.com (external URL)
+
+**Better**: `examples/hybrid-app-complete/` with:
+
+```
+hybrid-app-complete/
+├── main.go              # Gio UI + embedded HTTP server
+├── go.mod
+├── icon-source.png
+└── web/
+    ├── index.html       # Landing page
+    ├── app.js           # JavaScript with Go bridge calls
+    ├── styles.css       # Styling
+    └── assets/
+        └── logo.png
+```
+
+**Features to demonstrate**:
+- ✅ Embedded `//go:embed` web content (no external deps)
+- ✅ Local HTTP server on localhost:8080
+- ✅ Go ↔ JavaScript bridge (call Go functions from JS)
+- ✅ Native Gio UI navigation (tabs, buttons)
+- ✅ WebView displaying embedded content
+- ✅ Offline-capable (all assets embedded)
+- ✅ Works on all platforms (iOS, Android, macOS, Windows)
+
+**This becomes THE showcase example** - proves the vision works end-to-end.
+
+Priority: HIGH (After README update)
