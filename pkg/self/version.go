@@ -15,50 +15,51 @@ var Version = "dev"
 
 // ShowVersion displays the current version of goup-util
 func ShowVersion() error {
-	location := ""
-	if path, err := exec.LookPath("goup-util"); err == nil {
-		location = path
-	}
+	output.Run("self version", func() (*output.VersionResult, error) {
+		location := ""
+		if path, err := exec.LookPath("goup-util"); err == nil {
+			location = path
+		}
 
-	result := output.VersionResult{
-		Version:  Version,
-		OS:       runtime.GOOS,
-		Arch:     runtime.GOARCH,
-		Location: location,
-	}
-
-	output.Print(result, "self version")
+		return &output.VersionResult{
+			Version:  Version,
+			OS:       runtime.GOOS,
+			Arch:     runtime.GOARCH,
+			Location: location,
+		}, nil
+	})
 	return nil
 }
 
 // ShowStatus checks installation status and available updates
 func ShowStatus() error {
-	result := output.StatusResult{}
+	output.Run("self status", func() (*output.StatusResult, error) {
+		result := &output.StatusResult{}
 
-	// Check if installed
-	installPath, err := exec.LookPath("goup-util")
-	if err != nil {
-		result.Installed = false
-		result.UpdateAvailable = false
-		output.Print(result, "self status")
-		return nil
-	}
+		// Check if installed
+		installPath, err := exec.LookPath("goup-util")
+		if err != nil {
+			result.Installed = false
+			result.UpdateAvailable = false
+			return result, nil
+		}
 
-	result.Installed = true
-	result.CurrentVersion = normalizeVersion(Version)
-	result.Location = installPath
+		result.Installed = true
+		result.CurrentVersion = normalizeVersion(Version)
+		result.Location = installPath
 
-	// Check for updates (from GitHub)
-	latest, err := getLatestVersion(FullRepoName)
-	if err == nil && latest != "" {
-		result.LatestVersion = latest
-		result.UpdateAvailable = (result.CurrentVersion != latest)
-	} else {
-		result.LatestVersion = ""
-		result.UpdateAvailable = false
-	}
+		// Check for updates (from GitHub)
+		latest, err := getLatestVersion(FullRepoName)
+		if err == nil && latest != "" {
+			result.LatestVersion = latest
+			result.UpdateAvailable = (result.CurrentVersion != latest)
+		} else {
+			result.LatestVersion = ""
+			result.UpdateAvailable = false
+		}
 
-	output.Print(result, "self status")
+		return result, nil
+	})
 	return nil
 }
 

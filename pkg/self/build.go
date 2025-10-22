@@ -134,7 +134,7 @@ func Build(opts BuildOptions) error {
 	result.OutputDir = distDir
 	fmt.Printf("✅ Release artifacts prepared in: %s\n", distDir)
 
-	output.Print(result, "self build")
+	output.OK("self build", result)
 	return nil
 }
 

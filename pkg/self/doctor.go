@@ -73,7 +73,7 @@ func Doctor() error {
 		result.Suggestions = append(result.Suggestions, "Install task")
 	}
 
-	output.Print(result, "self doctor")
+	output.OK("self doctor", result)
 	return nil
 }
 

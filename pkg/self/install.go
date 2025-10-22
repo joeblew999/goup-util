@@ -58,7 +58,7 @@ func InstallSelf() error {
 		DependenciesOK: depsOK,
 	}
 
-	output.Print(result, "self setup")
+	output.OK("self setup", result)
 	return nil
 }
 
@@ -316,7 +316,7 @@ func DownloadAndInstallLatest(repo string) error {
 	}
 
 	result.Installed = true
-	output.Print(result, "self upgrade")
+	output.OK("self upgrade", result)
 	return nil
 }
 
@@ -351,7 +351,7 @@ func UninstallSelf() error {
 	installations := findAllGoupUtilInstallations()
 
 	if len(installations) == 0 {
-		output.Print(result, "self uninstall")
+		output.OK("self uninstall", result)
 		return nil
 	}
 
@@ -364,7 +364,7 @@ func UninstallSelf() error {
 		}
 	}
 
-	output.Print(result, "self uninstall")
+	output.OK("self uninstall", result)
 	return nil
 }
 
