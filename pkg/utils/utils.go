@@ -51,9 +51,9 @@ func NewCacheWithDirectories() (*installer.Cache, error) {
 	return cache, nil
 }
 
-// ParseSDKFiles parses both Android and iOS SDK files and returns them
+// ParseSDKFiles parses all SDK files (Android, iOS, Build Tools) and returns them
 func ParseSDKFiles() ([]config.SdkFile, error) {
-	sdkFileContents := [][]byte{config.AndroidSdkList, config.IosSdkList}
+	sdkFileContents := [][]byte{config.AndroidSdkList, config.IosSdkList, config.BuildToolsSdkList}
 	var sdkFiles []config.SdkFile
 
 	for _, sdkFileContent := range sdkFileContents {
@@ -69,9 +69,9 @@ func ParseSDKFiles() ([]config.SdkFile, error) {
 	return sdkFiles, nil
 }
 
-// ParseMetaFiles parses both Android and iOS SDK files as MetaFiles for setup functionality
+// ParseMetaFiles parses all SDK files (Android, iOS, Build Tools) as MetaFiles for setup functionality
 func ParseMetaFiles() ([]config.MetaFile, error) {
-	sdkFileContents := [][]byte{config.AndroidSdkList, config.IosSdkList}
+	sdkFileContents := [][]byte{config.AndroidSdkList, config.IosSdkList, config.BuildToolsSdkList}
 	var metaFiles []config.MetaFile
 
 	for _, sdkFileContent := range sdkFileContents {

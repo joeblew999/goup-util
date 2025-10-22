@@ -14,6 +14,9 @@ var AndroidSdkList []byte
 //go:embed sdk-ios-list.json
 var IosSdkList []byte
 
+//go:embed sdk-build-tools.json
+var BuildToolsSdkList []byte
+
 // Platform defines the structure for platform-specific SDK details.
 type Platform struct {
 	DownloadURL string `json:"downloadUrl"`
