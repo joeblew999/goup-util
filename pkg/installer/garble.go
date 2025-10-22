@@ -6,22 +6,37 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 const (
-	GarbleVersion = "v0.15.0"
-	GarblePackage = "mvdan.cc/garble"
+	GarbleVersion     = "v0.15.0"
+	GarblePackage     = "mvdan.cc/garble"
+	GarbleInstallPath = "sdks/tools/garble" // Relative to SDK root
 )
 
-// InstallGarble installs garble using go install and adds it to the cache
+// InstallGarble installs garble to SDK directory using go install
 func InstallGarble(cache *Cache) error {
-	fmt.Printf("📥 Installing garble %s...\n", GarbleVersion)
+	fmt.Printf("📥 Installing garble %s to SDK directory...\n", GarbleVersion)
 
-	// Check if already in cache and installed
-	garblePath, _ := exec.LookPath("garble")
-	if entry, ok := cache.Entries["garble"]; ok && garblePath != "" {
-		fmt.Printf("✅ garble %s is already installed at: %s\n", entry.Version, garblePath)
-		return nil
+	// Resolve SDK install path
+	installPath, err := ResolveInstallPath(GarbleInstallPath)
+	if err != nil {
+		return fmt.Errorf("failed to resolve install path: %w", err)
+	}
+
+	// Check if already installed in SDK directory
+	garbleBinary := "garble"
+	if runtime.GOOS == "windows" {
+		garbleBinary = "garble.exe"
+	}
+	garblePath := filepath.Join(installPath, garbleBinary)
+
+	if entry, ok := cache.Entries["garble"]; ok {
+		if _, err := os.Stat(garblePath); err == nil {
+			fmt.Printf("✅ garble %s is already installed at: %s\n", entry.Version, garblePath)
+			return nil
+		}
 	}
 
 	// Check if Go is installed
@@ -29,8 +44,14 @@ func InstallGarble(cache *Cache) error {
 		return fmt.Errorf("go command not found. Please install Go first")
 	}
 
-	// Run go install
+	// Create install directory
+	if err := os.MkdirAll(installPath, 0755); err != nil {
+		return fmt.Errorf("failed to create install directory: %w", err)
+	}
+
+	// Run go install with GOBIN set to SDK directory
 	cmd := exec.Command("go", "install", GarblePackage+"@"+GarbleVersion)
+	cmd.Env = append(os.Environ(), "GOBIN="+installPath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -39,20 +60,19 @@ func InstallGarble(cache *Cache) error {
 	}
 
 	// Verify installation
-	garblePath, err := exec.LookPath("garble")
-	if err != nil {
-		return fmt.Errorf("garble installed but not found in PATH. Make sure GOBIN is in your PATH")
+	if _, err := os.Stat(garblePath); err != nil {
+		return fmt.Errorf("garble binary not found at %s after installation", garblePath)
 	}
 
 	fmt.Printf("✅ garble installed successfully at: %s\n", garblePath)
 
 	// Test garble version
-	versionCmd := exec.Command("garble", "version")
+	versionCmd := exec.Command(garblePath, "version")
 	output, err := versionCmd.Output()
 	if err != nil {
 		fmt.Printf("⚠️  Warning: Could not verify garble version: %v\n", err)
 	} else {
-		fmt.Printf("   Version: %s", string(output))
+		fmt.Printf("   Version: %s\n", strings.TrimSpace(string(output)))
 	}
 
 	// Add to cache
@@ -60,7 +80,7 @@ func InstallGarble(cache *Cache) error {
 		Name:        "garble",
 		Version:     GarbleVersion,
 		Checksum:    "go-install", // Special marker for go-install tools
-		InstallPath: garblePath,
+		InstallPath: GarbleInstallPath,
 	})
 
 	if err := cache.Save(); err != nil {
@@ -70,64 +90,27 @@ func InstallGarble(cache *Cache) error {
 	return nil
 }
 
-// IsGarbleInstalled checks if garble is available in PATH
+// IsGarbleInstalled checks if garble is available in SDK directory
 func IsGarbleInstalled() bool {
-	_, err := exec.LookPath("garble")
+	garblePath, err := GetGarblePath()
+	if err != nil {
+		return false
+	}
+	_, err = os.Stat(garblePath)
 	return err == nil
 }
 
-// GetGarblePath returns the path to garble binary
+// GetGarblePath returns the path to garble binary in SDK directory
 func GetGarblePath() (string, error) {
-	return exec.LookPath("garble")
-}
-
-// GetGarbleCommand returns the command to run garble
-// This handles both Unix and Windows paths
-func GetGarbleCommand() string {
-	if runtime.GOOS == "windows" {
-		return "garble.exe"
-	}
-	return "garble"
-}
-
-// GarbleBuild runs garble build with the given arguments
-func GarbleBuild(args ...string) error {
-	cmd := exec.Command("garble", append([]string{"build"}, args...)...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-
-	return cmd.Run()
-}
-
-// CheckGarbleVersion verifies the installed garble version
-func CheckGarbleVersion() (string, error) {
-	cmd := exec.Command("garble", "version")
-	output, err := cmd.Output()
+	installPath, err := ResolveInstallPath(GarbleInstallPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to check garble version: %w", err)
+		return "", err
 	}
 
-	return string(output), nil
-}
-
-// GetGOBIN returns the GOBIN directory where garble is installed
-func GetGOBIN() string {
-	// Check GOBIN environment variable
-	if gobin := os.Getenv("GOBIN"); gobin != "" {
-		return gobin
+	garbleBinary := "garble"
+	if runtime.GOOS == "windows" {
+		garbleBinary = "garble.exe"
 	}
 
-	// Default to GOPATH/bin
-	gopath := os.Getenv("GOPATH")
-	if gopath == "" {
-		// Default GOPATH is $HOME/go
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return ""
-		}
-		gopath = filepath.Join(home, "go")
-	}
-
-	return filepath.Join(gopath, "bin")
+	return filepath.Join(installPath, garbleBinary), nil
 }

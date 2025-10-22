@@ -62,8 +62,13 @@ func Build(opts BuildOptions) error {
 
 		var buildCmd *exec.Cmd
 		if opts.Obfuscate {
+			// Get garble path from SDK directory
+			garblePath, err := installer.GetGarblePath()
+			if err != nil {
+				return fmt.Errorf("failed to get garble path: %w", err)
+			}
 			// Use garble build for obfuscation
-			buildCmd = exec.Command("garble", "build", "-o", outputPath, ".")
+			buildCmd = exec.Command(garblePath, "build", "-o", outputPath, ".")
 		} else {
 			// Normal go build
 			buildCmd = exec.Command("go", "build", "-o", outputPath, ".")
