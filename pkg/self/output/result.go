@@ -77,6 +77,7 @@ func (s StatusResult) ToBaseResult(command string) *BaseResult {
 // DoctorResult represents doctor command output
 type DoctorResult struct {
 	Installations []InstallationInfo `json:"installations"`
+	Dependencies  []DependencyInfo   `json:"dependencies"`
 	Issues        []string           `json:"issues,omitempty"`
 	Suggestions   []string           `json:"suggestions,omitempty"`
 }
@@ -85,6 +86,12 @@ type InstallationInfo struct {
 	Path     string `json:"path"`
 	Active   bool   `json:"active"`
 	Shadowed bool   `json:"shadowed"`
+}
+
+type DependencyInfo struct {
+	Name      string `json:"name"`
+	Installed bool   `json:"installed"`
+	Version   string `json:"version,omitempty"`
 }
 
 func (d DoctorResult) ToBaseResult(command string) *BaseResult {
