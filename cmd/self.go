@@ -8,7 +8,22 @@ import (
 var selfCmd = &cobra.Command{
 	Use:   "self",
 	Short: "Manage goup-util itself",
-	Long:  "Commands for building, installing, upgrading, and releasing goup-util itself.",
+	Long: `Commands for building, installing, upgrading, and releasing goup-util itself.
+
+Information Commands:
+  version  - Show current version
+  status   - Check installation and available updates
+  doctor   - Validate dependencies (Homebrew, git, go, task)
+
+Installation Commands:
+  setup     - Full setup: install dependencies + goup-util to system PATH
+  upgrade   - Download and install latest release from GitHub
+  uninstall - Remove goup-util from system PATH
+
+Development Commands:
+  build   - Cross-compile binaries for all platforms (outputs to .dist/)
+  test    - Test bootstrap scripts locally before releasing
+  release - Create git tag and push (triggers GitHub Actions to build and release)`,
 }
 
 var (
@@ -18,8 +33,18 @@ var (
 
 var selfBuildCmd = &cobra.Command{
 	Use:   "build",
-	Short: "Build goup-util binaries",
-	Long:  "Cross-compile goup-util for all supported architectures and generate bootstrap scripts.",
+	Short: "Build goup-util binaries for all platforms",
+	Long: `Cross-compile goup-util for all supported architectures and generate bootstrap scripts.
+
+Output: All artifacts are placed in .dist/ directory
+- Binaries: .dist/goup-util-<platform>
+- Scripts: .dist/macos-bootstrap.sh, .dist/windows-bootstrap.ps1
+
+Flags:
+  --local      Generate scripts that use local binaries (for testing)
+  --obfuscate  Use garble to obfuscate code (auto-installs if needed)
+
+This is a LOCAL build command - it does NOT create releases or push to GitHub.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts := self.BuildOptions{
 			UseLocal:  buildLocal,
@@ -67,8 +92,15 @@ var selfDoctorCmd = &cobra.Command{
 
 var selfTestCmd = &cobra.Command{
 	Use:   "test",
-	Short: "Test bootstrap scripts locally",
-	Long:  "Generate and test bootstrap scripts in local mode to verify they work before releasing.",
+	Short: "Test bootstrap scripts locally before releasing",
+	Long: `Generate and test bootstrap scripts in local mode to verify they work.
+
+This command:
+1. Builds goup-util with --local flag (scripts use local binaries)
+2. Verifies bootstrap scripts exist and contain expected content
+3. Tests that the binary executes correctly
+
+Run this before 'self release' to catch issues early.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return self.TestBootstrap()
 	},
@@ -90,8 +122,13 @@ var selfSetupCmd = &cobra.Command{
 
 var selfUpgradeCmd = &cobra.Command{
 	Use:   "upgrade",
-	Short: "Upgrade goup-util to latest release",
-	Long:  "Download and install the latest goup-util release from GitHub.",
+	Short: "Download and install latest release from GitHub",
+	Long: `Download and install the latest goup-util release from GitHub.
+
+This downloads the pre-built binary for your platform from the GitHub Releases page
+and installs it to your system PATH (~/.local/bin/ or ~/bin/).
+
+Use this command to update goup-util after a new release has been published.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return self.DownloadAndInstallLatest(self.FullRepoName)
 	},
@@ -99,8 +136,28 @@ var selfUpgradeCmd = &cobra.Command{
 
 var selfReleaseCmd = &cobra.Command{
 	Use:   "release [patch|minor|major|v1.2.3]",
-	Short: "Release goup-util",
-	Long:  "Complete release process: test, build, commit, push, and tag. Defaults to 'minor' if no version specified.",
+	Short: "Create git tag and trigger GitHub Actions release",
+	Long: `Prepare and trigger a release by creating a git tag.
+
+This command does the following locally:
+1. Runs tests (self test)
+2. Builds with obfuscation (self build --obfuscate)
+3. Commits .dist/ artifacts
+4. Creates a git tag (e.g., v1.1.0)
+5. Pushes tag to GitHub
+
+GitHub Actions then automatically:
+- Builds obfuscated binaries for all platforms
+- Creates a GitHub Release
+- Uploads artifacts (.dist/goup-util-*, .dist/*.sh, .dist/*.ps1)
+
+Version options (defaults to 'minor'):
+  patch      - Increment patch version (1.0.0 → 1.0.1)
+  minor      - Increment minor version (1.0.0 → 1.1.0)
+  major      - Increment major version (1.0.0 → 2.0.0)
+  v1.2.3     - Use specific version
+
+IMPORTANT: This does NOT upload files directly. It triggers GitHub Actions by pushing a tag.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		version := "minor" // Default to minor release
 		if len(args) == 1 {
