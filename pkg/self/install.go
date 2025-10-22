@@ -201,7 +201,7 @@ func DownloadAndInstallLatest(repo string) error {
 	}
 
 	// Get latest release info
-	releaseURL := fmt.Sprintf(GetLatestReleaseURL() + "%s", repo)
+	releaseURL := GetLatestReleaseURL()
 	resp, err := http.Get(releaseURL)
 	if err != nil {
 		return fmt.Errorf("failed to check for updates: %w", err)
