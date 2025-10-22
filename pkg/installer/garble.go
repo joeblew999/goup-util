@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	GarbleVersion     = "v0.15.0"
+	GarbleVersion     = "latest" // Always use latest version for best Go compatibility
 	GarblePackage     = "mvdan.cc/garble"
 	GarbleInstallPath = "sdks/tools/garble" // Relative to SDK root
 )
