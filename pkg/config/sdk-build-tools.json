@@ -4,7 +4,7 @@
       {
         "version": "1.2.41",
         "goupName": "redress",
-        "installPath": "tools/redress",
+        "installPath": "sdks/tools/redress",
         "platforms": {
           "darwin": {
             "downloadUrl": "https://github.com/goretk/redress/releases/download/v1.2.41/redress-v1.2.41-macos.tar.gz",

@@ -31,7 +31,7 @@ $ go run . install redress
 ✅ Extraction complete.
 ```
 
-**Result**: ✅ Downloaded, verified, extracted to `tools/redress/`
+**Result**: ✅ Downloaded, verified, extracted to `~/goup-util-sdks/tools/redress/`
 
 ## Obfuscation Build Tests ✅
 
@@ -71,14 +71,14 @@ $ ./goup-util self build --obfuscate
 
 ### Redress Analysis
 ```bash
-$ ./tools/redress/redress-v1.2.41/redress info ./goup-util-darwin-arm64
+$ ~/goup-util-sdks/tools/redress/redress-v1.2.41/redress info ./goup-util-darwin-arm64
 OS        macOS
 Arch      arm64
 # main    0
 # std     0
 # vendor  0
 
-$ ./tools/redress/redress-v1.2.41/redress packages ./goup-util-darwin-arm64
+$ ~/goup-util-sdks/tools/redress/redress-v1.2.41/redress packages ./goup-util-darwin-arm64
 Packages:
 Name  Version
 ----  -------
@@ -252,7 +252,7 @@ go run . install redress
 go run . self build --obfuscate
 
 # Verify obfuscation
-./tools/redress/redress-v1.2.41/redress info ./goup-util-darwin-arm64
+~/goup-util-sdks/tools/redress/redress-v1.2.41/redress info ./goup-util-darwin-arm64
 
 # Test functionality
 ./goup-util-darwin-arm64 self version | jq
