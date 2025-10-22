@@ -60,8 +60,8 @@ func TestGetSDKDir(t *testing.T) {
 	// OS-specific checks
 	switch runtime.GOOS {
 	case "darwin":
-		if !strings.Contains(sdkDir, "Library/Application Support") {
-			t.Errorf("On macOS, expected SDK dir to contain 'Library/Application Support', got %q", sdkDir)
+		if !strings.Contains(sdkDir, "goup-util-sdks") {
+			t.Errorf("On macOS, expected SDK dir to contain 'goup-util-sdks', got %q", sdkDir)
 		}
 	case "linux":
 		if !strings.Contains(sdkDir, ".local/share") && !strings.Contains(sdkDir, "XDG_DATA_HOME") {
