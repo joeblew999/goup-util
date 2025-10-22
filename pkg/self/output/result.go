@@ -115,6 +115,8 @@ type BuildResult struct {
 	ScriptsGenerated bool     `json:"scripts_generated"`
 	OutputDir        string   `json:"output_dir"`
 	LocalMode        bool     `json:"local_mode"`
+	GarbleInstalled  bool     `json:"garble_installed,omitempty"`
+	Obfuscated       bool     `json:"obfuscated"`
 }
 
 func (b BuildResult) ToBaseResult(command string) *BaseResult {

@@ -7,30 +7,25 @@ on:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
-    
+    runs-on: macos-latest
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version: '1.23'
-    
-    # - name: Run tests
-    #   run: go test ./...
-    
-    - name: Build all platforms using self build
+
+    - name: Build all platforms with obfuscation
       run: |
-        go run . self build
-        mkdir -p dist
-        mv goup-util-* dist/
-    
+        echo "Building with self system (auto-installs garble)..."
+        go run . self build --obfuscate
+
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        files: |
-          dist/goup-util-*
+        files: .dist/*
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

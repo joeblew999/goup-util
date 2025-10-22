@@ -12,7 +12,7 @@ var selfCmd = &cobra.Command{
 }
 
 var (
-	buildLocal    bool // Flag for local mode
+	buildLocal     bool // Flag for local mode
 	buildObfuscate bool // Flag for garble obfuscation
 )
 
@@ -101,8 +101,10 @@ var selfReleaseCmd = &cobra.Command{
 	Use:   "release [patch|minor|major|v1.2.3]",
 	Short: "Release goup-util",
 	Long:  "Complete release process: test, build, commit, push, and tag.",
-	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) != 1 {
+			return self.ReleaseError("version argument required: patch, minor, major, or v1.2.3")
+		}
 		return self.Release(args[0])
 	},
 }
@@ -127,5 +129,5 @@ func init() {
 
 	// Add flags
 	selfBuildCmd.Flags().BoolVar(&buildLocal, "local", false, "Generate bootstrap scripts for local testing (uses local binaries instead of GitHub releases)")
-	selfBuildCmd.Flags().BoolVar(&buildObfuscate, "obfuscate", false, "Use garble to obfuscate binaries (requires: go run . install garble)")
+	selfBuildCmd.Flags().BoolVar(&buildObfuscate, "obfuscate", false, "Use garble to obfuscate binaries (auto-installs garble if needed)")
 }

@@ -8,21 +8,24 @@ import (
 
 	"github.com/joeblew999/goup-util/pkg/installer"
 	"github.com/joeblew999/goup-util/pkg/self/output"
+	"github.com/joeblew999/goup-util/pkg/utils"
 )
 
 // BuildOptions contains options for the Build function.
 type BuildOptions struct {
-	UseLocal   bool // If true, generate bootstrap scripts for local testing
-	Obfuscate  bool // If true, use garble to obfuscate the binary
+	UseLocal  bool // If true, generate bootstrap scripts for local testing
+	Obfuscate bool // If true, use garble to obfuscate the binary
 }
 
 // Build cross-compiles goup-util for all supported architectures.
 // Generates binaries in the current directory and bootstrap scripts in scripts/.
 func Build(opts BuildOptions) error {
 	result := output.BuildResult{
-		Binaries:        []string{},
+		Binaries:         []string{},
 		ScriptsGenerated: false,
-		LocalMode:       opts.UseLocal,
+		LocalMode:        opts.UseLocal,
+		Obfuscated:       opts.Obfuscate,
+		GarbleInstalled:  false,
 	}
 
 	// Get current directory (where goup-util source is)
@@ -33,10 +36,22 @@ func Build(opts BuildOptions) error {
 
 	result.OutputDir = currentDir
 
-	// Check if garble is needed and available
+	// Check if garble is needed and install if missing
 	if opts.Obfuscate {
 		if !installer.IsGarbleInstalled() {
-			return fmt.Errorf("--obfuscate flag requires garble to be installed. Run: go run . install garble")
+			fmt.Println("📥 Garble not found, installing...")
+
+			// Create cache for garble installation
+			cache, err := utils.NewCacheWithDirectories()
+			if err != nil {
+				return fmt.Errorf("failed to create cache: %w", err)
+			}
+
+			if err := installer.InstallGarble(cache); err != nil {
+				return fmt.Errorf("failed to install garble: %w", err)
+			}
+
+			result.GarbleInstalled = true
 		}
 		fmt.Println("🔒 Building with garble obfuscation...")
 	}
@@ -75,14 +90,52 @@ func Build(opts BuildOptions) error {
 	}
 
 	result.ScriptsGenerated = true
+
+	// ALWAYS create dist directory with all artifacts
+	distDir := filepath.Join(currentDir, DistDir)
+
+	// Create dist directory
+	if err := os.MkdirAll(distDir, 0755); err != nil {
+		return fmt.Errorf("failed to create %s directory: %w", DistDir, err)
+	}
+
+	// Move binaries to dist
+	for _, binary := range result.Binaries {
+		src := filepath.Join(currentDir, binary)
+		dst := filepath.Join(distDir, binary)
+		if err := os.Rename(src, dst); err != nil {
+			return fmt.Errorf("failed to move %s to %s: %w", binary, DistDir, err)
+		}
+	}
+
+	// Move bootstrap scripts to dist
+	macosScript := filepath.Join(currentDir, MacOSBootstrapScript)
+	windowsScript := filepath.Join(currentDir, WindowsBootstrapScript)
+
+	if _, err := os.Stat(macosScript); err == nil {
+		dst := filepath.Join(distDir, MacOSBootstrapScript)
+		if err := os.Rename(macosScript, dst); err != nil {
+			return fmt.Errorf("failed to move %s to %s: %w", MacOSBootstrapScript, DistDir, err)
+		}
+	}
+
+	if _, err := os.Stat(windowsScript); err == nil {
+		dst := filepath.Join(distDir, WindowsBootstrapScript)
+		if err := os.Rename(windowsScript, dst); err != nil {
+			return fmt.Errorf("failed to move %s to %s: %w", WindowsBootstrapScript, DistDir, err)
+		}
+	}
+
+	result.OutputDir = distDir
+	fmt.Printf("✅ Release artifacts prepared in: %s\n", distDir)
+
 	output.Print(result, "self build")
 	return nil
 }
 
 // generateBootstrapScripts creates bootstrap shell/PowerShell scripts
 func generateBootstrapScripts(baseDir string, opts BuildOptions) error {
-	scriptsDir := filepath.Join(baseDir, "scripts")
-
+	// Generate scripts in the same directory as binaries
 	// Get supported architectures
 	allArchs := SupportedArchitectures()
 	macOSArchs := ArchsToGoArchList(FilterByOS(allArchs, "darwin"))
@@ -103,5 +156,5 @@ func generateBootstrapScripts(baseDir string, opts BuildOptions) error {
 		config.LocalBinDir = baseDir
 	}
 
-	return Generate(scriptsDir, config)
+	return Generate(baseDir, config)
 }

@@ -1,0 +1,78 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Build goup-util with obfuscation
+      run: |
+        echo "Building with self system (auto-installs garble)..."
+        go run . self build --obfuscate
+
+    - name: Verify JSON output
+      run: |
+        echo "Testing self version command..."
+        ./goup-util-darwin-arm64 self version | jq .
+
+    - name: List built binaries
+      run: |
+        echo "Built binaries:"
+        ls -lh goup-util-*
+
+    - name: Upload darwin-arm64
+      uses: actions/upload-artifact@v4
+      with:
+        name: goup-util-darwin-arm64
+        path: goup-util-darwin-arm64
+
+    - name: Upload darwin-amd64
+      uses: actions/upload-artifact@v4
+      with:
+        name: goup-util-darwin-amd64
+        path: goup-util-darwin-amd64
+
+    - name: Upload linux-amd64
+      uses: actions/upload-artifact@v4
+      with:
+        name: goup-util-linux-amd64
+        path: goup-util-linux-amd64
+
+    - name: Upload linux-arm64
+      uses: actions/upload-artifact@v4
+      with:
+        name: goup-util-linux-arm64
+        path: goup-util-linux-arm64
+
+    - name: Upload windows-amd64
+      uses: actions/upload-artifact@v4
+      with:
+        name: goup-util-windows-amd64.exe
+        path: goup-util-windows-amd64.exe
+
+    - name: Upload windows-arm64
+      uses: actions/upload-artifact@v4
+      with:
+        name: goup-util-windows-arm64.exe
+        path: goup-util-windows-arm64.exe
+
+    - name: Upload bootstrap scripts
+      uses: actions/upload-artifact@v4
+      with:
+        name: bootstrap-scripts
+        path: |
+          *.sh
+          *.ps1

@@ -10,6 +10,12 @@ import (
 	selfOutput "github.com/joeblew999/goup-util/pkg/self/output"
 )
 
+// ReleaseError outputs a JSON error for release command and exits
+func ReleaseError(message string) error {
+	selfOutput.PrintError("self release", fmt.Errorf("%s", message))
+	return nil // Never reached because PrintError calls os.Exit
+}
+
 // Release performs the complete release process:
 // - Runs tests
 // - Builds all architectures

@@ -6,8 +6,10 @@ examples/*/.build/
 go.work
 go.work.sum
 
-# goup-util binaries (build with 'go run . self build')
+# goup-util binaries and bootstrap scripts (build with 'go run . self build')
 goup-util-*
+macos-bootstrap.sh
+windows-bootstrap.ps1
 
 # Source code references (for reading dependencies)
 .src/

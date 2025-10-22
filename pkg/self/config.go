@@ -33,6 +33,7 @@ const (
 // Directory and file names
 const (
 	ScriptsDir             = "scripts"
+	DistDir                = ".dist"
 	MacOSBootstrapScript   = "macos-bootstrap.sh"
 	WindowsBootstrapScript = "windows-bootstrap.ps1"
 )
