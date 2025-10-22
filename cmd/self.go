@@ -1,6 +1,10 @@
 package cmd
 
 import (
+	"fmt"
+	"os/exec"
+	"strings"
+
 	"github.com/joeblew999/goup-util/pkg/self"
 	"github.com/spf13/cobra"
 )
@@ -66,6 +70,39 @@ var selfDoctorCmd = &cobra.Command{
 	},
 }
 
+var selfCheckReleaseCmd = &cobra.Command{
+	Use:   "check-release [tag]",
+	Short: "Check if a GitHub release is ready",
+	Long: `Check if a GitHub release exists and has assets.
+
+This is useful after running 'self release' to monitor the async GitHub Actions workflow.
+
+Examples:
+  goup-util self check-release v1.5.0
+  goup-util self check-release          # checks latest tag
+
+Returns JSON with:
+- exists: whether release exists on GitHub
+- published: whether it's published
+- assets: list of available files
+- release_url: direct link to release
+- workflow_url: link to monitor GitHub Actions`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		tag := ""
+		if len(args) > 0 {
+			tag = args[0]
+		} else {
+			// Get latest tag
+			out, err := exec.Command("git", "describe", "--tags", "--abbrev=0").Output()
+			if err != nil {
+				return fmt.Errorf("no tag specified and couldn't get latest tag: %w", err)
+			}
+			tag = strings.TrimSpace(string(out))
+		}
+		return self.CheckRelease(tag)
+	},
+}
+
 var selfUpgradeCmd = &cobra.Command{
 	Use:   "upgrade",
 	Short: "Download and install latest release from GitHub",
@@ -123,6 +160,7 @@ func init() {
 	// Developer commands
 	selfCmd.AddCommand(selfBuildCmd)
 	selfCmd.AddCommand(selfReleaseCmd)
+	selfCmd.AddCommand(selfCheckReleaseCmd)
 
 	// Add flags
 	selfBuildCmd.Flags().BoolVar(&buildLocal, "local", false, "Generate bootstrap scripts for local testing (uses local binaries instead of GitHub releases)")
