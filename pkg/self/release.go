@@ -10,82 +10,69 @@ import (
 	selfOutput "github.com/joeblew999/goup-util/pkg/self/output"
 )
 
-// ReleaseError outputs a JSON error for release command and exits
-func ReleaseError(message string) error {
-	selfOutput.PrintError("self release", fmt.Errorf("%s", message))
-	return nil // Never reached because PrintError calls os.Exit
-}
-
-// Release performs the complete release process:
-// - Runs tests
-// - Builds all architectures
-// - Creates git tag
-// - Pushes to GitHub
-// Release performs the complete release process:
-// - Runs tests
-// - Builds all architectures
-// - Creates git tag
-// - Pushes to GitHub
+// Release performs the complete release process using the new typed output API
 func Release(version string) error {
-	result := selfOutput.ReleaseResult{
-		TestsPassed: false,
-		Built:       false,
-		Tagged:      false,
-		Pushed:      false,
-		Binaries:    []string{},
-	}
+	selfOutput.Run("self release", func() (*selfOutput.ReleaseResult, error) {
+		result := &selfOutput.ReleaseResult{
+			TestsPassed: false,
+			Built:       false,
+			Tagged:      false,
+			Pushed:      false,
+			Binaries:    []string{},
+		}
 
-	// Validate and normalize version
-	version = normalizeVersion(version)
-	if err := validateVersion(version); err != nil {
-		return err
-	}
-	result.Version = version
+		// Validate and normalize version
+		version = normalizeVersion(version)
+		if err := validateVersion(version); err != nil {
+			return nil, err
+		}
+		result.Version = version
 
-	// Check if working directory is clean
-	if err := exec.Command("git", "diff-index", "--quiet", "HEAD", "--").Run(); err != nil {
-		return fmt.Errorf("working directory is not clean. Please commit changes first")
-	}
+		// Check if working directory is clean
+		if err := exec.Command("git", "diff-index", "--quiet", "HEAD", "--").Run(); err != nil {
+			return nil, fmt.Errorf("working directory is not clean. Please commit changes first")
+		}
 
-	// Run tests
-	testCmd := exec.Command("go", "test", "./...")
-	if _, err := testCmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("tests failed: %w", err)
-	}
+		// Run tests
+		testCmd := exec.Command("go", "test", "./...")
+		if _, err := testCmd.CombinedOutput(); err != nil {
+			return nil, fmt.Errorf("tests failed: %w", err)
+		}
 
-	// Run race tests
-	raceCmd := exec.Command("go", "test", "-race", "./...")
-	if _, err := raceCmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("race tests failed: %w", err)
-	}
+		// Run race tests
+		raceCmd := exec.Command("go", "test", "-race", "./...")
+		if _, err := raceCmd.CombinedOutput(); err != nil {
+			return nil, fmt.Errorf("race tests failed: %w", err)
+		}
 
-	result.TestsPassed = true
+		result.TestsPassed = true
 
-	// Build self with obfuscation (use remote mode for releases)
-	// Obfuscate releases for security
-	if err := Build(BuildOptions{UseLocal: false, Obfuscate: true}); err != nil {
-		return fmt.Errorf("build failed: %w", err)
-	}
+		// Build self with obfuscation (use remote mode for releases)
+		if err := Build(BuildOptions{UseLocal: false, Obfuscate: true}); err != nil {
+			return nil, fmt.Errorf("build failed: %w", err)
+		}
 
-	// Collect built binaries
-	for _, arch := range SupportedArchitectures() {
-		result.Binaries = append(result.Binaries, fmt.Sprintf("goup-util-%s", arch.Suffix))
-	}
-	result.Built = true
+		// Collect built binaries
+		for _, arch := range SupportedArchitectures() {
+			result.Binaries = append(result.Binaries, fmt.Sprintf("goup-util-%s", arch.Suffix))
+		}
+		result.Built = true
 
-	// Create tag
-	if err := exec.Command("git", "tag", "-a", version, "-m", "Release "+version).Run(); err != nil {
-		return fmt.Errorf("failed to create tag: %w", err)
-	}
-	result.Tagged = true
+		// Create tag
+		if err := exec.Command("git", "tag", "-a", version, "-m", "Release "+version).Run(); err != nil {
+			return nil, fmt.Errorf("failed to create tag: %w", err)
+		}
+		result.Tagged = true
 
-	// Push tag
-	if err := exec.Command("git", "push", "origin", version).Run(); err != nil {
-		return fmt.Errorf("failed to push tag: %w", err)
-	}
-	result.Pushed = true
+		// Push tag
+		if err := exec.Command("git", "push", "origin", version).Run(); err != nil {
+			return nil, fmt.Errorf("failed to push tag: %w", err)
+		}
+		result.Pushed = true
 
-	selfOutput.Print(result, "self release")
+		return result, nil
+	})
+
 	return nil
 }
 
