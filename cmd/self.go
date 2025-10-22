@@ -100,12 +100,13 @@ var selfUpgradeCmd = &cobra.Command{
 var selfReleaseCmd = &cobra.Command{
 	Use:   "release [patch|minor|major|v1.2.3]",
 	Short: "Release goup-util",
-	Long:  "Complete release process: test, build, commit, push, and tag.",
+	Long:  "Complete release process: test, build, commit, push, and tag. Defaults to 'minor' if no version specified.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) != 1 {
-			return self.ReleaseError("version argument required: patch, minor, major, or v1.2.3")
+		version := "minor" // Default to minor release
+		if len(args) == 1 {
+			version = args[0]
 		}
-		return self.Release(args[0])
+		return self.Release(version)
 	},
 }
 
