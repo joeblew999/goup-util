@@ -10,9 +10,26 @@ import (
 )
 
 var msixPackCmd = &cobra.Command{
-	Use:   "msix-pack",
-	Short: "Package an MSIX file (Windows only)",
-	Long:  "Package an MSIX file using the msix toolkit. This command only works on Windows.",
+	Use:        "msix-pack",
+	Short:      "Package an MSIX file (Windows only) - DEPRECATED",
+	Deprecated: "use 'bundle windows --create-msix' instead for unified packaging workflow",
+	Long: `⚠️  DEPRECATED: This command is replaced by 'bundle windows'
+
+Migration:
+  Old: goup-util msix-pack -d ./build -p myapp.msix
+  New: goup-util bundle windows examples/myapp --create-msix
+
+The new bundle command provides:
+- Unified workflow (same as macOS/Android/iOS)
+- Automatic manifest and asset handling
+- Better error messages
+- Integrated with build system
+
+See: docs/PACKAGING.md for complete guide
+
+---
+
+Package an MSIX file using the msix toolkit. This command only works on Windows.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Check if we're on Windows
 		if runtime.GOOS != "windows" {

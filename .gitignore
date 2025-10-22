@@ -11,3 +11,11 @@ goup-util-*
 
 # Source code references (for reading dependencies)
 .src/
+
+# Build and distribution directories
+.build/
+.dist/
+artifacts/
+
+# Standalone goup-util binary
+goup-util

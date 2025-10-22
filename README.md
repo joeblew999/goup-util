@@ -65,9 +65,45 @@ A specialized build tool that enables you to create **hybrid applications** usin
 - **macOS**: Xcode Command Line Tools
 - **Android**: Auto-installed via `goup-util install ndk-bundle`
 
-### Install
+### Install goup-util
+
+**Quick Install (Recommended)**:
 
 ```bash
+# macOS (via curl)
+curl -fsSL https://raw.githubusercontent.com/joeblew999/goup-util/main/scripts/macos-bootstrap.sh | bash
+
+# Windows (via PowerShell as Administrator)
+iwr https://raw.githubusercontent.com/joeblew999/goup-util/main/scripts/windows-bootstrap.ps1 -UseBasicParsing | iex
+```
+
+This installs:
+- ✅ Go (via Homebrew/winget)
+- ✅ Task (Taskfile runner)
+- ✅ goup-util (latest release binary)
+- ✅ Git (if needed)
+
+**Manual Install**:
+
+```bash
+# Clone the repository
+git clone https://github.com/joeblew999/goup-util.git
+cd goup-util
+
+# Build from source
+go build .
+
+# Or use pre-built binaries from GitHub Releases
+# https://github.com/joeblew999/goup-util/releases/latest
+```
+
+**Update goup-util**:
+
+```bash
+goup-util self upgrade
+```
+
+---
 
 ## Using Taskfile (Recommended)
 

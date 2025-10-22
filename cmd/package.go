@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/joeblew999/goup-util/pkg/constants"
+	"github.com/joeblew999/goup-util/pkg/packaging"
 	"github.com/joeblew999/goup-util/pkg/project"
 	"github.com/spf13/cobra"
 )
@@ -68,10 +68,9 @@ func packageMacOS(appDir, appName string) error {
 		return fmt.Errorf("app not found: %s. Run 'goup-util build macos %s' first", appPath, appDir)
 	}
 
-	// Create tar.gz package
+	// Create tar.gz package using packaging library
 	packagePath := filepath.Join(distDir, appName+"-macos.tar.gz")
-	cmd := exec.Command("tar", "-czf", packagePath, "-C", binDir, appName+".app")
-	if err := cmd.Run(); err != nil {
+	if err := packaging.CreateArchive(appPath, packagePath, packaging.TarGz); err != nil {
 		return fmt.Errorf("failed to create package: %w", err)
 	}
 
@@ -96,10 +95,9 @@ func packageAndroid(appDir, appName string) error {
 		return fmt.Errorf("APK not found: %s. Run 'goup-util build android %s' first", apkPath, appDir)
 	}
 
-	// Copy APK to dist with versioned name
+	// Copy APK to dist with versioned name using packaging library
 	packagePath := filepath.Join(distDir, appName+"-android.apk")
-	cmd := exec.Command("cp", apkPath, packagePath)
-	if err := cmd.Run(); err != nil {
+	if err := packaging.CopyFile(apkPath, packagePath); err != nil {
 		return fmt.Errorf("failed to create package: %w", err)
 	}
 
@@ -124,10 +122,9 @@ func packageIOS(appDir, appName string) error {
 		return fmt.Errorf("app not found: %s. Run 'goup-util build ios %s' first", appPath, appDir)
 	}
 
-	// Create tar.gz package
+	// Create tar.gz package using packaging library
 	packagePath := filepath.Join(distDir, appName+"-ios.tar.gz")
-	cmd := exec.Command("tar", "-czf", packagePath, "-C", binDir, appName+".app")
-	if err := cmd.Run(); err != nil {
+	if err := packaging.CreateArchive(appPath, packagePath, packaging.TarGz); err != nil {
 		return fmt.Errorf("failed to create package: %w", err)
 	}
 
@@ -152,10 +149,9 @@ func packageWindows(appDir, appName string) error {
 		return fmt.Errorf("executable not found: %s. Run 'goup-util build windows %s' first", exePath, appDir)
 	}
 
-	// Create zip package
+	// Create zip package using packaging library
 	packagePath := filepath.Join(distDir, appName+"-windows.zip")
-	cmd := exec.Command("zip", "-j", packagePath, exePath)
-	if err := cmd.Run(); err != nil {
+	if err := packaging.CreateArchive(exePath, packagePath, packaging.Zip); err != nil {
 		return fmt.Errorf("failed to create package: %w", err)
 	}
 

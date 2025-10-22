@@ -58,10 +58,28 @@ const manifestTemplate = `
 `
 
 // msixManifestCmd represents the msix-manifest command
+// DEPRECATED: Use 'bundle windows' command instead
 var msixManifestCmd = &cobra.Command{
-	Use:   "msix-manifest",
-	Short: "Generate an MSIX manifest file from a template.",
-	Long: `Generates an MSIX manifest file (AppxManifest.xml) for a Windows application.
+	Use:        "msix-manifest",
+	Short:      "Generate an MSIX manifest file from a template (DEPRECATED)",
+	Deprecated: "use 'bundle windows' instead for unified packaging workflow",
+	Long: `⚠️  DEPRECATED: This command is replaced by 'bundle windows'
+
+Migration:
+  Old: goup-util msix-manifest --output AppxManifest.xml --name MyApp
+  New: goup-util bundle windows examples/myapp
+
+The new bundle command provides:
+- Unified workflow (same as macOS/Android/iOS)
+- Automatic manifest generation from templates
+- Integrated MSIX creation
+- Better error handling
+
+See: docs/PACKAGING.md for complete guide
+
+---
+
+Generates an MSIX manifest file (AppxManifest.xml) for a Windows application.
 
 You can provide the manifest data using flags or by providing a YAML data file.
 Values from flags will override values from the data file.`,

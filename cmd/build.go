@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/joeblew999/goup-util/pkg/buildcache"
 	"github.com/joeblew999/goup-util/pkg/config"
 	"github.com/joeblew999/goup-util/pkg/constants"
 	"github.com/joeblew999/goup-util/pkg/icons"
@@ -13,6 +14,29 @@ import (
 	"github.com/joeblew999/goup-util/pkg/project"
 	"github.com/spf13/cobra"
 )
+
+// BuildOptions contains options for build commands
+type BuildOptions struct {
+	Force     bool
+	CheckOnly bool
+	SkipIcons bool
+}
+
+// Global build cache
+var globalBuildCache *buildcache.Cache
+
+// getBuildCache returns the global build cache, initializing if needed
+func getBuildCache() *buildcache.Cache {
+	if globalBuildCache == nil {
+		cache, err := buildcache.NewCache(buildcache.GetDefaultCachePath())
+		if err != nil {
+			// If cache fails, create empty one (won't save)
+			cache = &buildcache.Cache{}
+		}
+		globalBuildCache = cache
+	}
+	return globalBuildCache
+}
 
 var buildCmd = &cobra.Command{
 	Use:   "build [platform] [app-directory]",
@@ -58,32 +82,67 @@ var buildCmd = &cobra.Command{
 
 		// Get flags
 		skipIcons, _ := cmd.Flags().GetBool("skip-icons")
+		force, _ := cmd.Flags().GetBool("force")
+		checkOnly, _ := cmd.Flags().GetBool("check")
+
+		// Create build options
+		opts := BuildOptions{
+			Force:     force,
+			CheckOnly: checkOnly,
+			SkipIcons: skipIcons,
+		}
 
 		switch platform {
 		case "macos":
-			return buildMacOS(proj.RootDir, proj.Name, outputDir, skipIcons)
+			return buildMacOS(proj.RootDir, proj.Name, outputDir, platform, opts)
 		case "android":
-			return buildAndroid(proj.RootDir, proj.Name, outputDir, skipIcons)
+			return buildAndroid(proj.RootDir, proj.Name, outputDir, platform, opts)
 		case "ios":
-			return buildIOS(proj.RootDir, proj.Name, outputDir, skipIcons, false)
+			return buildIOS(proj.RootDir, proj.Name, outputDir, platform, opts, false)
 		case "ios-simulator":
-			return buildIOS(proj.RootDir, proj.Name, outputDir, skipIcons, true)
+			return buildIOS(proj.RootDir, proj.Name, outputDir, "ios-simulator", opts, true)
 		case "windows":
-			return buildWindows(proj.RootDir, proj.Name, outputDir, skipIcons)
+			return buildWindows(proj.RootDir, proj.Name, outputDir, platform, opts)
 		case "all":
-			return buildAll(proj.RootDir, proj.Name, outputDir, skipIcons)
+			return buildAll(proj.RootDir, proj.Name, outputDir, opts)
 		}
 
 		return nil
 	},
 }
 
-func buildMacOS(appDir, appName, outputDir string, skipIcons bool) error {
+func buildMacOS(appDir, appName, outputDir, platform string, opts BuildOptions) error {
+	appPath := filepath.Join(outputDir, appName+".app")
+	cache := getBuildCache()
+
+	// Check if rebuild is needed
+	if !opts.Force {
+		needsRebuild, reason := cache.NeedsRebuild(appName, platform, appDir, appPath)
+
+		if opts.CheckOnly {
+			if needsRebuild {
+				fmt.Printf("Rebuild needed: %s\n", reason)
+				os.Exit(1)
+			} else {
+				fmt.Printf("Up to date: %s\n", appPath)
+				os.Exit(0)
+			}
+		}
+
+		if !needsRebuild {
+			fmt.Printf("✓ %s for %s is up-to-date (use --force to rebuild)\n", appName, platform)
+			return nil
+		}
+
+		fmt.Printf("Rebuilding: %s\n", reason)
+	}
+
 	fmt.Printf("Building %s for macOS...\n", appName)
 
 	// Generate icons
-	if !skipIcons {
+	if !opts.SkipIcons {
 		if err := generateIcons(appDir, "macos"); err != nil {
+			cache.RecordBuild(appName, platform, appDir, appPath, false)
 			return fmt.Errorf("failed to generate icons: %w", err)
 		}
 	}
@@ -93,9 +152,10 @@ func buildMacOS(appDir, appName, outputDir string, skipIcons bool) error {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
-	// Remove existing app bundle
-	appPath := filepath.Join(outputDir, appName+".app")
-	os.RemoveAll(appPath)
+	// Remove existing app bundle only if it exists
+	if _, err := os.Stat(appPath); err == nil {
+		os.RemoveAll(appPath)
+	}
 
 	// Build with gogio
 	iconPath := filepath.Join(appDir, "icon-source.png")
@@ -104,19 +164,49 @@ func buildMacOS(appDir, appName, outputDir string, skipIcons bool) error {
 	gogioCmd.Stderr = os.Stderr
 
 	if err := gogioCmd.Run(); err != nil {
+		cache.RecordBuild(appName, platform, appDir, appPath, false)
 		return fmt.Errorf("gogio build failed: %w", err)
 	}
+
+	// Record successful build
+	cache.RecordBuild(appName, platform, appDir, appPath, true)
 
 	fmt.Printf("✓ Built %s for macOS: %s\n", appName, appPath)
 	return nil
 }
 
-func buildAndroid(appDir, appName, outputDir string, skipIcons bool) error {
+func buildAndroid(appDir, appName, outputDir, platform string, opts BuildOptions) error {
+	apkPath := filepath.Join(outputDir, appName+".apk")
+	cache := getBuildCache()
+
+	// Check if rebuild is needed
+	if !opts.Force {
+		needsRebuild, reason := cache.NeedsRebuild(appName, platform, appDir, apkPath)
+
+		if opts.CheckOnly {
+			if needsRebuild {
+				fmt.Printf("Rebuild needed: %s\n", reason)
+				os.Exit(1)
+			} else {
+				fmt.Printf("Up to date: %s\n", apkPath)
+				os.Exit(0)
+			}
+		}
+
+		if !needsRebuild {
+			fmt.Printf("✓ %s for %s is up-to-date (use --force to rebuild)\n", appName, platform)
+			return nil
+		}
+
+		fmt.Printf("Rebuilding: %s\n", reason)
+	}
+
 	fmt.Printf("Building %s for Android...\n", appName)
 
 	// Generate icons
-	if !skipIcons {
+	if !opts.SkipIcons {
 		if err := generateIcons(appDir, "android"); err != nil {
+			cache.RecordBuild(appName, platform, appDir, apkPath, false)
 			return fmt.Errorf("failed to generate icons: %w", err)
 		}
 	}
@@ -135,6 +225,7 @@ func buildAndroid(appDir, appName, outputDir string, skipIcons bool) error {
 		fmt.Printf("⚠️  Android NDK not found. Installing...\n")
 		// Auto-install NDK
 		if err := installNDK(sdkRoot); err != nil {
+			cache.RecordBuild(appName, platform, appDir, apkPath, false)
 			return fmt.Errorf("failed to install NDK: %w", err)
 		}
 	}
@@ -148,30 +239,60 @@ func buildAndroid(appDir, appName, outputDir string, skipIcons bool) error {
 	env = append(env, "ANDROID_NDK_ROOT="+ndkPath)
 
 	// Build with gogio
-	apkPath := filepath.Join(outputDir, appName+".apk")
 	gogioCmd := exec.Command("gogio", "-target", "android", "-o", apkPath, appDir)
 	gogioCmd.Env = env
 	gogioCmd.Stdout = os.Stdout
 	gogioCmd.Stderr = os.Stderr
 
 	if err := gogioCmd.Run(); err != nil {
+		cache.RecordBuild(appName, platform, appDir, apkPath, false)
 		return fmt.Errorf("gogio build failed: %w", err)
 	}
+
+	// Record successful build
+	cache.RecordBuild(appName, platform, appDir, apkPath, true)
 
 	fmt.Printf("✓ Built %s for Android: %s\n", appName, apkPath)
 	return nil
 }
 
-func buildIOS(appDir, appName, outputDir string, skipIcons bool, simulator bool) error {
+func buildIOS(appDir, appName, outputDir, platform string, opts BuildOptions, simulator bool) error {
 	target := "iOS device"
 	if simulator {
 		target = "iOS simulator"
 	}
+
+	appPath := filepath.Join(outputDir, appName+".app")
+	cache := getBuildCache()
+
+	// Check if rebuild is needed
+	if !opts.Force {
+		needsRebuild, reason := cache.NeedsRebuild(appName, platform, appDir, appPath)
+
+		if opts.CheckOnly {
+			if needsRebuild {
+				fmt.Printf("Rebuild needed: %s\n", reason)
+				os.Exit(1)
+			} else {
+				fmt.Printf("Up to date: %s\n", appPath)
+				os.Exit(0)
+			}
+		}
+
+		if !needsRebuild {
+			fmt.Printf("✓ %s for %s is up-to-date (use --force to rebuild)\n", appName, platform)
+			return nil
+		}
+
+		fmt.Printf("Rebuilding: %s\n", reason)
+	}
+
 	fmt.Printf("Building %s for %s...\n", appName, target)
 
 	// Generate icons
-	if !skipIcons {
+	if !opts.SkipIcons {
 		if err := generateIcons(appDir, "ios"); err != nil {
+			cache.RecordBuild(appName, platform, appDir, appPath, false)
 			return fmt.Errorf("failed to generate icons: %w", err)
 		}
 	}
@@ -182,25 +303,54 @@ func buildIOS(appDir, appName, outputDir string, skipIcons bool, simulator bool)
 	}
 
 	// Build with gogio
-	appPath := filepath.Join(outputDir, appName+".app")
 	gogioCmd := exec.Command("gogio", "-target", "ios", "-o", appPath, appDir)
 	gogioCmd.Stdout = os.Stdout
 	gogioCmd.Stderr = os.Stderr
 
 	if err := gogioCmd.Run(); err != nil {
+		cache.RecordBuild(appName, platform, appDir, appPath, false)
 		return fmt.Errorf("gogio build failed: %w", err)
 	}
+
+	// Record successful build
+	cache.RecordBuild(appName, platform, appDir, appPath, true)
 
 	fmt.Printf("✓ Built %s for %s: %s\n", appName, target, appPath)
 	return nil
 }
 
-func buildWindows(appDir, appName, outputDir string, skipIcons bool) error {
+func buildWindows(appDir, appName, outputDir, platform string, opts BuildOptions) error {
+	exePath := filepath.Join(outputDir, appName+".exe")
+	cache := getBuildCache()
+
+	// Check if rebuild is needed
+	if !opts.Force {
+		needsRebuild, reason := cache.NeedsRebuild(appName, platform, appDir, exePath)
+
+		if opts.CheckOnly {
+			if needsRebuild {
+				fmt.Printf("Rebuild needed: %s\n", reason)
+				os.Exit(1)
+			} else {
+				fmt.Printf("Up to date: %s\n", exePath)
+				os.Exit(0)
+			}
+		}
+
+		if !needsRebuild {
+			fmt.Printf("✓ %s for %s is up-to-date (use --force to rebuild)\n", appName, platform)
+			return nil
+		}
+
+		fmt.Printf("Rebuilding: %s\n", reason)
+	}
+
 	fmt.Printf("Building %s for Windows...\n", appName)
 
 	// Generate icons
-	if !skipIcons {
+	if !opts.SkipIcons {
 		if err := generateIcons(appDir, "windows"); err != nil {
+			cache.RecordBuild(appName, platform, appDir, exePath, false)
 			return fmt.Errorf("failed to generate icons: %w", err)
 		}
 	}
@@ -216,7 +366,6 @@ func buildWindows(appDir, appName, outputDir string, skipIcons bool) error {
 	env = append(env, "GOARCH=arm64")
 
 	// Build with gogio
-	exePath := filepath.Join(outputDir, appName+".exe")
 	iconPath := filepath.Join(appDir, "icon-source.png")
 	gogioCmd := exec.Command("gogio", "-o", exePath, "-target", "windows", "-icon", iconPath, appDir)
 	gogioCmd.Env = env
@@ -225,8 +374,12 @@ func buildWindows(appDir, appName, outputDir string, skipIcons bool) error {
 	gogioCmd.Dir = appDir
 
 	if err := gogioCmd.Run(); err != nil {
+		cache.RecordBuild(appName, platform, appDir, exePath, false)
 		return fmt.Errorf("gogio build failed: %w", err)
 	}
+
+	// Record successful build
+	cache.RecordBuild(appName, platform, appDir, exePath, true)
 
 	fmt.Printf("✓ Built %s for Windows: %s\n", appName, exePath)
 	return nil
@@ -251,7 +404,7 @@ func installNDK(sdkRoot string) error {
 	return installer.Install(ndkSDK, cache)
 }
 
-func buildAll(appDir, appName, outputDir string, skipIcons bool) error {
+func buildAll(appDir, appName, outputDir string, opts BuildOptions) error {
 	fmt.Printf("Building %s for all platforms...\n", appName)
 
 	platforms := []string{"macos", "android", "ios-simulator", "windows"}
@@ -260,19 +413,19 @@ func buildAll(appDir, appName, outputDir string, skipIcons bool) error {
 		fmt.Printf("\n--- Building for %s ---\n", platform)
 		switch platform {
 		case "macos":
-			if err := buildMacOS(appDir, appName, outputDir, skipIcons); err != nil {
+			if err := buildMacOS(appDir, appName, outputDir, platform, opts); err != nil {
 				fmt.Printf("❌ Failed to build for %s: %v\n", platform, err)
 			}
 		case "android":
-			if err := buildAndroid(appDir, appName, outputDir, skipIcons); err != nil {
+			if err := buildAndroid(appDir, appName, outputDir, platform, opts); err != nil {
 				fmt.Printf("❌ Failed to build for %s: %v\n", platform, err)
 			}
 		case "ios-simulator":
-			if err := buildIOS(appDir, appName, outputDir, skipIcons, true); err != nil {
+			if err := buildIOS(appDir, appName, outputDir, platform, opts, true); err != nil {
 				fmt.Printf("❌ Failed to build for %s: %v\n", platform, err)
 			}
 		case "windows":
-			if err := buildWindows(appDir, appName, outputDir, skipIcons); err != nil {
+			if err := buildWindows(appDir, appName, outputDir, platform, opts); err != nil {
 				fmt.Printf("❌ Failed to build for %s: %v\n", platform, err)
 			}
 		}
@@ -325,6 +478,8 @@ func contains(slice []string, item string) bool {
 func init() {
 	buildCmd.Flags().BoolVar(&skipIcons, "skip-icons", false, "Skip icon generation")
 	buildCmd.Flags().String("output", "", "Custom output directory for build artifacts")
+	buildCmd.Flags().Bool("force", false, "Force rebuild even if up-to-date")
+	buildCmd.Flags().Bool("check", false, "Check if rebuild needed (exit 0=no, 1=yes)")
 	rootCmd.AddCommand(buildCmd)
 }
 

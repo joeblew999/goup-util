@@ -166,6 +166,140 @@ go run . install android-ndk
 go run . icons examples/gio-plugin-webviewer
 ```
 
+## Idempotency Guarantees
+
+**ALL build operations are idempotent** - Safe to run multiple times, skips unnecessary work.
+
+### Build Cache System
+
+Located in `pkg/buildcache/`, tracks:
+- **Source hashes** (SHA256 of .go, .mod, .sum files)
+- **Output paths** and timestamps
+- **Build success** status
+- **Platform-specific** caching
+
+### Smart Rebuild Detection
+
+```bash
+# First build - compiles everything
+go run . build macos examples/hybrid-dashboard
+# Building hybrid-dashboard for macos...
+# ✓ Built successfully
+
+# Second build - skips (no changes)
+go run . build macos examples/hybrid-dashboard
+# ✓ hybrid-dashboard for macos is up-to-date (use --force to rebuild)
+
+# Force rebuild
+go run . build --force macos examples/hybrid-dashboard
+# Rebuilding: forced rebuild requested
+
+# Check if rebuild needed (for CI/CD)
+go run . build --check macos examples/hybrid-dashboard
+echo $?  # 0=up-to-date, 1=needs rebuild
+```
+
+### What Triggers Rebuilds
+
+✅ **Triggers rebuild:**
+- Source code changes (.go files)
+- Dependencies change (go.mod, go.sum)
+- Assets change (.png, .jpg for icons)
+- Output missing or corrupted
+- `--force` flag
+
+❌ **Skips rebuild:**
+- No source changes
+- Output exists and valid
+- Previous build successful
+- Same platform
+
+### Build Flags
+
+All build commands support:
+- `--force` - Force rebuild even if up-to-date
+- `--check` - Check if rebuild needed (exit code 0=no, 1=yes)
+
+## Three-Tier Packaging System
+
+goup-util provides **three distinct operations** for the app lifecycle:
+
+### 1. Build - Compile & Create Basic Structures
+
+```bash
+go run . build <platform> <app>
+```
+
+**Purpose:** Fast iteration during development
+- Compiles Go source to binaries
+- Creates basic app structures (.app bundles, APKs)
+- **Idempotent**: Uses build cache
+- **Fast**: Skips unnecessary rebuilds
+- Output: `<app>/.bin/`
+
+### 2. Bundle - Create Signed App Bundles
+
+```bash
+go run . bundle <platform> <app> [--bundle-id ID] [--sign IDENTITY]
+```
+
+**Purpose:** Prepare for distribution
+- Creates proper app bundles with metadata
+- Generates Info.plist from templates
+- **Code signing** (auto-detect or specified)
+- Hardened runtime entitlements (macOS)
+- **Pure Go**: No bash scripts
+- Output: `<app>/.dist/<name>.app`
+
+```bash
+# Examples
+go run . bundle macos examples/hybrid-dashboard
+go run . bundle macos examples/hybrid-dashboard --bundle-id com.company.app
+go run . bundle macos examples/hybrid-dashboard --sign "Developer ID Application: Name"
+```
+
+**Code Signing:**
+- Auto-detects "Developer ID Application" certificates
+- Falls back to "Apple Development" if needed
+- Uses ad-hoc signature (`-`) if no certificates found
+- Ad-hoc suitable for local testing, not public distribution
+
+### 3. Package - Create Distribution Archives
+
+```bash
+go run . package <platform> <app>
+```
+
+**Purpose:** Final distribution packages
+- Creates tar.gz (macOS/iOS) or zip (Windows) archives
+- Copies APKs (Android)
+- Ready for upload/distribution
+- **Pure Go**: Uses pkg/packaging/archive.go
+- Output: `<app>/.dist/<name>-<platform>.tar.gz`
+
+### Complete Release Workflow
+
+```bash
+# 1. Build (idempotent)
+go run . build macos examples/hybrid-dashboard
+
+# 2. Create signed bundle
+go run . bundle macos examples/hybrid-dashboard \
+  --bundle-id com.company.myapp \
+  --version 1.0.0
+
+# 3. Test the bundle
+open examples/hybrid-dashboard/.dist/hybrid-dashboard.app
+
+# 4. Package for distribution
+go run . package macos examples/hybrid-dashboard
+
+# 5. Upload the archive
+ls examples/hybrid-dashboard/.dist/*.tar.gz
+```
+
+See [docs/PACKAGING.md](docs/PACKAGING.md) for complete details.
+
 ## Key Commands to Understand
 
 - `build <platform> <app>` - Build Gio apps for different platforms (macos, windows, android, ios)
@@ -359,40 +493,78 @@ open examples/gio-plugin-webviewer/.bin/macos/gio-plugin-webviewer.app
 
 This is about **enabling pure Go development** for the kind of apps that traditionally require Swift + Kotlin + JavaScript. The webview integration is what makes hybrid apps possible while keeping native performance.
 
-## Documentation Best Practices
+## Screenshot Integration
+
+**IMPLEMENTED**: goup-util now has built-in screenshot capabilities using robotgo!
+
+### Quick Usage
+
+```bash
+# Show display information
+task screenshot:info
+
+# Take a screenshot
+task screenshot
+
+# Capture with delay (for menus/tooltips)
+task screenshot:delay
+
+# Capture all displays
+task screenshot:all
+
+# Or use directly
+CGO_ENABLED=1 go run . screenshot output.png
+```
+
+### macOS Permission Setup
+
+**CRITICAL**: On macOS 10.15+, grant Screen Recording permission:
+
+1. System Settings → Privacy & Security → Screen Recording
+2. Add Terminal.app (or your IDE)
+3. Restart the terminal
+
+The command will show a helpful error if permission is missing.
+
+### Documentation Best Practices
 
 ### Screenshots for README
 
 **IMPORTANT**: The README should have visual proof that this works!
 
-Use the Playwright MCP to capture screenshots of running apps:
+Use the built-in screenshot command to capture running apps:
 
 1. **Desktop Apps** (macOS):
 ```bash
-# Launch the app
-open examples/gio-plugin-webviewer/.bin/gio-plugin-webviewer.app
+# Build and launch the app
+task run:hybrid
 
-# Use Playwright MCP to capture
-mcp__playwright__browser_take_screenshot
-# Save to: docs/screenshots/webviewer-macos.png
+# Capture screenshot with delay (wait for app to load)
+CGO_ENABLED=1 go run . screenshot --delay 2000 docs/screenshots/hybrid-dashboard-macos.png
+
+# Or use the task
+task docs:screenshots
 ```
 
 2. **Mobile Simulators** (iOS/Android):
 ```bash
-# iOS Simulator
+# iOS Simulator - use native screenshot
+# Build and launch
+task build:hybrid:ios
 open -a Simulator
-xcrun simctl install booted examples/gio-plugin-webviewer/.bin/gio-plugin-webviewer.app
-xcrun simctl launch booted com.example.gio-plugin-webviewer
+xcrun simctl install booted examples/hybrid-dashboard/.bin/hybrid-dashboard.app
+xcrun simctl launch booted com.example.hybrid-dashboard
 
-# Capture with screenshot tool
-# Save to: docs/screenshots/webviewer-ios.png
+# Capture using simctl
+xcrun simctl io booted screenshot docs/screenshots/hybrid-dashboard-ios.png
 
-# Android Emulator
-adb install examples/gio-plugin-webviewer/.bin/gio-plugin-webviewer.apk
-adb shell am start -n com.example.webviewer/.MainActivity
+# Android Emulator - use adb
+task build:hybrid:android
+adb install examples/hybrid-dashboard/.bin/hybrid-dashboard.apk
+adb shell am start -n com.example.hybrid/.MainActivity
 
-# Capture
-adb exec-out screencap -p > docs/screenshots/webviewer-android.png
+# Capture using adb
+adb exec-out screencap -p > docs/screenshots/hybrid-dashboard-android.png
 ```
 
 3. **README Structure**:
