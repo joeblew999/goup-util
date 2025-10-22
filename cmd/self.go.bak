@@ -137,18 +137,19 @@ Use this command to update goup-util after a new release has been published.`,
 var selfReleaseCmd = &cobra.Command{
 	Use:   "release [patch|minor|major|v1.2.3]",
 	Short: "Create git tag and trigger GitHub Actions release",
-	Long: `Create a git tag and push it to trigger GitHub Actions release workflow.
+	Long: `Prepare and trigger a release by creating a git tag.
 
-This command does:
-1. Validates working directory is clean
-2. Creates a git tag (e.g., v1.5.0)
-3. Pushes tag to GitHub
+This command does the following locally:
+1. Runs tests (self test)
+2. Builds with obfuscation (self build --obfuscate)
+3. Commits .dist/ artifacts
+4. Creates a git tag (e.g., v1.1.0)
+5. Pushes tag to GitHub
 
-GitHub Actions workflow then:
-- Runs tests
-- Builds obfuscated binaries for all platforms  
+GitHub Actions then automatically:
+- Builds obfuscated binaries for all platforms
 - Creates a GitHub Release
-- Uploads artifacts to the release
+- Uploads artifacts (.dist/goup-util-*, .dist/*.sh, .dist/*.ps1)
 
 Version options (defaults to 'minor'):
   patch      - Increment patch version (1.0.0 → 1.0.1)
@@ -156,7 +157,7 @@ Version options (defaults to 'minor'):
   major      - Increment major version (1.0.0 → 2.0.0)
   v1.2.3     - Use specific version
 
-This is a TRIGGER ONLY - no local builds or tests. GitHub Actions does all the work.`,
+IMPORTANT: This does NOT upload files directly. It triggers GitHub Actions by pushing a tag.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		version := "minor" // Default to minor release
 		if len(args) == 1 {
