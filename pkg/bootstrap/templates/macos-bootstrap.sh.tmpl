@@ -43,6 +43,22 @@ brew install git go go-task/tap/go-task
 TMP_DIR=$(mktemp -d)
 cd "$TMP_DIR"
 
+{{if .UseLocal}}
+# LOCAL MODE - Using local binaries for testing
+echo "LOCAL MODE: Using binaries from {{.LocalBinDir}}"
+LOCAL_BINARY="{{.LocalBinDir}}/$BINARY_NAME"
+
+if [ ! -f "$LOCAL_BINARY" ]; then
+    echo "ERROR: Local binary not found: $LOCAL_BINARY"
+    echo "Run 'go run . self build' first"
+    exit 1
+fi
+
+echo "Copying local binary..."
+cp "$LOCAL_BINARY" goup-util
+chmod +x goup-util
+{{else}}
+# RELEASE MODE - Download from GitHub
 echo "Fetching latest release..."
 RELEASE_URL="https://api.github.com/repos/{{.Repo}}/releases/latest"
 DOWNLOAD_URL=$(curl -fsSL "$RELEASE_URL" | grep -o '"browser_download_url": "[^"]*'"$BINARY_NAME"'"' | sed 's/"browser_download_url": "//' | tr -d '"')
@@ -56,6 +72,7 @@ fi
 echo "Downloading $BINARY_NAME..."
 curl -fsSL -o goup-util "$DOWNLOAD_URL"
 chmod +x goup-util
+{{end}}
 
 # Install
 INSTALL_PATH="/usr/local/bin/goup-util"

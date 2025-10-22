@@ -21,6 +21,8 @@ type Config struct {
 	SupportedArchs  string   // e.g., "arm64, amd64"
 	MacOSArchs      []string // e.g., ["arm64", "amd64"]
 	WindowsArchs    []string // e.g., ["amd64", "arm64"]
+	LocalBinDir     string   // Optional: local directory with binaries for testing
+	UseLocal        bool     // If true, use local binaries instead of GitHub releases
 }
 
 // Generate creates bootstrap scripts from templates

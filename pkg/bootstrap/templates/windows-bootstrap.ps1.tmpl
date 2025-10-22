@@ -37,6 +37,24 @@ $binaryName = "goup-util-windows-$arch.exe"
 Write-Host "Detecting platform: windows-$arch" -ForegroundColor Gray
 
 try {
+    $installPath = "$env:USERPROFILE\goup-util.exe"
+
+{{if .UseLocal}}
+    # LOCAL MODE - Using local binaries for testing
+    Write-Host "LOCAL MODE: Using binaries from {{.LocalBinDir}}" -ForegroundColor Yellow
+    $localBinary = "{{.LocalBinDir}}\$binaryName"
+
+    if (-not (Test-Path $localBinary)) {
+        Write-Host "ERROR: Local binary not found: $localBinary" -ForegroundColor Red
+        Write-Host "Run 'go run . self build' first" -ForegroundColor Yellow
+        exit 1
+    }
+
+    Write-Host "Copying local binary..." -ForegroundColor Gray
+    Copy-Item $localBinary $installPath
+    Unblock-File -Path $installPath
+{{else}}
+    # RELEASE MODE - Download from GitHub
     $releaseUrl = "https://api.github.com/repos/{{.Repo}}/releases/latest"
     $release = Invoke-RestMethod -Uri $releaseUrl
     $asset = $release.assets | Where-Object { $_.name -eq $binaryName }
@@ -47,9 +65,10 @@ try {
         exit 1
     }
 
-    $installPath = "$env:USERPROFILE\goup-util.exe"
+    Write-Host "Downloading from GitHub..." -ForegroundColor Gray
     Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $installPath
     Unblock-File -Path $installPath
+{{end}}
 
     # Add to PATH
     $userPath = [Environment]::GetEnvironmentVariable("Path", "User")

@@ -51,11 +51,29 @@ var selfReleaseCmd = &cobra.Command{
 	},
 }
 
+var selfBootstrapTestCmd = &cobra.Command{
+	Use:   "bootstrap-test",
+	Short: "Test bootstrap scripts with local binaries",
+	Long: `Test bootstrap scripts by generating them in LOCAL mode and running them.
+
+This command:
+1. Builds binaries if needed (go run . self build)
+2. Generates bootstrap scripts in LOCAL mode
+3. Runs the appropriate bootstrap script for current platform
+4. Verifies installation worked
+
+Use this to test bootstrap scripts before release.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return testBootstrap()
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(selfCmd)
 	selfCmd.AddCommand(selfBuildCmd)
 	selfCmd.AddCommand(selfUpgradeCmd)
 	selfCmd.AddCommand(selfReleaseCmd)
+	selfCmd.AddCommand(selfBootstrapTestCmd)
 }
 
 func buildSelf() error {
@@ -330,6 +348,118 @@ func generateBootstrapScripts(baseDir string, architectures []struct{ goos, goar
 		SupportedArchs: bootstrap.ArchsToString(append(macOSArchs, windowsArchs...)),
 		MacOSArchs:     macOSArchs,
 		WindowsArchs:   windowsArchs,
+	}
+
+	return bootstrap.Generate(scriptsDir, config)
+}
+
+func testBootstrap() error {
+	fmt.Println("🧪 Testing bootstrap scripts...")
+	fmt.Println()
+
+	// Get current directory
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current directory: %w", err)
+	}
+
+	// Check if binaries exist, build if not
+	binaryPattern := filepath.Join(currentDir, "goup-util-*")
+	matches, err := filepath.Glob(binaryPattern)
+	if err != nil || len(matches) == 0 {
+		fmt.Println("📦 Binaries not found, building first...")
+		if err := buildSelf(); err != nil {
+			return err
+		}
+		fmt.Println()
+	}
+
+	// Generate bootstrap scripts in LOCAL mode
+	fmt.Println("📝 Generating bootstrap scripts in LOCAL mode...")
+	
+	architectures := []struct {
+		goos, goarch, suffix string
+	}{
+		{"darwin", "arm64", "darwin-arm64"},
+		{"darwin", "amd64", "darwin-amd64"},
+		{"linux", "amd64", "linux-amd64"},
+		{"linux", "arm64", "linux-arm64"},
+		{"windows", "amd64", "windows-amd64.exe"},
+		{"windows", "arm64", "windows-arm64.exe"},
+	}
+
+	if err := generateBootstrapScriptsLocal(currentDir, architectures); err != nil {
+		return fmt.Errorf("failed to generate bootstrap scripts: %w", err)
+	}
+	fmt.Println()
+
+	// Run appropriate bootstrap for current platform
+	fmt.Println("🚀 Running bootstrap script for current platform...")
+	fmt.Println()
+
+	scriptsDir := filepath.Join(currentDir, "scripts")
+	
+	switch runtime.GOOS {
+	case "darwin":
+		scriptPath := filepath.Join(scriptsDir, "macos-bootstrap.sh")
+		fmt.Printf("Executing: %s\n\n", scriptPath)
+		
+		cmd := exec.Command("bash", scriptPath)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Stdin = os.Stdin
+		
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("bootstrap script failed: %w", err)
+		}
+
+	case "windows":
+		scriptPath := filepath.Join(scriptsDir, "windows-bootstrap.ps1")
+		fmt.Printf("Executing: %s\n\n", scriptPath)
+		
+		cmd := exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-File", scriptPath)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Stdin = os.Stdin
+		
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("bootstrap script failed: %w", err)
+		}
+
+	case "linux":
+		return fmt.Errorf("linux bootstrap testing not yet implemented - run scripts/linux-bootstrap.sh manually")
+
+	default:
+		return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
+	}
+
+	fmt.Println()
+	fmt.Println("✅ Bootstrap test completed successfully!")
+	return nil
+}
+
+func generateBootstrapScriptsLocal(baseDir string, architectures []struct{ goos, goarch, suffix string }) error {
+	scriptsDir := filepath.Join(baseDir, "scripts")
+
+	// Find macOS and Windows architectures
+	var macOSArchs, windowsArchs []string
+	for _, arch := range architectures {
+		switch arch.goos {
+		case "darwin":
+			macOSArchs = append(macOSArchs, arch.goarch)
+		case "windows":
+			windowsArchs = append(windowsArchs, arch.goarch)
+		}
+	}
+
+	// Use bootstrap package in LOCAL mode
+	config := bootstrap.Config{
+		Repo:           "joeblew999/goup-util",
+		SupportedArchs: bootstrap.ArchsToString(append(macOSArchs, windowsArchs...)),
+		MacOSArchs:     macOSArchs,
+		WindowsArchs:   windowsArchs,
+		UseLocal:       true,
+		LocalBinDir:    baseDir, // Use current directory where binaries are
 	}
 
 	return bootstrap.Generate(scriptsDir, config)
