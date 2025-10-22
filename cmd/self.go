@@ -15,13 +15,14 @@ var selfCmd = &cobra.Command{
 	Long: `Commands for managing goup-util itself.
 
 For Users:
-  version  - Show version and check for updates
-  upgrade  - Download and install latest release
-  doctor   - Validate dependencies
+  version        - Show version and check for updates
+  upgrade        - Download and install latest release
+  doctor         - Validate dependencies
 
 For Developers:
-  build    - Build goup-util binaries for all platforms
-  release  - Create git tag and trigger GitHub Actions`,
+  build          - Build goup-util binaries for all platforms
+  release        - Create git tag and trigger GitHub Actions
+  release-check  - Check if GitHub release is ready (async monitoring)`,
 }
 
 var (
@@ -70,16 +71,16 @@ var selfDoctorCmd = &cobra.Command{
 	},
 }
 
-var selfCheckReleaseCmd = &cobra.Command{
-	Use:   "check-release [tag]",
+var selfReleaseCheckCmd = &cobra.Command{
+	Use:   "release-check [tag]",
 	Short: "Check if a GitHub release is ready",
 	Long: `Check if a GitHub release exists and has assets.
 
 This is useful after running 'self release' to monitor the async GitHub Actions workflow.
 
 Examples:
-  goup-util self check-release v1.5.0
-  goup-util self check-release          # checks latest tag
+  goup-util self release-check v1.5.0
+  goup-util self release-check          # checks latest tag
 
 Returns JSON with:
 - exists: whether release exists on GitHub
@@ -160,7 +161,7 @@ func init() {
 	// Developer commands
 	selfCmd.AddCommand(selfBuildCmd)
 	selfCmd.AddCommand(selfReleaseCmd)
-	selfCmd.AddCommand(selfCheckReleaseCmd)
+	selfCmd.AddCommand(selfReleaseCheckCmd)
 
 	// Add flags
 	selfBuildCmd.Flags().BoolVar(&buildLocal, "local", false, "Generate bootstrap scripts for local testing (uses local binaries instead of GitHub releases)")
