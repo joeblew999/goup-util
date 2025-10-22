@@ -22,10 +22,19 @@ jobs:
         echo "Building with self system (auto-installs garble)..."
         go run . self build --obfuscate
 
+    - name: List built artifacts
+      run: |
+        echo "Artifacts in .dist:"
+        ls -lah .dist/
+
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
-        files: .dist/*
+        files: |
+          .dist/goup-util-*
+          .dist/*.sh
+          .dist/*.ps1
         generate_release_notes: true
+        fail_on_unmatched_files: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
