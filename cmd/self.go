@@ -8,22 +8,16 @@ import (
 var selfCmd = &cobra.Command{
 	Use:   "self",
 	Short: "Manage goup-util itself",
-	Long: `Commands for building, installing, upgrading, and releasing goup-util itself.
+	Long: `Commands for managing goup-util itself.
 
-Information Commands:
-  version  - Show current version
-  status   - Check installation and available updates
-  doctor   - Validate dependencies (Homebrew, git, go, task)
+For Users:
+  version  - Show version and check for updates
+  upgrade  - Download and install latest release
+  doctor   - Validate dependencies
 
-Installation Commands:
-  setup     - Full setup: install dependencies + goup-util to system PATH
-  upgrade   - Download and install latest release from GitHub
-  uninstall - Remove goup-util from system PATH
-
-Development Commands:
-  build   - Cross-compile binaries for all platforms (outputs to .dist/)
-  test    - Test bootstrap scripts locally before releasing
-  release - Create git tag and push (triggers GitHub Actions to build and release)`,
+For Developers:
+  build    - Build goup-util binaries for all platforms
+  release  - Create git tag and trigger GitHub Actions`,
 }
 
 var (
@@ -54,15 +48,6 @@ This is a LOCAL build command - it does NOT create releases or push to GitHub.`,
 	},
 }
 
-var selfUninstallCmd = &cobra.Command{
-	Use:   "uninstall",
-	Short: "Remove goup-util from system path",
-	Long:  "Remove goup-util binary from system path. Dependencies (Homebrew, git, go, task) are NOT removed.",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return self.UninstallSelf()
-	},
-}
-
 var selfVersionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Show goup-util version",
@@ -72,51 +57,12 @@ var selfVersionCmd = &cobra.Command{
 	},
 }
 
-var selfStatusCmd = &cobra.Command{
-	Use:   "status",
-	Short: "Check installation status and updates",
-	Long:  "Check if goup-util is installed, show version, and check for available updates.",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return self.ShowStatus()
-	},
-}
-
 var selfDoctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "Validate installation and dependencies",
 	Long:  "Check that goup-util and all dependencies (Homebrew, git, go, task) are properly installed.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return self.Doctor()
-	},
-}
-
-var selfTestCmd = &cobra.Command{
-	Use:   "test",
-	Short: "Test bootstrap scripts locally before releasing",
-	Long: `Generate and test bootstrap scripts in local mode to verify they work.
-
-This command:
-1. Builds goup-util with --local flag (scripts use local binaries)
-2. Verifies bootstrap scripts exist and contain expected content
-3. Tests that the binary executes correctly
-
-Run this before 'self release' to catch issues early.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return self.TestBootstrap()
-	},
-}
-
-var selfSetupCmd = &cobra.Command{
-	Use:   "setup",
-	Short: "Full setup: install dependencies + goup-util",
-	Long:  "Install system dependencies (Homebrew/winget, git, go, task) and install goup-util to system path. This is what bootstrap scripts call.",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// Install dependencies first
-		if err := self.InstallDeps(); err != nil {
-			return err
-		}
-		// Then install binary
-		return self.InstallSelf()
 	},
 }
 
@@ -169,19 +115,13 @@ This is a TRIGGER ONLY - no local builds or tests. GitHub Actions does all the w
 func init() {
 	rootCmd.AddCommand(selfCmd)
 
-	// Information commands
+	// User commands
 	selfCmd.AddCommand(selfVersionCmd)
-	selfCmd.AddCommand(selfStatusCmd)
+	selfCmd.AddCommand(selfUpgradeCmd)
 	selfCmd.AddCommand(selfDoctorCmd)
 
-	// Installation commands
-	selfCmd.AddCommand(selfSetupCmd)
-	selfCmd.AddCommand(selfUpgradeCmd)
-	selfCmd.AddCommand(selfUninstallCmd)
-
-	// Development commands
+	// Developer commands
 	selfCmd.AddCommand(selfBuildCmd)
-	selfCmd.AddCommand(selfTestCmd)
 	selfCmd.AddCommand(selfReleaseCmd)
 
 	// Add flags
