@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/joeblew999/goup-util/pkg/bootstrap"
 	"github.com/spf13/cobra"
 )
 
@@ -96,6 +97,13 @@ func buildSelf() error {
 		
 		fmt.Printf("✅ Built goup-util-%s\n", arch.suffix)
 	}
+
+	// Generate bootstrap scripts with correct binary names
+	fmt.Println("\n📝 Generating bootstrap scripts...")
+	if err := generateBootstrapScripts(currentDir, architectures); err != nil {
+		return fmt.Errorf("failed to generate bootstrap scripts: %w", err)
+	}
+
 	return nil
 }
 
@@ -300,4 +308,29 @@ func bumpVersion(current, bumpType string) string {
 	}
 	
 	return fmt.Sprintf("v%d.%d.%d", major, minor, patch)
+}
+
+func generateBootstrapScripts(baseDir string, architectures []struct{ goos, goarch, suffix string }) error {
+	scriptsDir := filepath.Join(baseDir, "scripts")
+
+	// Find macOS and Windows architectures
+	var macOSArchs, windowsArchs []string
+	for _, arch := range architectures {
+		switch arch.goos {
+		case "darwin":
+			macOSArchs = append(macOSArchs, arch.goarch)
+		case "windows":
+			windowsArchs = append(windowsArchs, arch.goarch)
+		}
+	}
+
+	// Use bootstrap package to generate scripts
+	config := bootstrap.Config{
+		Repo:           "joeblew999/goup-util",
+		SupportedArchs: bootstrap.ArchsToString(append(macOSArchs, windowsArchs...)),
+		MacOSArchs:     macOSArchs,
+		WindowsArchs:   windowsArchs,
+	}
+
+	return bootstrap.Generate(scriptsDir, config)
 }

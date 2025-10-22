@@ -4,7 +4,7 @@
 # Do not edit manually - changes will be overwritten
 #
 # Usage (as Administrator):
-#   iwr https://raw.githubusercontent.com/joeblew999/goup-util/main/scripts/windows-bootstrap.ps1 -UseBasicParsing | iex
+#   iwr https://raw.githubusercontent.com/{{.Repo}}/main/scripts/windows-bootstrap.ps1 -UseBasicParsing | iex
 
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host " goup-util Windows Bootstrap" -ForegroundColor Cyan
@@ -37,13 +37,13 @@ $binaryName = "goup-util-windows-$arch.exe"
 Write-Host "Detecting platform: windows-$arch" -ForegroundColor Gray
 
 try {
-    $releaseUrl = "https://api.github.com/repos/joeblew999/goup-util/releases/latest"
+    $releaseUrl = "https://api.github.com/repos/{{.Repo}}/releases/latest"
     $release = Invoke-RestMethod -Uri $releaseUrl
     $asset = $release.assets | Where-Object { $_.name -eq $binaryName }
 
     if (-not $asset) {
         Write-Host "ERROR: Binary not found for windows-$arch" -ForegroundColor Red
-        Write-Host "Supported architectures: arm64, amd64, amd64, arm64" -ForegroundColor Yellow
+        Write-Host "Supported architectures: {{.SupportedArchs}}" -ForegroundColor Yellow
         exit 1
     }
 

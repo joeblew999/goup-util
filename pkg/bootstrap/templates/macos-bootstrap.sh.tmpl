@@ -5,7 +5,7 @@
 # Do not edit manually - changes will be overwritten
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/joeblew999/goup-util/main/scripts/macos-bootstrap.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/{{.Repo}}/main/scripts/macos-bootstrap.sh | bash
 
 set -e
 
@@ -22,7 +22,7 @@ elif [ "$ARCH" = "arm64" ]; then
     ARCH="arm64"
 else
     echo "ERROR: Unsupported architecture: $ARCH"
-    echo "Supported: arm64, amd64, amd64, arm64"
+    echo "Supported: {{.SupportedArchs}}"
     exit 1
 fi
 
@@ -44,12 +44,12 @@ TMP_DIR=$(mktemp -d)
 cd "$TMP_DIR"
 
 echo "Fetching latest release..."
-RELEASE_URL="https://api.github.com/repos/joeblew999/goup-util/releases/latest"
+RELEASE_URL="https://api.github.com/repos/{{.Repo}}/releases/latest"
 DOWNLOAD_URL=$(curl -fsSL "$RELEASE_URL" | grep -o '"browser_download_url": "[^"]*'"$BINARY_NAME"'"' | sed 's/"browser_download_url": "//' | tr -d '"')
 
 if [ -z "$DOWNLOAD_URL" ]; then
     echo "ERROR: Binary not found for darwin-$ARCH"
-    echo "Supported architectures: arm64, amd64, amd64, arm64"
+    echo "Supported architectures: {{.SupportedArchs}}"
     exit 1
 fi
 
