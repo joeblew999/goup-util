@@ -44,6 +44,48 @@ func PrintSuccess(command string, data interface{}) {
 	printJSON(base)
 }
 
+// OK outputs a typed struct as JSON
+// Usage: output.OK("self version", VersionResult{Version: "1.0.0", OS: "darwin"})
+func OK[T any](command string, data T) {
+	jsonData, _ := json.Marshal(data)
+	base := &BaseResult{
+		Command:   command,
+		Version:   JSONSchemaVersion,
+		Timestamp: time.Now().UTC(),
+		Status:    StatusOK,
+		ExitCode:  ExitSuccess,
+		Data:      jsonData,
+	}
+	printJSON(base)
+}
+
+// Err outputs an error and exits
+// Usage: output.Err("self version", err)
+func Err(command string, err error) {
+	PrintError(command, err)
+}
+
+// Run wraps any function to automatically output JSON on success or error
+// Usage: output.Run("self build", func() (*BuildResult, error) { return &result, nil })
+func Run[T any](command string, fn func() (*T, error)) {
+	result, err := fn()
+	if err != nil {
+		PrintError(command, err)
+		return
+	}
+
+	jsonData, _ := json.Marshal(result)
+	base := &BaseResult{
+		Command:   command,
+		Version:   JSONSchemaVersion,
+		Timestamp: time.Now().UTC(),
+		Status:    StatusOK,
+		ExitCode:  ExitSuccess,
+		Data:      jsonData,
+	}
+	printJSON(base)
+}
+
 // printJSON safely encodes and outputs JSON
 func printJSON(v interface{}) {
 	encoder := json.NewEncoder(os.Stdout)
