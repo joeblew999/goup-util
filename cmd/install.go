@@ -43,7 +43,7 @@ func init() {
 func installSdk(sdkName string, cache *installer.Cache) error {
 	// Special case for garble - uses go install
 	if sdkName == "garble" {
-		return installer.InstallGarble()
+		return installer.InstallGarble(cache)
 	}
 
 	sdk, sdkManagerName, err := findSdk(sdkName)

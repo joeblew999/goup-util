@@ -1,30 +1,22 @@
 {
   "sdks": {
-    "garble": [
+    "redress": [
       {
-        "version": "0.15.0",
-        "goupName": "garble",
-        "installPath": "tools/garble",
+        "version": "1.2.41",
+        "goupName": "redress",
+        "installPath": "tools/redress",
         "platforms": {
-          "darwin/amd64": {
-            "downloadUrl": "https://github.com/burrowers/garble/releases/download/v0.15.0/garble_darwin_amd64",
-            "checksum": "sha256:TO_BE_UPDATED"
-          },
-          "darwin/arm64": {
-            "downloadUrl": "https://github.com/burrowers/garble/releases/download/v0.15.0/garble_darwin_arm64",
-            "checksum": "sha256:TO_BE_UPDATED"
+          "darwin": {
+            "downloadUrl": "https://github.com/goretk/redress/releases/download/v1.2.41/redress-v1.2.41-macos.tar.gz",
+            "checksum": "sha256:ebe3b5d781b1bf0652aab27c5a12cf0e779f7b5709d78c88ad678dde129fd988"
           },
           "linux/amd64": {
-            "downloadUrl": "https://github.com/burrowers/garble/releases/download/v0.15.0/garble_linux_amd64",
-            "checksum": "sha256:TO_BE_UPDATED"
+            "downloadUrl": "https://github.com/goretk/redress/releases/download/v1.2.41/redress-v1.2.41-linux-amd64.tar.gz",
+            "checksum": "sha256:b57563eb1672b218b6790ba39dd47b2acf4d42150cedd72fa1b0bcf1b1c05347"
           },
-          "linux/arm64": {
-            "downloadUrl": "https://github.com/burrowers/garble/releases/download/v0.15.0/garble_linux_arm64",
-            "checksum": "sha256:TO_BE_UPDATED"
-          },
-          "windows/amd64": {
-            "downloadUrl": "https://github.com/burrowers/garble/releases/download/v0.15.0/garble_windows_amd64.exe",
-            "checksum": "sha256:TO_BE_UPDATED"
+          "windows": {
+            "downloadUrl": "https://github.com/goretk/redress/releases/download/v1.2.41/redress-v1.2.41-windows.zip",
+            "checksum": "sha256:f81e902165833a67ee914404b59f422004633c79103668f97d314e75882bcff9"
           }
         }
       }

@@ -13,9 +13,16 @@ const (
 	GarblePackage = "mvdan.cc/garble"
 )
 
-// InstallGarble installs garble using go install
-func InstallGarble() error {
+// InstallGarble installs garble using go install and adds it to the cache
+func InstallGarble(cache *Cache) error {
 	fmt.Printf("📥 Installing garble %s...\n", GarbleVersion)
+
+	// Check if already in cache and installed
+	garblePath, _ := exec.LookPath("garble")
+	if entry, ok := cache.Entries["garble"]; ok && garblePath != "" {
+		fmt.Printf("✅ garble %s is already installed at: %s\n", entry.Version, garblePath)
+		return nil
+	}
 
 	// Check if Go is installed
 	if _, err := exec.LookPath("go"); err != nil {
@@ -46,6 +53,18 @@ func InstallGarble() error {
 		fmt.Printf("⚠️  Warning: Could not verify garble version: %v\n", err)
 	} else {
 		fmt.Printf("   Version: %s", string(output))
+	}
+
+	// Add to cache
+	cache.Add(&SDK{
+		Name:        "garble",
+		Version:     GarbleVersion,
+		Checksum:    "go-install", // Special marker for go-install tools
+		InstallPath: garblePath,
+	})
+
+	if err := cache.Save(); err != nil {
+		fmt.Printf("⚠️  Warning: Could not update cache: %v\n", err)
 	}
 
 	return nil
