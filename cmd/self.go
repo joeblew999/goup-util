@@ -80,9 +80,13 @@ func buildSelf() error {
 	
 	for _, arch := range architectures {
 		outputPath := filepath.Join(currentDir, fmt.Sprintf("goup-util-%s", arch.suffix))
-		
+
 		buildCmd := exec.Command("go", "build", "-o", outputPath, ".")
-		buildCmd.Env = append(os.Environ(), "GOOS="+arch.goos, "GOARCH="+arch.goarch)
+		buildCmd.Env = append(os.Environ(),
+			"GOOS="+arch.goos,
+			"GOARCH="+arch.goarch,
+			"CGO_ENABLED=0", // Disable CGO for cross-platform builds
+		)
 		buildCmd.Stdout = os.Stdout
 		buildCmd.Stderr = os.Stderr
 		
