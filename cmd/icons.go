@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/joeblew999/goup-util/pkg/utils"
 	"fmt"
 
 	"github.com/joeblew999/goup-util/pkg/service"
@@ -26,7 +27,7 @@ Examples:
 
 		// Validate platform
 		validPlatforms := []string{"android", "ios", "macos", "windows", "windows-msix", "windows-ico"}
-		if !contains(validPlatforms, platform) {
+		if !utils.Contains(validPlatforms, platform) {
 			return fmt.Errorf("invalid platform: %s. Valid platforms: %v", platform, validPlatforms)
 		}
 

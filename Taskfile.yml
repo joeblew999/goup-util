@@ -286,27 +286,6 @@ tasks:
     cmds:
       - "{{.GOUP}} bundle macos {{.HYBRID_EXAMPLE}}"
 
-  # Package for macOS with code signing (DEPRECATED - use bundle command)
-  package:macos:
-    desc: Build and package goup-util as a signed macOS app bundle (DEPRECATED)
-    cmds:
-      - bash pkg/packaging/deprecated/build-macos.sh
-      - echo ""
-      - echo "Packaged app is ready in .dist/goup-util.app"
-      - echo "To install - open .dist/goup-util.app"
-      - echo ""
-      - echo "NOTE - This task uses the old bash script."
-      - echo "Use the bundle command instead - task bundle:hybrid:macos"
-
-  # Create DMG for distribution
-  package:macos:dmg:
-    desc: Create a DMG installer for macOS
-    deps: [package:macos]
-    cmds:
-      - echo "Creating DMG..."
-      - hdiutil create -volname "goup-util" -srcfolder .dist -ov -format UDZO .dist/goup-util.dmg
-      - echo "DMG created at .dist/goup-util.dmg"
-
   # Test screenshot features
   test:screenshot:
     desc: Test screenshot features

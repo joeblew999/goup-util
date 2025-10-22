@@ -29,6 +29,455 @@ Traditional cross-platform tools require multiple languages (Swift, Kotlin, Java
 - **Developer-focused**: Clean CLI interface with clear commands
 - **True cross-platform**: Web, desktop, and mobile from single codebase
 
+## CRITICAL: Two Separate Systems - Don't Mix Them!
+
+**goup-util has TWO completely separate concerns:**
+
+### 1. The `self` System (Meta - Managing goup-util Itself)
+
+**Purpose**: Build, install, and manage **goup-util the tool**
+
+```
+pkg/self/          # SELF-CONTAINED - manages goup-util itself
+├── architecture.go  # goup-util's supported platforms
+├── build.go        # Build goup-util binaries
+├── install.go      # Install goup-util to system
+├── scripts.go      # Bootstrap scripts for goup-util
+└── templates/      # Bootstrap script templates
+
+cmd/self.go        # CLI commands for goup-util management
+```
+
+**Commands**: `self build`, `self install`, `self setup`, `self upgrade`
+**Builds**: goup-util binaries (the tool itself)
+**Uses**: Standard Go cross-compilation
+**Output**: `goup-util-darwin-arm64`, `goup-util-linux-amd64`, etc.
+
+### 2. The App Building System (What Users Use)
+
+**Purpose**: Build **Gio applications** that users create
+
+```
+pkg/
+├── buildcache/    # Cache for Gio app builds
+├── config/        # User app configuration
+├── icons/         # Generate icons for user apps
+├── installer/     # Install SDKs for building user apps
+├── packaging/     # Package user apps for distribution
+├── project/       # Detect user app structure
+└── constants/     # Build directories for user apps (.bin, .build, .dist)
+
+cmd/
+├── build.go       # Build user's Gio apps
+├── icons.go       # Generate icons for user apps
+├── package.go     # Package user apps
+└── install.go     # Install SDKs for building user apps
+```
+
+**Commands**: `build macos examples/webviewer`, `icons myapp`, `package myapp`
+**Builds**: User Gio applications
+**Uses**: Gio, gogio, platform SDKs
+**Output**: `examples/myapp/.bin/myapp.app`, `.dist/myapp.apk`, etc.
+
+### Why This Separation Matters
+
+**WRONG - Mixing the Systems:**
+```go
+// ❌ DON'T use pkg/self for user apps
+func buildUserApp() {
+    self.Build()  // NO! This builds goup-util, not user apps
+}
+
+// ❌ DON'T use app build dirs for goup-util
+func buildSelf() {
+    outputPath := constants.BinDir  // NO! That's for user apps
+}
+
+// ❌ DON'T use app config for goup-util
+func installSelf() {
+    cfg := config.Load()  // NO! That's user app config
+}
+```
+
+**RIGHT - Keeping Them Separate:**
+```go
+// ✅ Self system is isolated
+func buildGoupUtil() {
+    self.Build(self.BuildOptions{UseLocal: false})
+    // Outputs to project root: goup-util-darwin-arm64
+}
+
+// ✅ App building uses its own system
+func buildUserApp() {
+    project := project.Detect("examples/webviewer")
+    builder.Build(project, "macos")
+    // Outputs to examples/webviewer/.bin/
+}
+```
+
+### Rules for Working with `self`
+
+1. **pkg/self/ is SELF-CONTAINED** - No imports from other pkg/ directories (except utils)
+2. **No cross-contamination** - App building code never calls pkg/self, self never calls app building
+3. **Different outputs** - Self outputs to project root, apps output to `.bin/.build/.dist`
+4. **Different configs** - Self uses hardcoded config, apps use user config files
+5. **Different purposes** - Self is for developers OF goup-util, rest is for developers USING goup-util
+
+### Easy Way to Remember
+
+```
+┌─────────────────────────────────────────┐
+│  pkg/self/  →  Manages goup-util        │
+│  Everything else  →  Manages user apps  │
+└─────────────────────────────────────────┘
+
+If you're working on:
+- Bootstrap scripts → pkg/self/
+- Installing goup-util → pkg/self/
+- Building goup-util → pkg/self/
+
+- Building Gio apps → pkg/project, pkg/icons, cmd/build.go
+- Installing SDKs → pkg/installer, cmd/install.go
+- Packaging apps → pkg/packaging, cmd/package.go
+```
+
+**When in doubt**: Ask yourself "Is this for goup-util itself or for the apps it builds?"
+
+## JSON-Only Output (Self System)
+
+**CRITICAL**: All `self` commands output **JSON ONLY** - no human-readable text by default!
+
+### Why JSON-Only?
+
+The self system uses JSON output to enable:
+1. **Remote execution** - Parse output when controlling goup-util on Windows VMs, Docker containers, SSH
+2. **Automation** - CI/CD pipelines can easily parse results
+3. **Consistent interface** - Same parsing code works locally and remotely
+4. **Machine-readable** - No need to parse human-friendly text
+
+### JSON Output Structure
+
+Every self command outputs this consistent schema:
+
+```json
+{
+  "command": "self version",
+  "version": "1",
+  "timestamp": "2025-10-22T12:34:56Z",
+  "status": "ok",
+  "exit_code": 0,
+  "data": { ... },
+  "error": null
+}
+```
+
+**Fields:**
+- `command` - The command that was run
+- `version` - JSON schema version (currently "1")
+- `timestamp` - ISO8601 UTC timestamp
+- `status` - `"ok"`, `"warning"`, or `"error"`
+- `exit_code` - Exit code (0 = success)
+- `data` - Command-specific result data
+- `error` - Error details (only present if status is "error")
+
+### Self Commands JSON Output
+
+**self version:**
+```json
+{
+  "command": "self version",
+  "status": "ok",
+  "data": {
+    "version": "dev",
+    "os": "darwin",
+    "arch": "arm64",
+    "location": "/usr/local/bin/goup-util"
+  }
+}
+```
+
+**self status:**
+```json
+{
+  "command": "self status",
+  "status": "ok",
+  "data": {
+    "installed": true,
+    "current_version": "dev",
+    "latest_version": "v1.0.1",
+    "update_available": true,
+    "location": "/usr/local/bin/goup-util"
+  }
+}
+```
+
+**self doctor:**
+```json
+{
+  "command": "self doctor",
+  "status": "warning",
+  "data": {
+    "installations": [
+      {"path": "/usr/local/bin/goup-util", "active": true, "shadowed": false}
+    ],
+    "issues": ["Multiple goup-util installations found"],
+    "suggestions": ["Remove: /opt/bin/goup-util"]
+  }
+}
+```
+
+**self build:**
+```json
+{
+  "command": "self build",
+  "status": "ok",
+  "data": {
+    "binaries": ["goup-util-darwin-arm64", "goup-util-linux-amd64"],
+    "scripts_generated": true,
+    "output_dir": "/path/to/goup-util",
+    "local_mode": false
+  }
+}
+```
+
+**self setup:**
+```json
+{
+  "command": "self setup",
+  "status": "ok",
+  "data": {
+    "installed": true,
+    "location": "/usr/local/bin/goup-util",
+    "in_path": true,
+    "dependencies_ok": true
+  }
+}
+```
+
+**self uninstall:**
+```json
+{
+  "command": "self uninstall",
+  "status": "ok",
+  "data": {
+    "removed": ["/usr/local/bin/goup-util"],
+    "failed": []
+  }
+}
+```
+
+**self test:**
+```json
+{
+  "command": "self test",
+  "status": "ok",
+  "data": {
+    "phase": "bootstrap_test",
+    "passed": true,
+    "steps": ["Building with --local flag", "Verifying scripts"],
+    "errors": []
+  }
+}
+```
+
+**self upgrade:**
+```json
+{
+  "command": "self upgrade",
+  "status": "ok",
+  "data": {
+    "previous_version": "v1.0.0",
+    "new_version": "v1.0.1",
+    "downloaded": true,
+    "installed": true,
+    "location": "/usr/local/bin/goup-util"
+  }
+}
+```
+
+**self release:**
+```json
+{
+  "command": "self release",
+  "status": "ok",
+  "data": {
+    "version": "v1.0.1",
+    "tests_passed": true,
+    "built": true,
+    "tagged": true,
+    "pushed": true,
+    "binaries": ["goup-util-darwin-arm64", "goup-util-linux-amd64", "goup-util-windows-amd64"]
+  }
+}
+```
+
+### Parsing JSON Output
+
+**IMPORTANT**: The Data field is `json.RawMessage` which enables **bidirectional parsing** - you can both create and parse JSON with type safety!
+
+**Go (Type-Safe Parsing):**
+```go
+import "github.com/joeblew999/goup-util/pkg/self/output"
+
+// Step 1: Parse BaseResult
+var base output.BaseResult
+json.Unmarshal([]byte(stdout), &base)
+
+if base.Status != "ok" {
+    log.Fatal(base.Error.Message)
+}
+
+// Step 2: Parse typed data using helper method
+versionData, err := base.ParseVersionData()
+if err != nil {
+    log.Fatal(err)
+}
+
+// Step 3: Use typed data (autocompletion works!)
+fmt.Printf("Version: %s\n", versionData.Version)
+fmt.Printf("OS: %s\n", versionData.OS)
+fmt.Printf("Arch: %s\n", versionData.Arch)
+```
+
+**Available Parse Methods:**
+- `ParseVersionData()` → `*VersionResult`
+- `ParseStatusData()` → `*StatusResult`
+- `ParseDoctorData()` → `*DoctorResult`
+- `ParseBuildData()` → `*BuildResult`
+- `ParseSetupData()` → `*SetupResult`
+- `ParseUninstallData()` → `*UninstallResult`
+- `ParseTestData()` → `*TestResult`
+- `ParseUpgradeData()` → `*UpgradeResult`
+- `ParseReleaseData()` → `*ReleaseResult`
+
+**PowerShell:**
+```powershell
+$result = ./goup-util.exe self version | ConvertFrom-Json
+if ($result.status -eq "ok") {
+    Write-Host "Version: $($result.data.version)"
+}
+```
+
+**Bash:**
+```bash
+result=$(./goup-util self version)
+status=$(echo "$result" | jq -r '.status')
+if [ "$status" = "ok" ]; then
+    version=$(echo "$result" | jq -r '.data.version')
+    echo "Version: $version"
+fi
+```
+
+**Python:**
+```python
+import json, subprocess
+
+result = json.loads(subprocess.check_output(['./goup-util', 'self', 'version']))
+if result['status'] == 'ok':
+    print(f"Version: {result['data']['version']}")
+```
+
+### Remote Execution Pattern
+
+The JSON-only output enables a remote client pattern using the same types:
+
+```go
+// pkg/remote/client.go
+type Client struct {
+    Executor Executor // SSH, UTM, Docker, etc.
+}
+
+func (c *Client) SelfVersion() (*output.VersionResult, error) {
+    stdout, err := c.Executor.Execute([]string{"goup-util", "self", "version"})
+    if err != nil {
+        return nil, err
+    }
+
+    // Parse BaseResult
+    var base output.BaseResult
+    if err := json.Unmarshal([]byte(stdout), &base); err != nil {
+        return nil, err
+    }
+
+    // Check status
+    if base.Status != "ok" {
+        return nil, fmt.Errorf("command failed: %s", base.Error.Message)
+    }
+
+    // Parse typed data using helper method
+    return base.ParseVersionData()
+}
+```
+
+**Same code works for:**
+- Local execution: `Executor = LocalExecutor`
+- SSH: `Executor = SSHExecutor{host: "windows-vm"}`
+- UTM: `Executor = UTMExecutor{vm: "Win11"}`
+- Docker: `Executor = DockerExecutor{container: "builder"}`
+
+### Implementation Details
+
+**Package**: `pkg/self/output/`
+```
+pkg/self/output/
+├── result.go     # BaseResult, VersionResult, StatusResult, etc.
+├── output.go     # Print(), PrintError(), PrintSuccess()
+└── wrapper.go    # SafeExecute() with panic recovery
+```
+
+**Key types:**
+- `BaseResult` - Universal JSON structure
+- `Result` interface - All result types implement ToBaseResult()
+- Typed results: `VersionResult`, `StatusResult`, `DoctorResult`, etc.
+
+**Error handling:**
+- Command errors output valid JSON with `status: "error"`
+- Panics are caught and output JSON with stack trace
+- Exit codes: 0 (success), 1 (error), 2 (panic)
+
+**IMPORTANT - What outputs JSON:**
+- ✅ **Command execution** → JSON (e.g., `self version`, `self doctor`)
+- ✅ **Command errors** → JSON with error field
+- ❌ **Help text** → Human-readable (e.g., `self --help`, `self version --help`)
+- ❌ **Cobra errors** → Human-readable (e.g., invalid command)
+
+**Commands with JSON output:**
+- ✅ `self version` - Version information
+- ✅ `self status` - Installation status
+- ✅ `self doctor` - Validate installation
+- ✅ `self build` - Build binaries
+- ✅ `self setup` - Install goup-util
+- ✅ `self uninstall` - Remove goup-util
+- ✅ `self test` - Test bootstrap scripts
+- ✅ `self upgrade` - Upgrade to latest release
+- ✅ `self release` - Create and push release
+
+**ALL self commands now output JSON!** This enables full remote automation including upgrading goup-util inside Windows VMs.
+
+### Testing JSON Output
+
+JSON-enabled commands MUST output valid JSON:
+
+```bash
+# Test that output is valid JSON
+go run . self version | jq -e '.command == "self version"'
+
+# Test all commands
+for cmd in version status doctor; do
+    echo -n "Testing self $cmd... "
+    go run . self $cmd 2>&1 | jq -e ".command == \"self $cmd\"" > /dev/null && echo "✓" || echo "✗"
+done
+```
+
+### Remember
+
+- **JSON ONLY** - No human-readable output in self system
+- **Consistent schema** - All commands use BaseResult structure
+- **Machine-first** - Designed for automation and remote execution
+- **Self-contained** - Output package lives in `pkg/self/output/`
+
+**User-facing commands** (build, icons, package) can still use human-friendly output!
+
 ## Project Structure
 
 ```
@@ -133,20 +582,73 @@ goup-util should eventually automate this:
 
 ## Development Workflow
 
-### Building the Tool
+### Self System Commands (Managing goup-util)
+
+The `self` commands manage goup-util itself. These are organized into three categories:
+
+#### Information Commands (What's installed?)
 
 ```bash
-# Build goup-util itself
+# Check installed version
+go run . self version
+# Output:
+#   goup-util version v1.2.3
+#   OS: darwin
+#   Arch: arm64
+#   Location: /usr/local/bin/goup-util
+
+# Check status and updates
+go run . self status
+# Output:
+#   ✅ goup-util is installed
+#   📦 Update available: v1.2.3 → v1.2.4
+
+# Validate installation
+go run . self doctor
+# Output:
+#   ✅ goup-util: installed
+#   ✅ Homebrew: installed
+#   ✅ git: installed
+#   ✅ go: installed
+#   ✅ task: installed
+```
+
+#### Installation Commands (Get it working)
+
+```bash
+# Full setup (dependencies + binary)
+go run . self setup
+
+# Upgrade to latest release
+go run . self upgrade
+
+# Remove from system
+go run . self uninstall
+```
+
+#### Development Commands (For goup-util developers)
+
+```bash
+# Build all platform binaries (for release)
 go run . self build
 
-# Build for all platforms
-go run . self build --all
+# Build with local testing mode
+go run . self build --local
 
+# Test bootstrap scripts locally
+go run . self test
+
+# Release workflow
+go run . self release patch   # or minor, major, v1.2.3
+```
+
+### Building Hybrid Apps (What users do)
+
+**These commands are separate from self management!**
+
+```bash
 # Run tests
 go test ./...
-
-# Run integration tests
-go test -v integration_test.go
 ```
 
 ### Building Hybrid Apps
@@ -369,6 +871,604 @@ See [docs/PACKAGING.md](docs/PACKAGING.md) for complete details.
 - Android SDK, NDK - For Android builds
 - Xcode - For iOS/macOS builds  
 - WebView2 - For Windows (Edge-based webview)
+
+## Code Obfuscation with Garble
+
+**CRITICAL**: goup-util uses [garble](https://github.com/burrowers/garble) for code obfuscation to protect:
+1. **The tool itself** - When building goup-util binaries (`self build`)
+2. **User applications** - When building Gio apps for distribution
+
+### Why Garble?
+
+Garble obfuscates Go code by:
+- Renaming exported and unexported symbols
+- Scrambling string literals
+- Removing debug information
+- Making reverse engineering difficult
+
+**Important**: Constants are NOT obfuscated, string literals ARE obfuscated.
+
+### Configuration Constants Pattern
+
+To ensure garble compatibility, we use **constants instead of string literals** for critical values:
+
+**pkg/self/config.go** - Configuration for the self system:
+```go
+package self
+
+// Repository configuration
+const (
+    GitHubOwner  = "joeblew999"
+    GitHubRepo   = "goup-util"
+    FullRepoName = GitHubOwner + "/" + GitHubRepo
+)
+
+// GitHub URLs
+const (
+    GitHubAPIBase = "https://api.github.com"
+    GitHubBase    = "https://github.com"
+)
+
+// Binary configuration
+const (
+    BinaryName = "goup-util"
+)
+
+// Installation paths
+const (
+    UnixInstallDir  = "/usr/local/bin"
+    UnixInstallPath = UnixInstallDir + "/" + BinaryName
+)
+
+// Helper functions
+func GetInstallPath() string { ... }
+func GetLatestReleaseURL() string { ... }
+func GetRepoGitURL() string { ... }
+```
+
+**pkg/self/output/config.go** - JSON schema configuration:
+```go
+package output
+
+// JSON schema version
+const JSONSchemaVersion = "1"
+
+// Status values
+const (
+    StatusOK      = "ok"
+    StatusWarning = "warning"
+    StatusError   = "error"
+)
+
+// Error types
+const (
+    ErrorTypeExecution = "execution_error"
+    ErrorTypePanic     = "panic"
+)
+
+// Exit codes
+const (
+    ExitSuccess = 0
+    ExitError   = 1
+    ExitPanic   = 2
+)
+```
+
+### Garble Installation
+
+Garble is installed automatically during `self setup` or can be installed separately:
+
+```bash
+# Install garble
+go install mvdan.cc/garble@v0.15.0
+
+# Verify installation
+garble version
+```
+
+**Current supported version**: v0.15.0
+**Download**: https://github.com/burrowers/garble/releases/tag/v0.15.0
+
+### Build Integration
+
+#### Building goup-util with Garble
+
+When building goup-util itself:
+
+```bash
+# Without garble (development)
+go run . self build
+
+# With garble (production/release)
+go run . self build --obfuscate
+```
+
+The `self build` command automatically uses garble when:
+1. `--obfuscate` flag is provided
+2. Building for release (via `self release`)
+3. Garble is installed and in PATH
+
+#### Building Gio Apps with Garble
+
+When building user applications:
+
+```bash
+# Without garble (development)
+go run . build macos examples/gio-plugin-webviewer
+
+# With garble (production)
+go run . build macos examples/gio-plugin-webviewer --obfuscate
+```
+
+### What Gets Obfuscated
+
+**Obfuscated:**
+- ✅ Function names (unexported)
+- ✅ Variable names (unexported)
+- ✅ Type names (unexported)
+- ✅ String literals (inline strings)
+- ✅ Stack traces
+- ✅ Build paths
+
+**NOT Obfuscated:**
+- ❌ Constants (const declarations)
+- ❌ Exported names (Go's capitalized names)
+- ❌ Standard library
+- ❌ Dependencies (unless also obfuscated)
+
+### String Literals vs Constants
+
+**WRONG (gets obfuscated, breaks functionality):**
+```go
+// ❌ String literal - garble will scramble this
+releaseURL := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
+
+// ❌ If garble obfuscates the URL, GitHub API calls break!
+```
+
+**CORRECT (constants are preserved):**
+```go
+// ✅ Constant - garble leaves this alone
+releaseURL := fmt.Sprintf("%s/repos/%s/releases/latest", GitHubAPIBase, FullRepoName)
+
+// ✅ URLs remain functional after obfuscation
+```
+
+### Testing Obfuscated Builds
+
+Always test obfuscated builds before release:
+
+```bash
+# Build with obfuscation
+go run . self build --obfuscate
+
+# Test the obfuscated binary
+./goup-util-darwin-arm64 self version  # Should output JSON
+./goup-util-darwin-arm64 self doctor   # Should work normally
+
+# Test upgrade works (critical!)
+./goup-util-darwin-arm64 self upgrade
+```
+
+### Common Garble Issues
+
+**Issue 1: API calls failing**
+- **Cause**: URL string literals got obfuscated
+- **Fix**: Move URLs to constants in `pkg/self/config.go`
+
+**Issue 2: JSON parsing broken**
+- **Cause**: JSON field tags or schema version obfuscated
+- **Fix**: Use `JSONSchemaVersion` constant, not string literal
+
+**Issue 3: Path resolution failing**
+- **Cause**: Hardcoded paths as string literals
+- **Fix**: Use `GetInstallPath()` or constants from config.go
+
+**Issue 4: Garble not found**
+- **Cause**: Garble not installed
+- **Fix**: Run `go install mvdan.cc/garble@v0.15.0`
+
+### Garble and Remote Execution
+
+When using goup-util on remote machines (Windows VMs, Docker, SSH):
+
+1. **Install garble on the remote** - Required for building obfuscated binaries
+2. **JSON output works fine** - JSON parsing is not affected by obfuscation
+3. **Constants ensure compatibility** - Remote goup-util can still make GitHub API calls
+4. **Upgrade still works** - Remote upgrade downloads and installs correctly
+
+### Development Workflow
+
+**During development (no obfuscation needed):**
+```bash
+go run . self build              # Fast, readable stack traces
+go run . build macos examples/webviewer
+```
+
+**Before release (obfuscate for security):**
+```bash
+go run . self release            # Automatically uses garble
+go run . self test               # Test obfuscated binaries work
+```
+
+**Testing specific features:**
+```bash
+# Test upgrade with obfuscation
+go run . self build --obfuscate
+./goup-util-darwin-arm64 self upgrade
+
+# Test JSON output still valid
+./goup-util-darwin-arm64 self version | jq
+```
+
+### CI/CD Integration
+
+GitHub Actions automatically uses garble for releases:
+
+```yaml
+# .github/workflows/release.yml
+- name: Build release binaries
+  run: go run . self release   # Uses garble automatically
+
+- name: Test obfuscated binaries
+  run: |
+    ./goup-util-darwin-arm64 self version
+    ./goup-util-linux-amd64 self version
+```
+
+### Future: Garble for Gio Apps
+
+When packaging Gio apps for distribution:
+
+```bash
+# Package with obfuscation
+go run . package --obfuscate examples/gio-plugin-webviewer
+
+# Produces obfuscated binaries:
+# - Harder to reverse engineer
+# - Protects your code
+# - Still fully functional
+```
+
+### Reference
+
+- **Garble GitHub**: https://github.com/burrowers/garble
+- **Current version**: v0.15.0
+- **Releases**: https://github.com/burrowers/garble/releases
+- **Documentation**: https://github.com/burrowers/garble#readme
+## SDK System Architecture
+
+**IMPORTANT**: goup-util has a sophisticated SDK management system for installing platform tools.
+
+### How SDKs Work
+
+SDKs are defined in JSON files and installed to platform-specific directories:
+
+```
+macOS:    ~/goup-util-sdks/
+Linux:    ~/.local/share/goup-util/sdks/
+Windows:  %LOCALAPPDATA%\goup-util\sdks\
+```
+
+### SDK Definition Files
+
+Located in `pkg/config/*.json`:
+
+- **sdk-android-list.json** - Android SDK, NDK, build-tools, platform-tools
+- **sdk-ios-list.json** - Xcode command line tools (manual install)
+- **sdk-build-tools.json** - Build tools like garble (NEW)
+
+### SDK JSON Structure
+
+```json
+{
+  "sdks": {
+    "sdk-name": [
+      {
+        "version": "1.0.0",
+        "goupName": "sdk-name",
+        "installPath": "category/sdk-name",
+        "downloadUrl": "https://example.com/sdk.zip",
+        "checksum": "sha256:abc123...",
+        "platforms": {
+          "darwin/amd64": {
+            "downloadUrl": "https://example.com/darwin-amd64.tar.gz",
+            "checksum": "sha256:def456..."
+          },
+          "darwin/arm64": {
+            "downloadUrl": "https://example.com/darwin-arm64.tar.gz",
+            "checksum": "sha256:ghi789..."
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+### SDK Types
+
+**1. Direct Download SDKs** (most common)
+- Downloads archive from URL
+- Extracts to `installPath` under SDK directory
+- Verifies checksum
+- Example: Android NDK, command-line tools
+
+**2. Platform-Specific SDKs**
+- Different download URL per OS/arch
+- Uses `platforms` map in JSON
+- Example: Pre-built binaries for different architectures
+
+**3. SDK Manager SDKs** (Android-specific)
+- Uses Android sdkmanager to install
+- Requires cmdline-tools and openjdk-17
+- Example: build-tools, platform-tools, emulator
+- Specified via `sdkmanagerName` field
+
+**4. Go Install SDKs** (special case)
+- Installed via `go install` command
+- Goes to $GOPATH/bin or $GOBIN
+- Example: garble
+- Handled in code, not JSON
+
+**5. Manual Install SDKs**
+- No downloadUrl provided
+- User must install manually
+- Example: Xcode (too large, requires App Store)
+
+### Adding a New SDK
+
+**Step 1: Choose the right JSON file**
+- Android tools → `sdk-android-list.json`
+- iOS tools → `sdk-ios-list.json`
+- Build tools → `sdk-build-tools.json`
+
+**Step 2: Add SDK definition**
+```json
+{
+  "version": "2.0.0",
+  "goupName": "my-tool",
+  "installPath": "tools/my-tool",
+  "platforms": {
+    "darwin/amd64": {
+      "downloadUrl": "https://github.com/org/tool/releases/download/v2.0.0/tool-darwin-amd64.tar.gz",
+      "checksum": "sha256:YOUR_CHECKSUM_HERE"
+    },
+    "darwin/arm64": {
+      "downloadUrl": "https://github.com/org/tool/releases/download/v2.0.0/tool-darwin-arm64.tar.gz",
+      "checksum": "sha256:YOUR_CHECKSUM_HERE"
+    },
+    "linux/amd64": {
+      "downloadUrl": "https://github.com/org/tool/releases/download/v2.0.0/tool-linux-amd64.tar.gz",
+      "checksum": "sha256:YOUR_CHECKSUM_HERE"
+    },
+    "windows/amd64": {
+      "downloadUrl": "https://github.com/org/tool/releases/download/v2.0.0/tool-windows-amd64.zip",
+      "checksum": "sha256:YOUR_CHECKSUM_HERE"
+    }
+  }
+}
+```
+
+**Step 3: Get checksums**
+```bash
+# Download and calculate checksum
+curl -L https://github.com/org/tool/releases/download/v2.0.0/tool-darwin-arm64.tar.gz | sha256sum
+```
+
+**Step 4: Test installation**
+```bash
+go run . install my-tool
+```
+
+### Special Case: Go Install SDKs (like garble)
+
+For Go-based tools installed via `go install`:
+
+**Step 1: Create installer function** in `pkg/installer/`:
+```go
+// pkg/installer/toolname.go
+package installer
+
+const (
+	ToolVersion = "v1.0.0"
+	ToolPackage = "github.com/org/tool"
+)
+
+func InstallTool() error {
+	cmd := exec.Command("go", "install", ToolPackage+"@"+ToolVersion)
+	// ... installation logic
+}
+
+func IsToolInstalled() bool {
+	_, err := exec.LookPath("tool")
+	return err == nil
+}
+```
+
+**Step 2: Add to install command** in `cmd/install.go`:
+```go
+func installSdk(sdkName string, cache *installer.Cache) error {
+	// Special case for go-install tools
+	if sdkName == "toolname" {
+		return installer.InstallTool()
+	}
+	// ... rest of function
+}
+```
+
+### SDK Installation Flow
+
+```
+User runs: go run . install android-ndk
+
+1. cmd/install.go → installSdk()
+2. utils.FindSDKItem() → searches all *.json files
+3. Finds SDK definition in sdk-android-list.json
+4. installer.Install() → downloads, extracts, verifies
+5. Cache entry created in ~/.cache/goup-util/cache.json
+6. Binary/tools available for use
+```
+
+### SDK Cache System
+
+SDKs are tracked in `~/.cache/goup-util/cache.json`:
+
+```json
+{
+  "entries": {
+    "android-ndk-r26b": {
+      "name": "android-ndk-r26b",
+      "version": "r26b",
+      "installPath": "sdks/ndk/26.1.10909125",
+      "checksum": "sha256:...",
+      "installedAt": "2025-10-22T10:30:00Z"
+    }
+  }
+}
+```
+
+This prevents re-downloading if already installed.
+
+### Updating SDK Versions
+
+**CRITICAL**: When updating SDK versions, you MUST:
+
+1. **Update the JSON file** - Change version, URLs, checksums
+2. **Test on all platforms** - Download and verify checksums
+3. **Update CLAUDE.md** - Document version change
+4. **Test installation** - Run `go run . install sdk-name`
+5. **Test builds** - Ensure builds still work with new version
+
+### SDK Version Strategy
+
+**Android SDKs:**
+- Android SDK: Use latest stable API level
+- NDK: Use r26b+ (supports M1/ARM64 macOS)
+- Build tools: Match target API level
+- Command-line tools: Use latest stable
+
+**Build Tools:**
+- garble: v0.15.0 (supports Go 1.25)
+- Keep versions updated as Go updates
+
+**iOS/macOS:**
+- Xcode: User installs via App Store (we don't manage)
+- Command line tools: Manual via xcode-select
+
+### Verifying SDK Installations
+
+```bash
+# List installed SDKs
+go run . list
+
+# Check specific SDK
+ls ~/goup-util-sdks/
+
+# View cache
+cat ~/.cache/goup-util/cache.json
+
+# Doctor command checks all dependencies
+go run . self doctor
+```
+
+### Common SDK Issues
+
+**Issue 1: Checksum mismatch**
+- **Cause**: Downloaded file corrupted or wrong version
+- **Fix**: Delete cache entry, re-download
+
+**Issue 2: SDK not found**
+- **Cause**: JSON file not loaded or typo in goupName
+- **Fix**: Check filename ends with `.json` in `pkg/config/`
+
+**Issue 3: Platform not supported**
+- **Cause**: Missing platform entry in JSON
+- **Fix**: Add platform-specific URL and checksum
+
+**Issue 4: Go install fails**
+- **Cause**: Go not installed or GOPATH not set
+- **Fix**: Install Go first, ensure GOPATH/bin in PATH
+
+### SDK Maintenance Checklist
+
+When maintaining SDK definitions:
+
+- [ ] Check for new versions monthly
+- [ ] Test downloads on all platforms (macOS, Linux, Windows)
+- [ ] Verify checksums match
+- [ ] Update CLAUDE.md with version changes
+- [ ] Test actual builds with new SDK versions
+- [ ] Update cache if installPath changes
+- [ ] Document breaking changes
+
+### Future SDK Enhancements
+
+Planned improvements:
+
+1. **Auto-update checker** - Notify when SDKs are outdated
+2. **Multi-version support** - Allow multiple SDK versions side-by-side
+3. **Dependency resolution** - Auto-install prerequisites
+4. **Cleanup command** - Remove old SDK versions
+5. **Mirror support** - Fallback download URLs for reliability
+
+### SDK File Locations Reference
+
+```
+# SDK Definitions
+pkg/config/sdk-android-list.json
+pkg/config/sdk-ios-list.json
+pkg/config/sdk-build-tools.json
+
+# Installation Code
+pkg/installer/installer.go          # Main SDK installer
+pkg/installer/garble.go             # Garble (go install)
+cmd/install.go                      # Install command
+
+# Utilities
+pkg/utils/utils.go                  # FindSDKItem()
+pkg/config/config.go                # GetSDKDir()
+
+# Cache
+~/.cache/goup-util/cache.json       # Tracks installed SDKs
+
+# Installed SDKs
+~/goup-util-sdks/                   # macOS
+~/.local/share/goup-util/sdks/      # Linux
+%LOCALAPPDATA%\goup-util\sdks\      # Windows
+```
+
+### Adding Verification Tools
+
+**redress** - Go binary analysis tool for verifying obfuscation:
+
+```json
+// In sdk-build-tools.json
+{
+  "version": "1.2.41",
+  "goupName": "redress",
+  "installPath": "tools/redress",
+  "platforms": {
+    "darwin/arm64": {
+      "downloadUrl": "https://github.com/goretk/redress/releases/download/v1.2.41/redress_1.2.41_macOS_arm64.tar.gz",
+      "checksum": "sha256:TO_BE_CALCULATED"
+    }
+  }
+}
+```
+
+**Usage:**
+```bash
+# Install redress
+go run . install redress
+
+# Analyze obfuscated binary
+redress goup-util-darwin-arm64
+
+# Should show minimal symbol information if properly obfuscated
+```
+
+This helps verify that garble obfuscation is working correctly.
 
 ## Testing Guidelines
 

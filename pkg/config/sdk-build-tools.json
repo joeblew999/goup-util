@@ -1,0 +1,33 @@
+{
+  "sdks": {
+    "garble": [
+      {
+        "version": "0.15.0",
+        "goupName": "garble",
+        "installPath": "tools/garble",
+        "platforms": {
+          "darwin/amd64": {
+            "downloadUrl": "https://github.com/burrowers/garble/releases/download/v0.15.0/garble_darwin_amd64",
+            "checksum": "sha256:TO_BE_UPDATED"
+          },
+          "darwin/arm64": {
+            "downloadUrl": "https://github.com/burrowers/garble/releases/download/v0.15.0/garble_darwin_arm64",
+            "checksum": "sha256:TO_BE_UPDATED"
+          },
+          "linux/amd64": {
+            "downloadUrl": "https://github.com/burrowers/garble/releases/download/v0.15.0/garble_linux_amd64",
+            "checksum": "sha256:TO_BE_UPDATED"
+          },
+          "linux/arm64": {
+            "downloadUrl": "https://github.com/burrowers/garble/releases/download/v0.15.0/garble_linux_arm64",
+            "checksum": "sha256:TO_BE_UPDATED"
+          },
+          "windows/amd64": {
+            "downloadUrl": "https://github.com/burrowers/garble/releases/download/v0.15.0/garble_windows_amd64.exe",
+            "checksum": "sha256:TO_BE_UPDATED"
+          }
+        }
+      }
+    ]
+  }
+}

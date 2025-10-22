@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/joeblew999/goup-util/pkg/utils"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -22,7 +23,7 @@ var packageCmd = &cobra.Command{
 
 		// Validate platform
 		validPlatforms := []string{"macos", "android", "ios", "windows"}
-		if !contains(validPlatforms, platform) {
+		if !utils.Contains(validPlatforms, platform) {
 			return fmt.Errorf("invalid platform: %s. Valid platforms: %v", platform, validPlatforms)
 		}
 

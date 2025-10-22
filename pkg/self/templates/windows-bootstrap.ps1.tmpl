@@ -4,7 +4,7 @@
 # Do not edit manually - changes will be overwritten
 #
 # Usage:
-#   irm https://raw.githubusercontent.com/joeblew999/goup-util/main/scripts/windows-bootstrap.ps1 | iex
+#   irm https://raw.githubusercontent.com/{{.Repo}}/main/scripts/windows-bootstrap.ps1 | iex
 #
 # This script downloads the goup-util binary and runs it to install dependencies.
 # The binary itself handles: winget, git, go, task installation, and self-installation.
@@ -38,7 +38,7 @@ $goarch = switch ($arch) {
     "ARM64" { "arm64" }
     default {
         Write-Host "ERROR: Unsupported architecture: $arch" -ForegroundColor Red
-        Write-Host "Supported: arm64, amd64, amd64, arm64" -ForegroundColor Red
+        Write-Host "Supported: {{.SupportedArchs}}" -ForegroundColor Red
         exit 1
     }
 }
@@ -52,10 +52,23 @@ $Script:TempDir = New-Item -ItemType Directory -Path (Join-Path $env:TEMP ([Syst
 Set-Location $Script:TempDir
 
 try {
-    
+    {{if .UseLocal}}
+    # LOCAL MODE - Using local binaries for testing
+    Write-Host "⚠️  LOCAL MODE: Using local binary from {{.LocalBinDir}}" -ForegroundColor Yellow
+    $localBinary = "{{.LocalBinDir}}\$binaryName"
+
+    if (-not (Test-Path $localBinary)) {
+        Write-Host "ERROR: Local binary not found: $localBinary" -ForegroundColor Red
+        Write-Host "Run 'go run . self build' first" -ForegroundColor Red
+        exit 1
+    }
+
+    Write-Host "Copying local binary..."
+    Copy-Item $localBinary "goup-util.exe" -Force
+    {{else}}
     # RELEASE MODE - Download from GitHub
     Write-Host "Downloading goup-util..."
-    $releaseUrl = "https://api.github.com/repos/joeblew999/goup-util/releases/latest"
+    $releaseUrl = "https://api.github.com/repos/{{.Repo}}/releases/latest"
 
     try {
         $release = Invoke-RestMethod -Uri $releaseUrl -ErrorAction Stop
@@ -68,7 +81,7 @@ try {
     $asset = $release.assets | Where-Object { $_.name -eq $binaryName }
     if (-not $asset) {
         Write-Host "ERROR: Binary not found for windows-$goarch" -ForegroundColor Red
-        Write-Host "Supported architectures: arm64, amd64, amd64, arm64" -ForegroundColor Red
+        Write-Host "Supported architectures: {{.SupportedArchs}}" -ForegroundColor Red
         exit 1
     }
 
@@ -79,7 +92,7 @@ try {
         Write-Host $_.Exception.Message -ForegroundColor Red
         exit 1
     }
-    
+    {{end}}
 
     Write-Host ""
     Write-Host "Running bootstrap installation..."
@@ -88,7 +101,7 @@ try {
 
     # Run the self setup command
     # The binary handles all dependency installation and self-installation
-    $args = "self setup".Split(" ")
+    $args = "{{.SetupCommand}}".Split(" ")
     $process = Start-Process -FilePath ".\goup-util.exe" -ArgumentList $args -Wait -PassThru -NoNewWindow
 
     if ($process.ExitCode -ne 0) {

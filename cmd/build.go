@@ -12,6 +12,7 @@ import (
 	"github.com/joeblew999/goup-util/pkg/icons"
 	"github.com/joeblew999/goup-util/pkg/installer"
 	"github.com/joeblew999/goup-util/pkg/project"
+	"github.com/joeblew999/goup-util/pkg/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -49,7 +50,7 @@ var buildCmd = &cobra.Command{
 
 		// Validate platform
 		validPlatforms := []string{"macos", "android", "ios", "ios-simulator", "windows", "all"}
-		if !contains(validPlatforms, platform) {
+		if !utils.Contains(validPlatforms, platform) {
 			return fmt.Errorf("invalid platform: %s. Valid platforms: %v", platform, validPlatforms)
 		}
 
@@ -465,15 +466,7 @@ func generateIcons(appDir, platform string) error {
 }
 
 // Remove the old generateTestIcon function since it's now in the icons package
-
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
-}
+// contains() moved to pkg/utils/slice.go
 
 func init() {
 	buildCmd.Flags().BoolVar(&skipIcons, "skip-icons", false, "Skip icon generation")

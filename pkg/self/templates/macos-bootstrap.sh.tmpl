@@ -5,7 +5,7 @@
 # Do not edit manually - changes will be overwritten
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/joeblew999/goup-util/main/scripts/macos-bootstrap.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/{{.Repo}}/main/scripts/macos-bootstrap.sh | bash
 #
 # This script downloads the goup-util binary and runs it to install dependencies.
 # The binary itself handles: Homebrew, git, go, task installation, and self-installation.
@@ -41,7 +41,7 @@ case "$ARCH" in
         ;;
     *)
         echo "ERROR: Unsupported architecture: $ARCH" >&2
-        echo "Supported: arm64, amd64, amd64, arm64" >&2
+        echo "Supported: {{.SupportedArchs}}" >&2
         exit 1
         ;;
 esac
@@ -54,10 +54,24 @@ echo ""
 TMP_DIR=$(mktemp -d)
 cd "$TMP_DIR"
 
+{{if .UseLocal}}
+# LOCAL MODE - Using local binaries for testing
+echo "⚠️  LOCAL MODE: Using local binary from {{.LocalBinDir}}"
+LOCAL_BINARY="{{.LocalBinDir}}/$BINARY_NAME"
 
+if [ ! -f "$LOCAL_BINARY" ]; then
+    echo "ERROR: Local binary not found: $LOCAL_BINARY" >&2
+    echo "Run 'go run . self build' first" >&2
+    exit 1
+fi
+
+echo "Copying local binary..."
+cp "$LOCAL_BINARY" goup-util
+chmod +x goup-util
+{{else}}
 # RELEASE MODE - Download from GitHub
 echo "Downloading goup-util..."
-RELEASE_URL="https://api.github.com/repos/joeblew999/goup-util/releases/latest"
+RELEASE_URL="https://api.github.com/repos/{{.Repo}}/releases/latest"
 
 if ! RELEASE_JSON=$(curl -fsSL "$RELEASE_URL"); then
     echo "ERROR: Failed to fetch release information" >&2
@@ -68,7 +82,7 @@ DOWNLOAD_URL=$(echo "$RELEASE_JSON" | grep -o '"browser_download_url": "[^"]*'"$
 
 if [ -z "$DOWNLOAD_URL" ]; then
     echo "ERROR: Binary not found for darwin-$ARCH" >&2
-    echo "Supported architectures: arm64, amd64, amd64, arm64" >&2
+    echo "Supported architectures: {{.SupportedArchs}}" >&2
     exit 1
 fi
 
@@ -78,7 +92,7 @@ if ! curl -fsSL -o goup-util "$DOWNLOAD_URL"; then
 fi
 
 chmod +x goup-util
-
+{{end}}
 
 echo ""
 echo "Running bootstrap installation..."
@@ -87,7 +101,7 @@ echo ""
 
 # Run the bootstrap command
 # The binary handles all dependency installation and self-installation
-if ! ./goup-util self setup; then
+if ! ./goup-util {{.SetupCommand}}; then
     echo "" >&2
     echo "ERROR: Bootstrap installation failed" >&2
     exit 1
