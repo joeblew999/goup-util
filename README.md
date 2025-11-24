@@ -756,3 +756,35 @@ Build sovereign systems. Own your stack. Control your destiny. 🚀
 - 🔌 [gio-plugins roadmap](https://github.com/orgs/gioui-plugins/projects/1)
 - 🔐 [wellknown - Self-sovereign routing](https://github.com/joeblew999/wellknown)
 - 🔄 [Automerge - Distributed data](https://github.com/joeblew999/automerge-wazero-example)
+
+---
+
+## Contact & Support
+
+### For Investors & Enterprise Inquiries
+
+Interested in digital sovereignty solutions or investment opportunities?
+
+**Website**: [ubntusoftware.net](https://ubntusoftware.net)
+
+### For Developers
+
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/joeblew999/goup-util/discussions)
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/joeblew999/goup-util/issues)
+- 📖 **Documentation**: See [docs/](docs/) folder
+- 💡 **Feature Requests**: [GitHub Issues](https://github.com/joeblew999/goup-util/issues)
+
+### Commercial Support & Consulting
+
+Building mission-critical applications? Need enterprise support?
+
+Contact us via [ubntusoftware.net](https://ubntusoftware.net) for:
+- 🏢 Enterprise licensing & support
+- 🎓 Training & onboarding
+- 🔧 Custom development & integration
+- 🏛️ Government & compliance consulting
+- 🚀 Migration from existing platforms
+
+---
+
+**Built with ❤️ for digital sovereignty**
