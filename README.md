@@ -765,7 +765,7 @@ Build sovereign systems. Own your stack. Control your destiny. 🚀
 
 Interested in digital sovereignty solutions or investment opportunities?
 
-**Website**: [ubntusoftware.net](https://ubntusoftware.net)
+**Website**: [ubuntusoftware.net](https://www.ubuntusoftware.net)
 
 ### For Developers
 
@@ -778,7 +778,7 @@ Interested in digital sovereignty solutions or investment opportunities?
 
 Building mission-critical applications? Need enterprise support?
 
-Contact us via [ubntusoftware.net](https://ubntusoftware.net) for:
+Contact us via [ubuntusoftware.net](https://www.ubuntusoftware.net) for:
 - 🏢 Enterprise licensing & support
 - 🎓 Training & onboarding
 - 🔧 Custom development & integration
