@@ -1,5 +1,11 @@
 # goup-util
 
+https://github.com/joeblew999/goup-util
+
+**About:** Write HTML/HTMX once, deploy everywhere: Web, iOS, Android, Desktop—with instant updates and no app store approval.
+
+---
+
 **Build cross-platform applications using standard web technologies.**
 
 Write HTML/CSS once → Deploy everywhere: Web, iOS, Android, Desktop
