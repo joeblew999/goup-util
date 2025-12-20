@@ -21,6 +21,10 @@ type BuildOptions struct {
 	Force     bool
 	CheckOnly bool
 	SkipIcons bool
+	// New gogio flags (Dec 2025)
+	Schemes string // Deep linking URI schemes (e.g., "myapp://,https://example.com")
+	Queries string // Android app queries (e.g., "com.google.android.apps.maps")
+	SignKey string // Signing key (keystore path for Android, Keychain key name for macOS, or provisioning profile for iOS/macOS)
 }
 
 // Global build cache
@@ -42,8 +46,21 @@ func getBuildCache() *buildcache.Cache {
 var buildCmd = &cobra.Command{
 	Use:   "build [platform] [app-directory]",
 	Short: "Build Gio applications for different platforms",
-	Long:  "High-level command to generate icons and build Gio applications for various platforms.",
-	Args:  cobra.ExactArgs(2),
+	Long: `Build Gio applications for various platforms with deep linking and native features.
+
+Platforms: macos, android, ios, ios-simulator, windows, all
+
+New gogio features (Dec 2025):
+  --schemes    Deep linking URI schemes (Android, iOS, macOS, Windows)
+  --queries    Android app package queries for intent launching
+  --signkey    Signing: keystore (Android), Keychain key (macOS), or provisioning profile (iOS/macOS)
+
+Examples:
+  goup-util build macos ./myapp
+  goup-util build android ./myapp --schemes "myapp://,https://example.com"
+  goup-util build android ./myapp --queries "com.google.android.apps.maps"
+  goup-util build ios ./myapp --signkey /path/to/profile.mobileprovision`,
+	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		platform := args[0]
 		appDir := args[1]
@@ -85,12 +102,18 @@ var buildCmd = &cobra.Command{
 		skipIcons, _ := cmd.Flags().GetBool("skip-icons")
 		force, _ := cmd.Flags().GetBool("force")
 		checkOnly, _ := cmd.Flags().GetBool("check")
+		schemes, _ := cmd.Flags().GetString("schemes")
+		queries, _ := cmd.Flags().GetString("queries")
+		signKey, _ := cmd.Flags().GetString("signkey")
 
 		// Create build options
 		opts := BuildOptions{
 			Force:     force,
 			CheckOnly: checkOnly,
 			SkipIcons: skipIcons,
+			Schemes:   schemes,
+			Queries:   queries,
+			SignKey:   signKey,
 		}
 
 		switch platform {
@@ -160,7 +183,20 @@ func buildMacOS(appDir, appName, outputDir, platform string, opts BuildOptions) 
 
 	// Build with gogio
 	iconPath := filepath.Join(appDir, "icon-source.png")
-	gogioCmd := exec.Command("gogio", "-target", "macos", "-arch", "arm64", "-icon", iconPath, "-o", appPath, appDir)
+	args := []string{"-target", "macos", "-arch", "arm64", "-icon", iconPath, "-o", appPath}
+
+	// Add deep linking schemes if specified
+	if opts.Schemes != "" {
+		args = append(args, "-schemes", opts.Schemes)
+	}
+
+	// Add signing key / provisioning profile if specified
+	if opts.SignKey != "" {
+		args = append(args, "-signkey", opts.SignKey)
+	}
+
+	args = append(args, appDir)
+	gogioCmd := exec.Command("gogio", args...)
 	gogioCmd.Stdout = os.Stdout
 	gogioCmd.Stderr = os.Stderr
 
@@ -240,7 +276,20 @@ func buildAndroid(appDir, appName, outputDir, platform string, opts BuildOptions
 	env = append(env, "ANDROID_NDK_ROOT="+ndkPath)
 
 	// Build with gogio
-	gogioCmd := exec.Command("gogio", "-target", "android", "-o", apkPath, appDir)
+	args := []string{"-target", "android", "-o", apkPath}
+
+	// Add deep linking schemes if specified
+	if opts.Schemes != "" {
+		args = append(args, "-schemes", opts.Schemes)
+	}
+
+	// Add app queries if specified (Android-specific)
+	if opts.Queries != "" {
+		args = append(args, "-queries", opts.Queries)
+	}
+
+	args = append(args, appDir)
+	gogioCmd := exec.Command("gogio", args...)
 	gogioCmd.Env = env
 	gogioCmd.Stdout = os.Stdout
 	gogioCmd.Stderr = os.Stderr
@@ -304,7 +353,15 @@ func buildIOS(appDir, appName, outputDir, platform string, opts BuildOptions, si
 	}
 
 	// Build with gogio
-	gogioCmd := exec.Command("gogio", "-target", "ios", "-o", appPath, appDir)
+	args := []string{"-target", "ios", "-o", appPath}
+
+	// Add deep linking schemes if specified
+	if opts.Schemes != "" {
+		args = append(args, "-schemes", opts.Schemes)
+	}
+
+	args = append(args, appDir)
+	gogioCmd := exec.Command("gogio", args...)
 	gogioCmd.Stdout = os.Stdout
 	gogioCmd.Stderr = os.Stderr
 
@@ -473,6 +530,12 @@ func init() {
 	buildCmd.Flags().String("output", "", "Custom output directory for build artifacts")
 	buildCmd.Flags().Bool("force", false, "Force rebuild even if up-to-date")
 	buildCmd.Flags().Bool("check", false, "Check if rebuild needed (exit 0=no, 1=yes)")
+
+	// New gogio flags (Dec 2025)
+	buildCmd.Flags().String("schemes", "", "Deep linking URI schemes (comma-separated, e.g., 'myapp://,https://example.com')")
+	buildCmd.Flags().String("queries", "", "Android app package queries (comma-separated, e.g., 'com.google.android.apps.maps')")
+	buildCmd.Flags().String("signkey", "", "Signing key: keystore path (Android), Keychain key name (macOS), or provisioning profile (iOS/macOS)")
+
 	rootCmd.AddCommand(buildCmd)
 }
 
