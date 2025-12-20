@@ -543,28 +543,42 @@ Built once → Runs on all platforms
 
 ### The Problem
 
-- Using `gioui.org v0.8.0` with `gio-plugins v0.8.0` causes: `panic: Gio version not supported`
-- The version tags don't guarantee compatibility - specific commit hashes are required
+- Using mismatched Gio and gio-plugins versions causes: `panic: Gio version not supported`
+- The version tags don't guarantee compatibility - specific commit hashes may be required
 - See issue: https://github.com/gioui-plugins/gio-plugins/issues/104
 
 ### The Solution
 
-**Always use these specific versions** (as of 2025-10-21):
+**Always use these specific versions** (as of 2025-12-20):
 
 ```bash
 # For projects using gio-plugins (webviewer, hyperlink, etc.)
-go get gioui.org@1a17e9ea3725cf5bcb8bdd363e8c6b310669e936
-go get github.com/gioui-plugins/gio-plugins@main
+go get gioui.org@7bcb315ee174
+go get github.com/gioui-plugins/gio-plugins@v0.9.1
 go mod tidy
 
 # For projects using only Gio UI (no plugins)
-go get gioui.org@1a17e9ea3725cf5bcb8bdd363e8c6b310669e936
+go get gioui.org@7bcb315ee174
 go mod tidy
 ```
 
 This gives you:
-- `gioui.org v0.8.1-0.20250526181049-1a17e9ea3725` (commit after v0.8.0 tag)
-- `github.com/gioui-plugins/gio-plugins v0.8.1-0.20250616220248-653221ccd770` (main branch)
+- `gioui.org v0.9.1-0.20251215212054-7bcb315ee174` (latest compatible with gio-plugins)
+- `github.com/gioui-plugins/gio-plugins v0.9.1` (official release tag)
+
+### What's New in v0.9.1
+
+**Gio UI:**
+- ✨ **Custom URI Scheme Support** - Launch apps via `gio://some/data` on all platforms
+- 🖱️ **Touch Screen Support on Windows** - Windows Pointer API for touch detection
+- 🔧 Fixed text rendering on some Android devices
+- 🔧 Fixed GPU clipping causing 1px overlaps
+- 🔧 macOS fullscreen now respects MaxSize
+
+**gio-plugins:**
+- 🔧 Auth global event listener fix (#106)
+- 📦 Updated to Gio v0.9.1 (#105)
+- 🌿 New `deeplink2025` branch for deep linking work
 
 ### When Adding New Examples
 
