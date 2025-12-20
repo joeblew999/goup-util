@@ -15,12 +15,12 @@ import (
 	"gioui.org/app"
 	"gioui.org/f32"
 	"gioui.org/font/gofont"
-	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/text"
 	"gioui.org/widget/material"
 	"github.com/gioui-plugins/gio-plugins/plugin/gioplugins"
 	"github.com/gioui-plugins/gio-plugins/webviewer/giowebview"
+	"github.com/gioui-plugins/gio-plugins/webviewer/webview"
 )
 
 //go:embed web/*
@@ -42,7 +42,10 @@ var (
 
 func main() {
 	th.Shaper = text.NewShaper(text.WithCollection(gofont.Collection()))
-	
+
+	// Enable webview debug mode
+	webview.SetDebug(true)
+
 	// Start embedded HTTP server
 	serverURL := startWebServer()
 	fmt.Printf("Web server started at %s\n", serverURL)
@@ -119,6 +122,7 @@ func runApp(serverURL string) {
 
 	var ops op.Ops
 	webviewTag := new(int)
+	navigated := false
 
 	for {
 		evt := gioplugins.Hijack(window)
@@ -131,43 +135,36 @@ func runApp(serverURL string) {
 		case app.FrameEvent:
 			gtx := app.NewContext(&ops, evt)
 
-			// Layout: WebView fills entire window
-			layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-					// Render WebView
-					defer giowebview.WebViewOp{Tag: webviewTag}.Push(gtx.Ops).Pop(gtx.Ops)
-					
-					// Position and size
-					giowebview.OffsetOp{Point: f32.Point{X: 0, Y: 0}}.Add(gtx.Ops)
-					giowebview.RectOp{
-						Size: f32.Point{
-							X: float32(gtx.Constraints.Max.X),
-							Y: float32(gtx.Constraints.Max.Y),
-						},
-					}.Add(gtx.Ops)
+			// Process webview events
+			for {
+				ev, ok := gioplugins.Event(gtx, giowebview.Filter{Target: webviewTag})
+				if !ok {
+					break
+				}
+				switch ev.(type) {
+				case giowebview.NavigationEvent:
+					// Navigation event received
+				}
+			}
 
-					// Navigate to embedded web server on first load
-					for {
-						ev, ok := gioplugins.Event(gtx, giowebview.Filter{Target: webviewTag})
-						if !ok {
-							break
-						}
-						
-						switch ev.(type) {
-						case giowebview.NavigationEvent:
-							// Handle navigation events if needed
-						}
-					}
+			// Navigate only once on first frame
+			if !navigated {
+				gioplugins.Execute(gtx, giowebview.NavigateCmd{
+					View: webviewTag,
+					URL:  serverURL,
+				})
+				navigated = true
+			}
 
-					// Initial navigation
-					gioplugins.Execute(gtx, giowebview.NavigateCmd{
-						View: webviewTag,
-						URL:  serverURL,
-					})
-
-					return layout.Dimensions{Size: gtx.Constraints.Max}
-				}),
-			)
+			// Render WebView - fills entire window
+			defer giowebview.WebViewOp{Tag: webviewTag}.Push(gtx.Ops).Pop(gtx.Ops)
+			giowebview.OffsetOp{Point: f32.Point{X: 0, Y: 0}}.Add(gtx.Ops)
+			giowebview.RectOp{
+				Size: f32.Point{
+					X: float32(gtx.Constraints.Max.X),
+					Y: float32(gtx.Constraints.Max.Y),
+				},
+			}.Add(gtx.Ops)
 
 			evt.Frame(gtx.Ops)
 		}

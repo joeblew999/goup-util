@@ -1,0 +1,145 @@
+# Taskfile for managing .src dependencies
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  GIO_REPO: https://github.com/gioui/gio.git
+  GIO_CMD_REPO: https://github.com/gioui/gio-cmd.git
+  GIO_PLUGINS_REPO: https://github.com/gioui-plugins/gio-plugins.git
+  ROBOTGO_REPO: https://github.com/go-vgo/robotgo.git
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  # Clone/update all dependencies
+  update:all:
+    desc: Update all .src dependencies to latest
+    cmds:
+      - task: update:gio
+      - task: update:gio-cmd
+      - task: update:gio-plugins
+      - task: update:robotgo
+
+  update:gio:
+    desc: Update gio to latest main
+    cmds:
+      - |
+        if [ -d gio ]; then
+          cd gio && git pull origin main
+        else
+          git clone --depth 1 {{.GIO_REPO}}
+        fi
+
+  update:gio-cmd:
+    desc: Update gio-cmd to latest main
+    cmds:
+      - |
+        if [ -d gio-cmd ]; then
+          cd gio-cmd && git pull origin main
+        else
+          git clone --depth 1 {{.GIO_CMD_REPO}}
+        fi
+
+  update:gio-plugins:
+    desc: Update gio-plugins to latest main
+    cmds:
+      - |
+        if [ -d gio-plugins ]; then
+          cd gio-plugins && git pull origin main
+        else
+          git clone --depth 1 {{.GIO_PLUGINS_REPO}}
+        fi
+
+  update:robotgo:
+    desc: Update robotgo to latest main
+    cmds:
+      - |
+        if [ -d robotgo ]; then
+          cd robotgo && git pull origin main
+        else
+          git clone --depth 1 {{.ROBOTGO_REPO}}
+        fi
+
+  # Status checks
+  status:
+    desc: Show git status of all dependencies
+    cmds:
+      - echo "=== gio ===" && cd gio 2>/dev/null && git log -1 --oneline || echo "Not cloned"
+      - echo "=== gio-cmd ===" && cd gio-cmd 2>/dev/null && git log -1 --oneline || echo "Not cloned"
+      - echo "=== gio-plugins ===" && cd gio-plugins 2>/dev/null && git log -1 --oneline || echo "Not cloned"
+      - echo "=== robotgo ===" && cd robotgo 2>/dev/null && git log -1 --oneline || echo "Not cloned"
+
+  # Run demos
+  demo:webviewer:
+    desc: Run gio-plugins webviewer demo
+    dir: gio-plugins/webviewer/demo
+    cmds:
+      - go run .
+
+  demo:hyperlink:
+    desc: Run gio-plugins hyperlink demo
+    dir: gio-plugins/hyperlink/demo
+    cmds:
+      - go run .
+
+  demo:auth:
+    desc: Run gio-plugins auth demo
+    dir: gio-plugins/auth/demo
+    cmds:
+      - go run .
+
+  # Search helpers
+  search:webview:
+    desc: Search for webview implementation patterns
+    cmds:
+      - grep -r "WebViewOp" gio-plugins/webviewer/ --include="*.go" | head -20
+
+  search:navigate:
+    desc: Search for navigation patterns
+    cmds:
+      - grep -r "NavigateCmd" gio-plugins/webviewer/ --include="*.go" | head -20
+
+  # Clean
+  clean:
+    desc: Remove all cloned repos (careful!)
+    cmds:
+      - echo "This will remove all cloned repos. Press Ctrl+C to cancel."
+      - sleep 3
+      - rm -rf gio gio-cmd
+      - echo "Removed gio and gio-cmd (keeping gio-plugins and robotgo)"
+
+  clean:all:
+    desc: Remove ALL cloned repos including gio-plugins and robotgo
+    cmds:
+      - echo "This will remove ALL repos. Press Ctrl+C to cancel."
+      - sleep 5
+      - rm -rf gio gio-cmd gio-plugins robotgo
+      - echo "All repos removed"
+
+  # Version info
+  versions:
+    desc: Show versions of all dependencies
+    cmds:
+      - echo "=== gio ===" && cd gio 2>/dev/null && git describe --tags --always || echo "Not cloned"
+      - echo "=== gio-cmd ===" && cd gio-cmd 2>/dev/null && git describe --tags --always || echo "Not cloned"
+      - echo "=== gio-plugins ===" && cd gio-plugins 2>/dev/null && git describe --tags --always || echo "Not cloned"
+      - echo "=== robotgo ===" && cd robotgo 2>/dev/null && git describe --tags --always || echo "Not cloned"
+
+  # Checkout specific versions
+  checkout:gio-plugins:v0.9.1:
+    desc: Checkout gio-plugins v0.9.1
+    dir: gio-plugins
+    cmds:
+      - git fetch --tags
+      - git checkout v0.9.1
+
+  checkout:gio-plugins:main:
+    desc: Checkout gio-plugins main branch
+    dir: gio-plugins
+    cmds:
+      - git checkout main
+      - git pull origin main

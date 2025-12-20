@@ -12,7 +12,9 @@ macos-bootstrap.sh
 windows-bootstrap.ps1
 
 # Source code references (for reading dependencies)
-.src/
+# Keep Taskfile but ignore cloned repos
+.src/*
+!.src/Taskfile.yml
 
 # Build and distribution directories
 .build/
