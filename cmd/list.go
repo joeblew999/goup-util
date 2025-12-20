@@ -45,13 +45,14 @@ func listAllSDKs() error {
 		return fmt.Errorf("failed to parse SDK files: %w", err)
 	}
 
-	platforms := []string{"android", "ios"}
+	// Platform names corresponding to SDK files (order must match ParseSDKFiles)
+	platforms := []string{"android", "ios", "build-tools"}
 
 	// Filter by platform if specified
 	if platformFilter != "" {
 		platformFilter = strings.ToLower(platformFilter)
 		if !utils.Contains(platforms, platformFilter) {
-			return fmt.Errorf("unknown platform: %s (available: android, ios)", platformFilter)
+			return fmt.Errorf("unknown platform: %s (available: android, ios, build-tools)", platformFilter)
 		}
 		// Find the index of the filtered platform
 		for i, p := range platforms {
@@ -64,10 +65,7 @@ func listAllSDKs() error {
 	}
 
 	for i, sdkFile := range sdkFiles {
-		platform := platforms[0] // Will be correct since we filter above
-		if len(platforms) > 1 {
-			platform = platforms[i]
-		}
+		platform := platforms[i]
 		if !compactOutput {
 			fmt.Printf("=== %s SDKs ===\n", strings.Title(platform))
 		}
