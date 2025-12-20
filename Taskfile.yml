@@ -8,10 +8,11 @@ vars:
   WEBVIEWER_EXAMPLE: examples/gio-plugin-webviewer
   HYPERLINK_EXAMPLE: examples/gio-plugin-hyperlink
   HYBRID_EXAMPLE: examples/hybrid-dashboard
-  # CRITICAL: These specific commit hashes are required for compatibility
+  # CRITICAL: These specific versions are required for compatibility
   # See CLAUDE.md "Gio Version Compatibility" section
-  GIO_VERSION: 1a17e9ea3725cf5bcb8bdd363e8c6b310669e936
-  GIO_PLUGINS_VERSION: main
+  # Updated: 2025-12-20 to Gio v0.9.1 and gio-plugins v0.9.1
+  GIO_VERSION: 7bcb315ee174
+  GIO_PLUGINS_VERSION: v0.9.1
 
 tasks:
   default:
@@ -34,16 +35,20 @@ tasks:
     desc: Check Gio version compatibility in examples
     cmds:
       - echo "Checking Gio versions in all examples..."
-      - echo "Expected gioui.org v0.8.1-0.20250526181049-1a17e9ea3725"
+      - echo "Expected gioui.org v0.9.1-0.20251215212054-7bcb315ee174"
+      - echo "Expected gio-plugins v0.9.1"
       - echo ""
       - echo "gio-basic:"
-      - cd {{.BASIC_EXAMPLE}} && grep "gioui.org v" go.mod || echo "OK  No go.mod found"
+      - cd {{.BASIC_EXAMPLE}} && grep "gioui.org v" go.mod || echo "  No go.mod found"
       - echo "gio-plugin-webviewer:"
-      - cd {{.WEBVIEWER_EXAMPLE}} && grep "gioui.org v" go.mod || echo "OK  No go.mod found"
+      - cd {{.WEBVIEWER_EXAMPLE}} && grep "gioui.org v" go.mod || echo "  No go.mod found"
+      - cd {{.WEBVIEWER_EXAMPLE}} && grep "gio-plugins v" go.mod || echo "  No gio-plugins found"
       - echo "gio-plugin-hyperlink:"
-      - cd {{.HYPERLINK_EXAMPLE}} && grep "gioui.org v" go.mod || echo "OK  No go.mod found"
+      - cd {{.HYPERLINK_EXAMPLE}} && grep "gioui.org v" go.mod || echo "  No go.mod found"
+      - cd {{.HYPERLINK_EXAMPLE}} && grep "gio-plugins v" go.mod || echo "  No gio-plugins found"
       - echo "hybrid-dashboard:"
-      - cd {{.HYBRID_EXAMPLE}} && grep "gioui.org v" go.mod || echo "OK  No go.mod found"
+      - cd {{.HYBRID_EXAMPLE}} && grep "gioui.org v" go.mod || echo "  No go.mod found"
+      - cd {{.HYBRID_EXAMPLE}} && grep "gio-plugins v" go.mod || echo "  No gio-plugins found"
 
   # Development tasks
   dev:
