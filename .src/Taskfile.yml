@@ -4,10 +4,17 @@
 version: '3'
 
 vars:
+  # Repository URLs
   GIO_REPO: https://github.com/gioui/gio.git
   GIO_CMD_REPO: https://github.com/gioui/gio-cmd.git
   GIO_PLUGINS_REPO: https://github.com/gioui-plugins/gio-plugins.git
   ROBOTGO_REPO: https://github.com/go-vgo/robotgo.git
+
+  # Pinned versions (keep in sync with main Taskfile.yml)
+  # Updated: 2025-12-20
+  GIO_VERSION: 7bcb315ee174  # v0.9.1-0.20251215212054-7bcb315ee174
+  GIO_PLUGINS_VERSION: v0.9.1
+  ROBOTGO_VERSION: v0.100.10  # Latest stable
 
 tasks:
   default:
@@ -143,3 +150,53 @@ tasks:
     cmds:
       - git checkout main
       - git pull origin main
+
+  checkout:gio:pinned:
+    desc: Checkout gio to pinned version ({{.GIO_VERSION}})
+    dir: gio
+    cmds:
+      - git fetch origin
+      - git checkout {{.GIO_VERSION}}
+
+  checkout:gio:main:
+    desc: Checkout gio main branch
+    dir: gio
+    cmds:
+      - git checkout main
+      - git pull origin main
+
+  checkout:gio-plugins:pinned:
+    desc: Checkout gio-plugins to pinned version ({{.GIO_PLUGINS_VERSION}})
+    dir: gio-plugins
+    cmds:
+      - git fetch --tags
+      - git checkout {{.GIO_PLUGINS_VERSION}}
+
+  checkout:robotgo:pinned:
+    desc: Checkout robotgo to pinned version ({{.ROBOTGO_VERSION}})
+    dir: robotgo
+    cmds:
+      - git fetch --tags
+      - git checkout {{.ROBOTGO_VERSION}}
+
+  # Checkout all to pinned versions
+  checkout:all:pinned:
+    desc: Checkout all repos to pinned versions
+    cmds:
+      - task: checkout:gio:pinned
+      - task: checkout:gio-plugins:pinned
+      - task: checkout:robotgo:pinned
+
+  # Show pinned vs current versions
+  versions:compare:
+    desc: Compare pinned versions vs current checkout
+    cmds:
+      - echo "=== Pinned Versions ==="
+      - echo "  gio:         {{.GIO_VERSION}}"
+      - echo "  gio-plugins: {{.GIO_PLUGINS_VERSION}}"
+      - echo "  robotgo:     {{.ROBOTGO_VERSION}}"
+      - echo ""
+      - echo "=== Current Checkouts ==="
+      - echo -n "  gio:         " && cd gio 2>/dev/null && git describe --tags --always || echo "Not cloned"
+      - echo -n "  gio-plugins: " && cd gio-plugins 2>/dev/null && git describe --tags --always || echo "Not cloned"
+      - echo -n "  robotgo:     " && cd robotgo 2>/dev/null && git describe --tags --always || echo "Not cloned"
