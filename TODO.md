@@ -222,28 +222,63 @@ Random ideas to evaluate later:
 
 ---
 
-## 🔗 Gio v0.9.1 Features (2025-12-20)
+## 🔗 Gio v0.9.1 + gogio Updates (2025-12-20)
 
-New features from the latest Gio and gio-plugins updates:
+New features from the latest Gio, gio-plugins, and gio-cmd updates.
 
-### Deep Linking / Custom URI Schemes (HIGH PRIORITY)
-- [ ] Custom URI scheme support (`myapp://dashboard/stats`)
-- [ ] Platform-specific setup (Info.plist, AndroidManifest)
+### gogio New Features (gio-cmd PRs merged Dec 2025)
+
+**PR #9: Deep Linking / Custom URI Schemes** ✨ HIGH PRIORITY
+- [x] `-schemes` flag merged into gogio (Dec 15, 2025)
+- [ ] Add `--schemes` flag to goup-util build command
+- [ ] Support for Android, iOS, and macOS deep links
+- [ ] Example: `goup-util build android --schemes myapp://,https://example.com`
 - [ ] Integration with webviewer (pass URLs to webview)
-- [ ] Add `goup-util init --uri-scheme myapp://` support
-- [ ] Watch `deeplink2025` branch in gio-plugins
+
+**PR #23: Android App Queries**
+- [x] `-queries` flag merged (Dec 16, 2025)
+- [ ] Add `--queries` flag to goup-util build command
+- [ ] Enables checking if apps are installed before launching intents
+- [ ] Example: `goup-util build android --queries com.google.android.apps.maps`
+
+**PR #21: iOS App Store Compatibility Fixes**
+- [x] All 6 validation issues fixed (Dec 16, 2025)
+- [x] Bitcode stripping (Asset validation 90482)
+- [x] 3-part version format (1.2.3 not 1.2.3.4)
+- [x] iPad multitasking disabled by default
+- [x] iPad 152x152 icon auto-generated
+- [ ] Test App Store upload with goup-util built apps
+
+**PR #22: WASM Go 1.23+ Compatibility**
+- [x] Fixed WASM compatibility (Dec 15, 2025)
+- [ ] Test `goup-util build wasm` with Go 1.25
+
+**PR #19: Android 15+ / 16KB Page Size**
+- [x] 64KB page-size for Android 15+ (May 2025)
+- [x] Google Play requires 16KB-compatible by Nov 2025
+- [ ] Verify goup-util Android builds are compatible
+
+**PR #20: macOS Custom Profiles**
+- [x] Custom profile support merged
+- [ ] Add `--profile` flag to macOS builds
+
+### gio-plugins Updates
+
+**Auth Module (Issue #106)**
+- [ ] Test OAuth flows (Apple, Google sign-in)
+- [ ] Verify auth callbacks work correctly
 
 ### Platform Improvements
 - [ ] Test Windows touch screen support in webviewer
 - [ ] Test macOS fullscreen MaxSize with webviewer apps
 - [ ] Verify Android text rendering fixes
 
-### Auth Module
-- [ ] Test OAuth flows (Apple, Google sign-in)
-- [ ] Verify auth callbacks work correctly
-
 **Current versions (2025-12-20):**
 ```bash
+# Update gio-cmd (gogio) to get new features
+go install gioui.org/cmd/gogio@latest
+
+# In your project
 go get gioui.org@7bcb315ee174  # v0.9.1-0.20251215212054-7bcb315ee174
 go get github.com/gioui-plugins/gio-plugins@v0.9.1
 ```
