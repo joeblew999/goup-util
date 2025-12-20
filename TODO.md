@@ -228,18 +228,18 @@ New features from the latest Gio, gio-plugins, and gio-cmd updates.
 
 ### gogio New Features (gio-cmd PRs merged Dec 2025)
 
-**PR #9: Deep Linking / Custom URI Schemes** ✨ HIGH PRIORITY
+**PR #9: Deep Linking / Custom URI Schemes** ✨ IMPLEMENTED
 - [x] `-schemes` flag merged into gogio (Dec 15, 2025)
-- [ ] Add `--schemes` flag to goup-util build command
-- [ ] Support for Android, iOS, and macOS deep links
-- [ ] Example: `goup-util build android --schemes myapp://,https://example.com`
+- [x] Add `--schemes` flag to goup-util build command ✅
+- [x] Support for Android, iOS, macOS, Windows deep links ✅
+- [x] Example: `goup-util build android --schemes myapp://,https://example.com` ✅
 - [ ] Integration with webviewer (pass URLs to webview)
 
-**PR #23: Android App Queries**
+**PR #23: Android App Queries** ✅ IMPLEMENTED
 - [x] `-queries` flag merged (Dec 16, 2025)
-- [ ] Add `--queries` flag to goup-util build command
-- [ ] Enables checking if apps are installed before launching intents
-- [ ] Example: `goup-util build android --queries com.google.android.apps.maps`
+- [x] Add `--queries` flag to goup-util build command ✅
+- [x] Enables checking if apps are installed before launching intents ✅
+- [x] Example: `goup-util build android --queries com.google.android.apps.maps` ✅
 
 **PR #21: iOS App Store Compatibility Fixes**
 - [x] All 6 validation issues fixed (Dec 16, 2025)
@@ -258,9 +258,9 @@ New features from the latest Gio, gio-plugins, and gio-cmd updates.
 - [x] Google Play requires 16KB-compatible by Nov 2025
 - [ ] Verify goup-util Android builds are compatible
 
-**PR #20: macOS Custom Profiles**
+**PR #20: macOS/iOS Signing & Profiles** ✅ IMPLEMENTED
 - [x] Custom profile support merged
-- [ ] Add `--profile` flag to macOS builds
+- [x] Add `--signkey` flag (keystore, Keychain key, or provisioning profile) ✅
 
 ### gio-plugins Updates
 
