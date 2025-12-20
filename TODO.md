@@ -228,12 +228,14 @@ New features from the latest Gio, gio-plugins, and gio-cmd updates.
 
 ### gogio New Features (gio-cmd PRs merged Dec 2025)
 
-**PR #9: Deep Linking / Custom URI Schemes** ✨ IMPLEMENTED
+**PR #9: Deep Linking / Custom URI Schemes** ✨ FULLY IMPLEMENTED
 - [x] `-schemes` flag merged into gogio (Dec 15, 2025)
 - [x] Add `--schemes` flag to goup-util build command ✅
 - [x] Support for Android, iOS, macOS, Windows deep links ✅
-- [x] Example: `goup-util build android --schemes myapp://,https://example.com` ✅
-- [ ] Integration with webviewer (pass URLs to webview)
+- [x] Example: `goup-util build macos --schemes hybrid` ✅
+- [x] Integration with webviewer (app.URLEvent → webview navigation) ✅
+- [x] Taskfile tasks: `demo:deeplink`, `test:deeplink`, `build:hybrid:*:deeplink` ✅
+- [x] hybrid-dashboard example with deep link handling ✅
 
 **PR #23: Android App Queries** ✅ IMPLEMENTED
 - [x] `-queries` flag merged (Dec 16, 2025)

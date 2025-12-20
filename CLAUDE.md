@@ -1,5 +1,9 @@
 # Claude Instructions for goup-util
 
+## Philosphy
+
+MUST use task file !!! SO we have consistency 
+
 ## Project Overview
 
 **goup-util** is a specialized build tool for creating **cross-platform hybrid applications** using Go and Gio UI.

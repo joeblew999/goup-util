@@ -63,6 +63,32 @@
                 <div id="goResponse" class="response"></div>
             </div>
 
+            <!-- Deep Linking Demo -->
+            <div class="card full-width">
+                <h2>🔗 Deep Linking</h2>
+                <p>This app supports custom URL schemes. Try these:</p>
+                <div class="deeplink-examples">
+                    <code>hybrid://dashboard/stats</code> - Navigate to stats<br>
+                    <code>hybrid://dashboard/hello</code> - Navigate to hello<br>
+                    <code>hybrid://open?url=https://example.com</code> - Open external URL
+                </div>
+                <div class="stats" style="margin-top: 1rem;">
+                    <div class="stat">
+                        <span class="label">Last Deep Link:</span>
+                        <span class="value" id="lastDeepLink">None received</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">Scheme:</span>
+                        <span class="value" id="deepLinkScheme">-</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">Path:</span>
+                        <span class="value" id="deepLinkPath">-</span>
+                    </div>
+                </div>
+                <button id="checkDeepLinkBtn" class="btn" style="margin-top: 1rem;">Check for Deep Link</button>
+            </div>
+
             <!-- Architecture Diagram -->
             <div class="card full-width">
                 <h2>🏗️ Architecture</h2>
@@ -108,6 +134,7 @@
                     <li>✅ Completely offline-capable</li>
                     <li>✅ Works on macOS, iOS, Android, Windows</li>
                     <li>✅ Single binary deployment</li>
+                    <li>✅ <strong>Deep linking</strong> via custom URL schemes</li>
                 </ul>
             </div>
         </div>

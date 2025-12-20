@@ -206,12 +206,12 @@ tasks:
   versions:compare:
     desc: Compare pinned versions vs current checkout
     cmds:
-      - echo "=== Pinned Versions ==="
-      - echo "  gio:         {{.GIO_VERSION}}"
-      - echo "  gio-plugins: {{.GIO_PLUGINS_VERSION}}"
-      - echo "  robotgo:     {{.ROBOTGO_VERSION}}"
-      - echo ""
-      - echo "=== Current Checkouts ==="
-      - echo -n "  gio:         " && cd gio 2>/dev/null && git describe --tags --always || echo "Not cloned"
-      - echo -n "  gio-plugins: " && cd gio-plugins 2>/dev/null && git describe --tags --always || echo "Not cloned"
-      - echo -n "  robotgo:     " && cd robotgo 2>/dev/null && git describe --tags --always || echo "Not cloned"
+      - 'echo "=== Pinned Versions ==="'
+      - 'echo "  gio:         {{.GIO_VERSION}}"'
+      - 'echo "  gio-plugins: {{.GIO_PLUGINS_VERSION}}"'
+      - 'echo "  robotgo:     {{.ROBOTGO_VERSION}}"'
+      - 'echo ""'
+      - 'echo "=== Current Checkouts ==="'
+      - 'echo -n "  gio:         " && cd gio 2>/dev/null && git describe --tags --always || echo "Not cloned"'
+      - 'echo -n "  gio-plugins: " && cd gio-plugins 2>/dev/null && git describe --tags --always || echo "Not cloned"'
+      - 'echo -n "  robotgo:     " && cd robotgo 2>/dev/null && git describe --tags --always || echo "Not cloned"'

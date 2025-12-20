@@ -13,6 +13,12 @@ vars:
   # Updated: 2025-12-20 to Gio v0.9.1 and gio-plugins v0.9.1
   GIO_VERSION: 7bcb315ee174
   GIO_PLUGINS_VERSION: v0.9.1
+  # Deep linking schemes for hybrid-dashboard
+  # Format: comma-separated list of URI scheme names (without ://)
+  # gogio adds the :// automatically when registering the handler
+  HYBRID_SCHEMES: "hybrid,hybriddashboard"
+  # Android app queries (for checking if apps are installed)
+  ANDROID_QUERIES: ""
 
 tasks:
   default:
@@ -74,6 +80,16 @@ tasks:
       - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
       - open {{.HYBRID_EXAMPLE}}/.bin/hybrid-dashboard.app
 
+  run:hybrid:deeplink:
+    desc: Build and run hybrid-dashboard with deep linking (macOS)
+    cmds:
+      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' macos {{.HYBRID_EXAMPLE}}"
+      - open {{.HYBRID_EXAMPLE}}/.bin/hybrid-dashboard.app
+      - echo ""
+      - echo "Test deep linking with:"
+      - echo "  open 'hybrid://dashboard/stats'"
+      - echo "  open 'hybrid://dashboard/hello'"
+
   run:webviewer:
     desc: Build and run webviewer example (macOS)
     cmds:
@@ -102,6 +118,12 @@ tasks:
     cmds:
       - "{{.GOUP}} build --check macos {{.HYBRID_EXAMPLE}}"
 
+  # Deep linking builds (with --schemes flag)
+  build:hybrid:macos:deeplink:
+    desc: Build hybrid-dashboard for macOS with deep linking
+    cmds:
+      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' macos {{.HYBRID_EXAMPLE}}"
+
   build:hybrid:ios:
     desc: Build hybrid-dashboard for iOS (skips if up-to-date)
     cmds:
@@ -111,6 +133,11 @@ tasks:
     desc: Force rebuild hybrid-dashboard for iOS
     cmds:
       - "{{.GOUP}} build --force ios {{.HYBRID_EXAMPLE}}"
+
+  build:hybrid:ios:deeplink:
+    desc: Build hybrid-dashboard for iOS with deep linking
+    cmds:
+      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' ios {{.HYBRID_EXAMPLE}}"
 
   build:hybrid:android:
     desc: Build hybrid-dashboard for Android (skips if up-to-date)
@@ -122,12 +149,36 @@ tasks:
     cmds:
       - "{{.GOUP}} build --force android {{.HYBRID_EXAMPLE}}"
 
+  build:hybrid:android:deeplink:
+    desc: Build hybrid-dashboard for Android with deep linking
+    cmds:
+      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' android {{.HYBRID_EXAMPLE}}"
+
   build:hybrid:all:
     desc: Build hybrid-dashboard for all platforms
     cmds:
       - task: build:hybrid:macos
       - task: build:hybrid:ios
       - task: build:hybrid:android
+
+  build:hybrid:all:deeplink:
+    desc: Build hybrid-dashboard for all platforms with deep linking
+    cmds:
+      - task: build:hybrid:macos:deeplink
+      - task: build:hybrid:ios:deeplink
+      - task: build:hybrid:android:deeplink
+      - task: build:hybrid:windows:deeplink
+
+  # Windows builds
+  build:hybrid:windows:
+    desc: Build hybrid-dashboard for Windows
+    cmds:
+      - "{{.GOUP}} build windows {{.HYBRID_EXAMPLE}}"
+
+  build:hybrid:windows:deeplink:
+    desc: Build hybrid-dashboard for Windows with deep linking
+    cmds:
+      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' windows {{.HYBRID_EXAMPLE}}"
 
   # Build all examples
   build:examples:macos:
@@ -225,6 +276,39 @@ tasks:
       - echo "💡 The app should now be running on your screen!"
       - echo "📊 Watch the real-time stats update"
       - echo "🔗 Click 'Call Go Function' to test the bridge"
+
+  # Deep linking demo
+  demo:deeplink:
+    desc: Demo deep linking - build with schemes and test
+    cmds:
+      - echo "🔗 Building hybrid-dashboard with deep linking..."
+      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' macos {{.HYBRID_EXAMPLE}}"
+      - echo "Build complete! Launching app..."
+      - open {{.HYBRID_EXAMPLE}}/.bin/hybrid-dashboard.app
+      - echo ""
+      - echo "⏳ Waiting for app to start..."
+      - sleep 2
+      - echo ""
+      - 'echo "🔗 Testing deep link: hybrid://dashboard/stats"'
+      - open "hybrid://dashboard/stats"
+      - echo ""
+      - echo "💡 The app should show the deep link was received!"
+      - echo "📋 Check the Deep Linking section in the app"
+
+  # Test deep linking
+  test:deeplink:
+    desc: Test deep linking with various URLs
+    cmds:
+      - echo "Testing deep link schemes..."
+      - echo ""
+      - 'echo "Test 1: hybrid://dashboard/stats"'
+      - open "hybrid://dashboard/stats" || echo "Failed - app may need to be running"
+      - sleep 1
+      - echo ""
+      - 'echo "Test 2: hybrid://dashboard/hello"'
+      - open "hybrid://dashboard/hello" || echo "Failed - app may need to be running"
+      - echo ""
+      - echo "If the app is running, check the Deep Linking section for results."
 
   # Full test workflow
   test:all:
