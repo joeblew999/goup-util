@@ -8,9 +8,11 @@ vars:
   WEBVIEWER_EXAMPLE: examples/gio-plugin-webviewer
   HYPERLINK_EXAMPLE: examples/gio-plugin-hyperlink
   HYBRID_EXAMPLE: examples/hybrid-dashboard
+  SRC_DIR: .src
   # CRITICAL: These specific versions are required for compatibility
   # See CLAUDE.md "Gio Version Compatibility" section
   # Updated: 2025-12-20 to Gio v0.9.1 and gio-plugins v0.9.1
+  # All examples use replace directives pointing to .src/ for centralized versioning
   GIO_VERSION: 7bcb315ee174
   GIO_PLUGINS_VERSION: v0.9.1
   # Deep linking schemes for hybrid-dashboard
@@ -26,35 +28,124 @@ tasks:
     cmds:
       - task --list
 
-  # Version management (CRITICAL for compatibility)
-  fix-versions:
-    desc: Fix Gio version compatibility in all examples
+  # ==========================================================================
+  # .src DEPENDENCY MANAGEMENT
+  # ==========================================================================
+  # All examples use "replace" directives pointing to .src/ for consistent versions
+
+  src-setup:
+    desc: Initial setup - clone gio and gio-plugins to .src
     cmds:
-      - echo "Fixing versions in all examples (see CLAUDE.md for details)..."
-      - cd {{.BASIC_EXAMPLE}} && go get gioui.org@{{.GIO_VERSION}} && go mod tidy
-      - cd {{.WEBVIEWER_EXAMPLE}} && go get gioui.org@{{.GIO_VERSION}} && go get github.com/gioui-plugins/gio-plugins@{{.GIO_PLUGINS_VERSION}} && go mod tidy
-      - cd {{.HYPERLINK_EXAMPLE}} && go get gioui.org@{{.GIO_VERSION}} && go get github.com/gioui-plugins/gio-plugins@{{.GIO_PLUGINS_VERSION}} && go mod tidy
-      - cd {{.HYBRID_EXAMPLE}} && go get gioui.org@{{.GIO_VERSION}} && go get github.com/gioui-plugins/gio-plugins@{{.GIO_PLUGINS_VERSION}} && go mod tidy
-      - echo "Version compatibility fixed. All examples use Gio commit {{.GIO_VERSION}}"
+      - task src-clone-gio
+      - task src-clone-gio-plugins
+      - task src-checkout-pinned
+
+  src-clone-gio:
+    desc: Clone gio to .src/gio
+    cmds:
+      - |
+        if [ -d {{.SRC_DIR}}/gio ]; then
+          echo "gio already cloned, fetching updates..."
+          cd {{.SRC_DIR}}/gio && git fetch origin
+        else
+          echo "Cloning gio..."
+          git clone https://github.com/gioui/gio.git {{.SRC_DIR}}/gio
+        fi
+
+  src-clone-gio-plugins:
+    desc: Clone gio-plugins to .src/gio-plugins
+    cmds:
+      - |
+        if [ -d {{.SRC_DIR}}/gio-plugins ]; then
+          echo "gio-plugins already cloned, fetching updates..."
+          cd {{.SRC_DIR}}/gio-plugins && git fetch origin
+        else
+          echo "Cloning gio-plugins..."
+          git clone https://github.com/gioui-plugins/gio-plugins.git {{.SRC_DIR}}/gio-plugins
+        fi
+
+  src-checkout-pinned:
+    desc: Checkout .src repos to pinned versions
+    cmds:
+      - cd {{.SRC_DIR}}/gio && git checkout {{.GIO_VERSION}}
+      - cd {{.SRC_DIR}}/gio-plugins && git fetch --tags && git checkout {{.GIO_PLUGINS_VERSION}}
+      - echo "Checked out pinned versions"
+
+  src-checkout-main:
+    desc: Checkout .src repos to main/latest
+    cmds:
+      - cd {{.SRC_DIR}}/gio && git checkout main && git pull origin main
+      - cd {{.SRC_DIR}}/gio-plugins && git checkout main && git pull origin main
+
+  src-status:
+    desc: Show current .src versions
+    cmds:
+      - echo "Pinned versions - gio={{.GIO_VERSION}} gio-plugins={{.GIO_PLUGINS_VERSION}}"
+      - echo "Current checkouts..."
+      - cd {{.SRC_DIR}}/gio 2>/dev/null && git describe --tags --always || echo "gio not cloned"
+      - cd {{.SRC_DIR}}/gio-plugins 2>/dev/null && git describe --tags --always || echo "gio-plugins not cloned"
+
+  src-update:
+    desc: Update .src repos and checkout pinned versions
+    cmds:
+      - task src-clone-gio
+      - task src-clone-gio-plugins
+      - task src-checkout-pinned
+
+  src-demo-webviewer:
+    desc: Run gio-plugins webviewer demo from .src
+    dir: "{{.SRC_DIR}}/gio-plugins/webviewer/demo"
+    cmds:
+      - GOWORK=off go run .
+
+  src-demo-hyperlink:
+    desc: Run gio-plugins hyperlink demo from .src
+    dir: "{{.SRC_DIR}}/gio-plugins/hyperlink/demo"
+    cmds:
+      - GOWORK=off go run .
+
+  # ==========================================================================
+  # RUN EXAMPLES (Direct - fast iteration)
+  # ==========================================================================
+
+  run-hybrid:
+    desc: Run hybrid-dashboard directly (fastest)
+    dir: "{{.HYBRID_EXAMPLE}}"
+    cmds:
+      - go run .
+
+  run-webviewer:
+    desc: Run webviewer example directly
+    dir: "{{.WEBVIEWER_EXAMPLE}}"
+    cmds:
+      - go run .
+
+  run-hyperlink:
+    desc: Run hyperlink example directly
+    dir: "{{.HYPERLINK_EXAMPLE}}"
+    cmds:
+      - go run .
+
+  run-basic:
+    desc: Run basic example directly
+    dir: "{{.BASIC_EXAMPLE}}"
+    cmds:
+      - go run .
+
+  # ==========================================================================
+  # VERSION MANAGEMENT
+  # ==========================================================================
 
   doctor:
-    desc: Check Gio version compatibility in examples
+    desc: Check Gio version compatibility and .src status
     cmds:
-      - echo "Checking Gio versions in all examples..."
-      - echo "Expected gioui.org v0.9.1-0.20251215212054-7bcb315ee174"
-      - echo "Expected gio-plugins v0.9.1"
+      - task src-status
       - echo ""
-      - echo "gio-basic:"
-      - cd {{.BASIC_EXAMPLE}} && grep "gioui.org v" go.mod || echo "  No go.mod found"
-      - echo "gio-plugin-webviewer:"
-      - cd {{.WEBVIEWER_EXAMPLE}} && grep "gioui.org v" go.mod || echo "  No go.mod found"
-      - cd {{.WEBVIEWER_EXAMPLE}} && grep "gio-plugins v" go.mod || echo "  No gio-plugins found"
-      - echo "gio-plugin-hyperlink:"
-      - cd {{.HYPERLINK_EXAMPLE}} && grep "gioui.org v" go.mod || echo "  No go.mod found"
-      - cd {{.HYPERLINK_EXAMPLE}} && grep "gio-plugins v" go.mod || echo "  No gio-plugins found"
-      - echo "hybrid-dashboard:"
-      - cd {{.HYBRID_EXAMPLE}} && grep "gioui.org v" go.mod || echo "  No go.mod found"
-      - cd {{.HYBRID_EXAMPLE}} && grep "gio-plugins v" go.mod || echo "  No gio-plugins found"
+      - echo "Checking example replace directives..."
+      - cd {{.BASIC_EXAMPLE}} && grep "replace gioui.org" go.mod || echo "WARN - No replace directive in gio-basic"
+      - cd {{.WEBVIEWER_EXAMPLE}} && grep "replace gioui.org" go.mod || echo "WARN - No replace directive in gio-plugin-webviewer"
+      - cd {{.HYPERLINK_EXAMPLE}} && grep "replace gioui.org" go.mod || echo "WARN - No replace directive in gio-plugin-hyperlink"
+      - cd {{.HYBRID_EXAMPLE}} && grep "replace gioui.org" go.mod || echo "WARN - No replace directive in hybrid-dashboard"
 
   # Development tasks
   dev:
