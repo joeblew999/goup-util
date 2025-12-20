@@ -220,6 +220,36 @@ Random ideas to evaluate later:
 - [docs/WEBVIEW-ANALYSIS.md](docs/WEBVIEW-ANALYSIS.md) - Cross-platform webview deep dive
 - [docs/agents/](docs/agents/) - AI assistant collaboration guides
 
+---
+
+## 🔗 Gio v0.9.1 Features (2025-12-20)
+
+New features from the latest Gio and gio-plugins updates:
+
+### Deep Linking / Custom URI Schemes (HIGH PRIORITY)
+- [ ] Custom URI scheme support (`myapp://dashboard/stats`)
+- [ ] Platform-specific setup (Info.plist, AndroidManifest)
+- [ ] Integration with webviewer (pass URLs to webview)
+- [ ] Add `goup-util init --uri-scheme myapp://` support
+- [ ] Watch `deeplink2025` branch in gio-plugins
+
+### Platform Improvements
+- [ ] Test Windows touch screen support in webviewer
+- [ ] Test macOS fullscreen MaxSize with webviewer apps
+- [ ] Verify Android text rendering fixes
+
+### Auth Module
+- [ ] Test OAuth flows (Apple, Google sign-in)
+- [ ] Verify auth callbacks work correctly
+
+**Current versions (2025-12-20):**
+```bash
+go get gioui.org@7bcb315ee174  # v0.9.1-0.20251215212054-7bcb315ee174
+go get github.com/gioui-plugins/gio-plugins@v0.9.1
+```
+
+---
+
 ## 🎯 Screenshot & Documentation Tasks
 
 ### Capture App Screenshots
