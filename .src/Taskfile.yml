@@ -92,19 +92,26 @@ tasks:
     desc: Run gio-plugins webviewer demo
     dir: gio-plugins/webviewer/demo
     cmds:
+      - GOWORK=off go mod tidy
       - GOWORK=off go run .
 
   demo:hyperlink:
     desc: Run gio-plugins hyperlink demo
     dir: gio-plugins/hyperlink/demo
     cmds:
+      - GOWORK=off go mod tidy
       - GOWORK=off go run .
 
   demo:auth:
-    desc: Run gio-plugins auth demo
+    desc: Run gio-plugins auth demo (BROKEN - demo code outdated)
     dir: gio-plugins/auth/demo
     cmds:
-      - GOWORK=off go run .
+      - echo "ERROR - Auth demo is broken in gio-plugins v0.9.1"
+      - echo "The demo uses GoogleDummyButton and AppleDummyButton which no longer exist"
+      - echo "See .src/gio-plugins/auth/gioauth/authlayout/ for current API"
+      - echo ""
+      - echo "Skipping demo launch..."
+      - exit 1
 
   # Search helpers
   search:webview:
