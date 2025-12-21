@@ -2,6 +2,11 @@
 
 version: '3'
 
+includes:
+  src:
+    taskfile: .src/Taskfile.yml
+    dir: .src
+
 vars:
   GOUP: go run .
   BASIC_EXAMPLE: examples/gio-basic
@@ -31,78 +36,9 @@ tasks:
   # ==========================================================================
   # .src DEPENDENCY MANAGEMENT
   # ==========================================================================
-  # All examples use "replace" directives pointing to .src/ for consistent versions
-
-  src-setup:
-    desc: Initial setup - clone gio and gio-plugins to .src
-    cmds:
-      - task src-clone-gio
-      - task src-clone-gio-plugins
-      - task src-checkout-pinned
-
-  src-clone-gio:
-    desc: Clone gio to .src/gio
-    cmds:
-      - |
-        if [ -d {{.SRC_DIR}}/gio ]; then
-          echo "gio already cloned, fetching updates..."
-          cd {{.SRC_DIR}}/gio && git fetch origin
-        else
-          echo "Cloning gio..."
-          git clone https://github.com/gioui/gio.git {{.SRC_DIR}}/gio
-        fi
-
-  src-clone-gio-plugins:
-    desc: Clone gio-plugins to .src/gio-plugins
-    cmds:
-      - |
-        if [ -d {{.SRC_DIR}}/gio-plugins ]; then
-          echo "gio-plugins already cloned, fetching updates..."
-          cd {{.SRC_DIR}}/gio-plugins && git fetch origin
-        else
-          echo "Cloning gio-plugins..."
-          git clone https://github.com/gioui-plugins/gio-plugins.git {{.SRC_DIR}}/gio-plugins
-        fi
-
-  src-checkout-pinned:
-    desc: Checkout .src repos to pinned versions
-    cmds:
-      - cd {{.SRC_DIR}}/gio && git checkout {{.GIO_VERSION}}
-      - cd {{.SRC_DIR}}/gio-plugins && git fetch --tags && git checkout {{.GIO_PLUGINS_VERSION}}
-      - echo "Checked out pinned versions"
-
-  src-checkout-main:
-    desc: Checkout .src repos to main/latest
-    cmds:
-      - cd {{.SRC_DIR}}/gio && git checkout main && git pull origin main
-      - cd {{.SRC_DIR}}/gio-plugins && git checkout main && git pull origin main
-
-  src-status:
-    desc: Show current .src versions
-    cmds:
-      - echo "Pinned versions - gio={{.GIO_VERSION}} gio-plugins={{.GIO_PLUGINS_VERSION}}"
-      - echo "Current checkouts..."
-      - cd {{.SRC_DIR}}/gio 2>/dev/null && git describe --tags --always || echo "gio not cloned"
-      - cd {{.SRC_DIR}}/gio-plugins 2>/dev/null && git describe --tags --always || echo "gio-plugins not cloned"
-
-  src-update:
-    desc: Update .src repos and checkout pinned versions
-    cmds:
-      - task src-clone-gio
-      - task src-clone-gio-plugins
-      - task src-checkout-pinned
-
-  src-demo-webviewer:
-    desc: Run gio-plugins webviewer demo from .src
-    dir: "{{.SRC_DIR}}/gio-plugins/webviewer/demo"
-    cmds:
-      - GOWORK=off go run .
-
-  src-demo-hyperlink:
-    desc: Run gio-plugins hyperlink demo from .src
-    dir: "{{.SRC_DIR}}/gio-plugins/hyperlink/demo"
-    cmds:
-      - GOWORK=off go run .
+  # All .src tasks are available via the 'src:' namespace
+  # Example: task src:update:all, task src:demo:webviewer, task src:versions:compare
+  # The .src/Taskfile.yml is included above using the 'includes:' directive
 
   # ==========================================================================
   # RUN EXAMPLES (Direct - fast iteration)
@@ -423,72 +359,170 @@ tasks:
       - task: install:ndk
       - echo "Setup complete! Try task demo"
 
-  # Screenshot commands (using robotgo - requires CGO)
-  screenshot:
-    desc: Take a screenshot using robotgo (requires Screen Recording permission)
-    cmds:
-      - CGO_ENABLED=1 go run . screenshot screenshot.png
-      - echo "Screenshot saved to screenshot.png"
+  # ==========================================================================
+  # SCREENSHOT SYSTEM (using robotgo - requires CGO)
+  # ==========================================================================
+  # All screenshot tasks use consistent window sizes and positions
+  # Requires Screen Recording permission on macOS 10.15+
 
-  screenshot:region:
-    desc: Capture a screen region
-    cmds:
-      - CGO_ENABLED=1 go run . screenshot --x 100 --y 100 -w 800 -H 600 screenshot-region.png
-      - echo "Region screenshot saved to screenshot-region.png"
-
-  screenshot:delay:
-    desc: Take screenshot with 3 second delay (useful for menus)
-    cmds:
-      - CGO_ENABLED=1 go run . screenshot --delay 3000 screenshot-delayed.png
-
-  screenshot:info:
-    desc: Show display information
-    cmds:
-      - CGO_ENABLED=1 go run . screenshot --info
-
-  screenshot:all:
-    desc: Capture all displays
-    cmds:
-      - CGO_ENABLED=1 go run . screenshot --all --prefix display
-
-  # Build goup-util with robotgo
-  build:with-screenshot:
+  # Build goup-util with screenshot support
+  build-screenshot:
     desc: Build goup-util with robotgo screenshot support (requires CGO)
     cmds:
       - echo "Building with robotgo support (CGO enabled)..."
-      - CGO_ENABLED=1 go build -o goup-util .
+      - CGO_ENABLED=1 go build -tags screenshot -o goup-util .
       - echo "Built goup-util with screenshot features"
-      - echo "Usage - ./goup-util screenshot --info"
+
+  # Basic screenshot commands
+  screenshot:
+    desc: Take a full screen screenshot
+    cmds:
+      - CGO_ENABLED=1 go run -tags screenshot . screenshot screenshot.png
+
+  screenshot-info:
+    desc: Show display information
+    cmds:
+      - CGO_ENABLED=1 go run -tags screenshot . screenshot --info
+
+  screenshot-region:
+    desc: Capture a screen region (100,100 800x600)
+    cmds:
+      - CGO_ENABLED=1 go run -tags screenshot . screenshot --x 100 --y 100 -w 800 -H 600 screenshot-region.png
+
+  screenshot-delay:
+    desc: Take screenshot with 3 second delay
+    cmds:
+      - CGO_ENABLED=1 go run -tags screenshot . screenshot --delay 3000 screenshot-delayed.png
+
+  # ==========================================================================
+  # EXAMPLE APP SCREENSHOTS
+  # ==========================================================================
+  # Run each example, position it, and capture a screenshot
+
+  screenshot-hybrid:
+    desc: Capture hybrid-dashboard screenshot
+    cmds:
+      - mkdir -p docs/screenshots
+      - echo "Starting hybrid-dashboard..."
+      - cd {{.HYBRID_EXAMPLE}} && go run . &
+      - sleep 3
+      - echo "Capturing screenshot..."
+      - CGO_ENABLED=1 go run -tags screenshot . screenshot --delay 500 docs/screenshots/hybrid-dashboard.png
+      - pkill -f "hybrid-dashboard" || true
+      - echo "Saved docs/screenshots/hybrid-dashboard.png"
+
+  screenshot-webviewer:
+    desc: Capture webviewer example screenshot
+    cmds:
+      - mkdir -p docs/screenshots
+      - echo "Starting webviewer..."
+      - cd {{.WEBVIEWER_EXAMPLE}} && go run . &
+      - sleep 3
+      - echo "Capturing screenshot..."
+      - CGO_ENABLED=1 go run -tags screenshot . screenshot --delay 500 docs/screenshots/webviewer.png
+      - pkill -f "main" || true
+      - echo "Saved docs/screenshots/webviewer.png"
+
+  screenshot-hyperlink:
+    desc: Capture hyperlink example screenshot
+    cmds:
+      - mkdir -p docs/screenshots
+      - echo "Starting hyperlink..."
+      - cd {{.HYPERLINK_EXAMPLE}} && go run . &
+      - sleep 3
+      - echo "Capturing screenshot..."
+      - CGO_ENABLED=1 go run -tags screenshot . screenshot --delay 500 docs/screenshots/hyperlink.png
+      - pkill -f "gio-plugin-hyperlink" || true
+      - echo "Saved docs/screenshots/hyperlink.png"
+
+  screenshot-basic:
+    desc: Capture basic example screenshot
+    cmds:
+      - mkdir -p docs/screenshots
+      - echo "Starting basic..."
+      - cd {{.BASIC_EXAMPLE}} && go run . &
+      - sleep 3
+      - echo "Capturing screenshot..."
+      - CGO_ENABLED=1 go run -tags screenshot . screenshot --delay 500 docs/screenshots/basic.png
+      - pkill -f "example-gio-app" || true
+      - echo "Saved docs/screenshots/basic.png"
+
+  # Capture .src demo screenshots
+  screenshot-src-webviewer:
+    desc: Capture .src webviewer demo screenshot
+    cmds:
+      - mkdir -p docs/screenshots
+      - echo "Starting .src webviewer demo..."
+      - cd {{.SRC_DIR}}/gio-plugins/webviewer/demo && GOWORK=off go run . &
+      - sleep 4
+      - echo "Capturing screenshot..."
+      - CGO_ENABLED=1 go run -tags screenshot . screenshot --delay 500 docs/screenshots/src-webviewer-demo.png
+      - pkill -f "demo" || true
+      - echo "Saved docs/screenshots/src-webviewer-demo.png"
+
+  screenshot-src-hyperlink:
+    desc: Capture .src hyperlink demo screenshot
+    cmds:
+      - mkdir -p docs/screenshots
+      - echo "Starting .src hyperlink demo..."
+      - cd {{.SRC_DIR}}/gio-plugins/hyperlink/demo && GOWORK=off go run . &
+      - sleep 3
+      - echo "Capturing screenshot..."
+      - CGO_ENABLED=1 go run -tags screenshot . screenshot --delay 500 docs/screenshots/src-hyperlink-demo.png
+      - pkill -f "demo" || true
+      - echo "Saved docs/screenshots/src-hyperlink-demo.png"
+
+  # Capture ALL screenshots
+  screenshot-all:
+    desc: Capture screenshots of all examples
+    cmds:
+      - echo "Capturing all example screenshots..."
+      - mkdir -p docs/screenshots
+      - task screenshot-hybrid
+      - task screenshot-webviewer
+      - task screenshot-basic
+      - echo ""
+      - echo "All screenshots saved to docs/screenshots/"
+      - ls -la docs/screenshots/
+
+  screenshot-all-src:
+    desc: Capture screenshots of all .src demos
+    cmds:
+      - echo "Capturing all .src demo screenshots..."
+      - mkdir -p docs/screenshots
+      - task screenshot-src-webviewer
+      - task screenshot-src-hyperlink
+      - echo ""
+      - echo "All .src screenshots saved to docs/screenshots/"
+      - ls -la docs/screenshots/
 
   # Bundle commands (create app bundles with signing)
-  bundle:hybrid:macos:
+  bundle-hybrid-macos:
     desc: Create signed macOS app bundle for hybrid-dashboard
     cmds:
       - "{{.GOUP}} bundle macos {{.HYBRID_EXAMPLE}}"
 
   # Test screenshot features
-  test:screenshot:
+  test-screenshot:
     desc: Test screenshot features
     cmds:
       - echo "Testing screenshot functionality..."
-      - CGO_ENABLED=1 go run . screenshot --info
+      - CGO_ENABLED=1 go run -tags screenshot . screenshot --info
       - echo "Taking test screenshot..."
-      - CGO_ENABLED=1 go run . screenshot test-screenshot.png
+      - CGO_ENABLED=1 go run -tags screenshot . screenshot --force test-screenshot.png
       - ls -lh test-screenshot.png
+      - rm -f test-screenshot.png
       - echo "Screenshot test complete"
 
   # Documentation screenshots for README
-  docs:screenshots:
-    desc: Capture screenshots for documentation
+  docs-screenshots:
+    desc: Capture all screenshots for documentation
     cmds:
-      - echo "Capturing app screenshots for docs..."
-      - mkdir -p docs/screenshots
-      - task: run:hybrid
-      - echo "Waiting 2 seconds for app to launch..."
-      - sleep 2
-      - "{{.GOUP}} screenshot --delay 1000 docs/screenshots/hybrid-dashboard-macos.png"
-      - echo "OK Screenshots saved to docs/screenshots/"
-      - echo "Remember to update README.md with new screenshots!"
+      - echo "Capturing documentation screenshots..."
+      - task screenshot-all
+      - echo ""
+      - echo "Screenshots saved to docs/screenshots/"
+      - echo "Update README.md to reference these images"
 
   # CI/CD tasks leveraging idempotency
   ci:check:
