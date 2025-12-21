@@ -69,6 +69,35 @@ tasks:
       - go run .
 
   # ==========================================================================
+  # RUN .src DEMOS (gio-plugins examples)
+  # ==========================================================================
+
+  run-demo-webviewer:
+    desc: Run .src webviewer demo (from gio-plugins)
+    cmds:
+      - task src:demo:webviewer
+
+  run-demo-hyperlink:
+    desc: Run .src hyperlink demo (from gio-plugins)
+    cmds:
+      - task src:demo:hyperlink
+
+  run-demo-explorer:
+    desc: Run .src explorer demo (file system access)
+    cmds:
+      - task src:demo:explorer
+
+  run-demo-share:
+    desc: Run .src share demo (share content)
+    cmds:
+      - task src:demo:share
+
+  run-demo-safedata:
+    desc: Show info about safedata demos
+    cmds:
+      - task src:demo:safedata
+
+  # ==========================================================================
   # VERSION MANAGEMENT
   # ==========================================================================
 
