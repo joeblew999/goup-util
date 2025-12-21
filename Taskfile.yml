@@ -92,10 +92,15 @@ tasks:
     cmds:
       - task src:demo:share
 
-  run-demo-safedata:
-    desc: Show info about safedata demos
+  run-demo-safedata-plugin:
+    desc: Run .src safedata demo (with gio-plugin integration)
     cmds:
-      - task src:demo:safedata
+      - task src:demo:safedata:plugin
+
+  run-demo-safedata-standalone:
+    desc: Run .src safedata demo (standalone version)
+    cmds:
+      - task src:demo:safedata:standalone
 
   # ==========================================================================
   # VERSION MANAGEMENT

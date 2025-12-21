@@ -127,14 +127,19 @@ tasks:
       - GOWORK=off go mod tidy
       - GOWORK=off go run .
 
-  demo:safedata:
-    desc: Info about safedata demos (has multiple variants)
+  demo:safedata:plugin:
+    desc: Run safedata demo with gio-plugin integration
+    dir: gio-plugins/safedata/demo/gio-with-gioplugin
     cmds:
-      - echo "Safedata has multiple demos in .src/gio-plugins/safedata/demo/:"
-      - echo "  - gio-with-gioplugin/"
-      - echo "  - gio-with-standalone/"
-      - echo ""
-      - echo "Run manually from those directories with 'GOWORK=off go run .'"
+      - GOWORK=off go mod tidy
+      - GOWORK=off go run .
+
+  demo:safedata:standalone:
+    desc: Run safedata demo standalone version
+    dir: gio-plugins/safedata/demo/gio-with-standalone
+    cmds:
+      - GOWORK=off go mod tidy
+      - GOWORK=off go run .
 
   # Search helpers
   search:webview:
