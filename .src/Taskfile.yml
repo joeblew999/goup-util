@@ -113,6 +113,29 @@ tasks:
       - echo "Skipping demo launch..."
       - exit 1
 
+  demo:explorer:
+    desc: Run gio-plugins explorer demo (file system access)
+    dir: gio-plugins/explorer/demo
+    cmds:
+      - GOWORK=off go mod tidy
+      - GOWORK=off go run .
+
+  demo:share:
+    desc: Run gio-plugins share demo (share content)
+    dir: gio-plugins/share/demo
+    cmds:
+      - GOWORK=off go mod tidy
+      - GOWORK=off go run .
+
+  demo:safedata:
+    desc: Info about safedata demos (has multiple variants)
+    cmds:
+      - echo "Safedata has multiple demos in .src/gio-plugins/safedata/demo/:"
+      - echo "  - gio-with-gioplugin/"
+      - echo "  - gio-with-standalone/"
+      - echo ""
+      - echo "Run manually from those directories with 'GOWORK=off go run .'"
+
   # Search helpers
   search:webview:
     desc: Search for webview implementation patterns
