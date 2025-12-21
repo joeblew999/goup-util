@@ -92,19 +92,19 @@ tasks:
     desc: Run gio-plugins webviewer demo
     dir: gio-plugins/webviewer/demo
     cmds:
-      - go run .
+      - GOWORK=off go run .
 
   demo:hyperlink:
     desc: Run gio-plugins hyperlink demo
     dir: gio-plugins/hyperlink/demo
     cmds:
-      - go run .
+      - GOWORK=off go run .
 
   demo:auth:
     desc: Run gio-plugins auth demo
     dir: gio-plugins/auth/demo
     cmds:
-      - go run .
+      - GOWORK=off go run .
 
   # Search helpers
   search:webview:
