@@ -91,21 +91,31 @@ func bundleMacOS(proj *project.GioProject, bundleID, version, signingIdentity, o
 	binDir := filepath.Join(proj.RootDir, constants.BinDir)
 	var binaryPath string
 
-	// Check if there's a standalone binary
+	// Check locations in order of preference:
+	// 1. Platform-specific directory: .bin/macos/<name>.app
+	// 2. Legacy location: .bin/<name>.app
+	// 3. Standalone binary: .bin/<name>
+
+	macosBinDir := filepath.Join(binDir, "macos")
+	platformAppBundle := filepath.Join(macosBinDir, proj.Name+".app")
+	platformBinaryInApp := filepath.Join(platformAppBundle, "Contents", "MacOS", proj.Name)
+
+	legacyAppBundle := filepath.Join(binDir, proj.Name+".app")
+	legacyBinaryInApp := filepath.Join(legacyAppBundle, "Contents", "MacOS", proj.Name)
+
 	standaloneBinary := filepath.Join(binDir, proj.Name)
-	if _, err := os.Stat(standaloneBinary); err == nil {
+
+	if _, err := os.Stat(platformBinaryInApp); err == nil {
+		binaryPath = platformBinaryInApp
+		fmt.Println("ℹ️  Found binary in .bin/macos/ bundle, will create new signed bundle")
+	} else if _, err := os.Stat(legacyBinaryInApp); err == nil {
+		binaryPath = legacyBinaryInApp
+		fmt.Println("ℹ️  Found binary in existing .app bundle, will create new signed bundle")
+	} else if _, err := os.Stat(standaloneBinary); err == nil {
 		binaryPath = standaloneBinary
 	} else {
-		// Check if there's an existing .app bundle with the binary inside
-		appBundlePath := filepath.Join(binDir, proj.Name+".app")
-		binaryInApp := filepath.Join(appBundlePath, "Contents", "MacOS", proj.Name)
-		if _, err := os.Stat(binaryInApp); err == nil {
-			binaryPath = binaryInApp
-			fmt.Println("ℹ️  Found binary in existing .app bundle, will create new signed bundle")
-		} else {
-			return fmt.Errorf("binary not found in %s or %s\nRun 'goup-util build macos %s' first",
-				standaloneBinary, binaryInApp, proj.RootDir)
-		}
+		return fmt.Errorf("binary not found in:\n  %s\n  %s\n  %s\nRun 'goup-util build macos %s' first",
+			platformBinaryInApp, legacyBinaryInApp, standaloneBinary, proj.RootDir)
 	}
 
 	// Create bundle config
