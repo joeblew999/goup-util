@@ -1,6 +1,10 @@
 # https://taskfile.dev
 # UTM Virtual Machine management for Windows testing
 #
+# Architecture:
+#   - goup-util utm commands = VM runtime operations (list, start, exec, etc.)
+#   - This Taskfile = Environment setup (install UTM, download ISO, etc.)
+#
 # ALL LOCAL - No system-wide installs, no vagrant, no homebrew pollution
 # IDEMPOTENT - All tasks safe to run multiple times
 # PORTABLE - Can be copied to any project
@@ -18,6 +22,8 @@
 version: '3'
 
 vars:
+  # goup-util binary (use go run for dev, or installed binary)
+  GOUP: go run .
   # VM settings
   UTM_VM: '{{.UTM_VM | default "Windows 11"}}'
   UTM_WIN_DIR: 'C:\Users\User\goup-util'
@@ -74,7 +80,7 @@ tasks:
         [ -f "{{.UTM_WIN_ISO}}" ] && echo "Windows ISO: OK ($(du -h "{{.UTM_WIN_ISO}}" | cut -f1))" || echo "Windows ISO: MISSING (run: task utm:windows:download)"
         echo ""
         echo "Registered VMs:"
-        "{{.UTM_CTL}}" list 2>/dev/null || echo "  (utmctl not available)"
+        {{.GOUP}} utm list 2>/dev/null || echo "  (goup-util utm not available)"
 
   setup:
     desc: Create all local data directories (idempotent)
@@ -137,15 +143,15 @@ tasks:
         ls -1 {{.UTM_VMS}}/*.utm 2>/dev/null | sed 's/.*\//  /' || echo "  (none)"
 
   # ===========================================================================
-  # VM Management (via utmctl)
+  # VM Management (via goup-util utm)
   # ===========================================================================
 
   vm:list:
     desc: List all VMs (registered and local)
     cmds:
       - |
-        echo "=== Registered VMs (utmctl) ==="
-        "{{.UTM_CTL}}" list 2>/dev/null || echo "(none)"
+        echo "=== Registered VMs ==="
+        {{.GOUP}} utm list 2>/dev/null || echo "(none)"
         echo ""
         echo "=== Local VMs ({{.UTM_VMS}}/) ==="
         ls -1 {{.UTM_VMS}}/*.utm 2>/dev/null | sed 's/.*\//  /' || echo "  (none)"
@@ -153,27 +159,32 @@ tasks:
   vm:start:
     desc: Start VM (UTM_VM=name)
     cmds:
-      - '{{.UTM_CTL}} start "{{.UTM_VM}}"'
+      - '{{.GOUP}} utm start "{{.UTM_VM}}"'
 
   vm:stop:
     desc: Stop VM (UTM_VM=name)
     cmds:
-      - '{{.UTM_CTL}} stop "{{.UTM_VM}}"'
+      - '{{.GOUP}} utm stop "{{.UTM_VM}}"'
 
   vm:status:
     desc: Show VM status (UTM_VM=name)
     cmds:
-      - '{{.UTM_CTL}} status "{{.UTM_VM}}"'
+      - '{{.GOUP}} utm status "{{.UTM_VM}}"'
 
   vm:ip:
     desc: Get VM IP address (UTM_VM=name)
     cmds:
-      - '{{.UTM_CTL}} ip-address "{{.UTM_VM}}"'
+      - '{{.GOUP}} utm ip "{{.UTM_VM}}"'
 
   vm:exec:
-    desc: Execute command in VM (UTM_VM=name, CMD=command)
+    desc: Execute goup-util command in VM (UTM_VM=name, CMD=goup command)
     cmds:
-      - '{{.UTM_CTL}} exec "{{.UTM_VM}}" --cmd "{{.CMD}}"'
+      - '{{.GOUP}} utm exec "{{.UTM_VM}}" -- {{.CMD}}'
+
+  vm:task:
+    desc: Execute Taskfile task in VM (UTM_VM=name, TASK=taskname)
+    cmds:
+      - '{{.GOUP}} utm task "{{.UTM_VM}}" {{.TASK}}'
 
   vm:clone:
     desc: Clone a VM (UTM_VM=source, NAME=new-name)
@@ -186,7 +197,7 @@ tasks:
       - '{{.UTM_CTL}} delete "{{.UTM_VM}}"'
 
   # ===========================================================================
-  # File Transfer (utmctl file + shared folder)
+  # File Transfer (via goup-util utm + shared folder)
   # ===========================================================================
 
   share:open:
@@ -203,12 +214,12 @@ tasks:
   file:push:
     desc: Push file to VM (UTM_VM=name, SRC=local, DST=guest-path)
     cmds:
-      - 'cat "{{.SRC}}" | {{.UTM_CTL}} file push "{{.UTM_VM}}" "{{.DST}}"'
+      - '{{.GOUP}} utm push "{{.UTM_VM}}" "{{.SRC}}" "{{.DST}}"'
 
   file:pull:
     desc: Pull file from VM (UTM_VM=name, SRC=guest-path, DST=local)
     cmds:
-      - '{{.UTM_CTL}} file pull "{{.UTM_VM}}" "{{.SRC}}" > "{{.DST}}"'
+      - '{{.GOUP}} utm pull "{{.UTM_VM}}" "{{.SRC}}" "{{.DST}}"'
 
   # ===========================================================================
   # Build & Deploy (generic - customize for your project)
@@ -249,18 +260,25 @@ tasks:
     cmds:
       - |
         echo "Getting VM IP..."
-        IP=$("{{.UTM_CTL}}" ip-address "{{.UTM_VM}}" 2>/dev/null | head -1)
+        {{.GOUP}} utm ip "{{.UTM_VM}}"
+        echo ""
+        echo "Testing ping..."
+        IP=$({{.GOUP}} utm ip "{{.UTM_VM}}" 2>/dev/null | head -1)
         if [ -n "$IP" ]; then
-          echo "VM IP: $IP"
           ping -c 3 "$IP"
         else
           echo "Could not get VM IP. Is the VM running with guest tools?"
         fi
 
   test:exec:
-    desc: Test command execution in VM
+    desc: Test command execution in VM (runs goup-util config)
     cmds:
-      - '{{.UTM_CTL}} exec "{{.UTM_VM}}" --cmd "echo Hello from Windows! & ver"'
+      - '{{.GOUP}} utm exec "{{.UTM_VM}}" -- config'
+
+  test:task:
+    desc: Test Taskfile execution in VM
+    cmds:
+      - '{{.GOUP}} utm task "{{.UTM_VM}}" --list'
 
   # ===========================================================================
   # Quick Actions
@@ -333,19 +351,29 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "=== UTM Windows Testing (Local Only) ==="
+        echo "=== UTM Windows Testing ==="
         echo ""
-        echo "QUICK START:"
+        echo "ARCHITECTURE:"
+        echo "  goup-util utm <cmd>  = VM runtime operations (Go code)"
+        echo "  task utm:<task>      = Environment setup (this Taskfile)"
+        echo ""
+        echo "SETUP (run once):"
         echo "  task utm:install            Download UTM (skips if exists)"
         echo "  task utm:windows:download   Download Windows ISO (skips if exists)"
         echo "  task utm:windows:create     Open UTM to create VM"
         echo ""
-        echo "VM CONTROL:"
+        echo "VM CONTROL (via goup-util):"
         echo "  task utm:vm:list            List all VMs"
         echo "  task utm:vm:start           Start VM"
         echo "  task utm:vm:stop            Stop VM"
         echo "  task utm:vm:ip              Get VM IP address"
-        echo "  task utm:vm:exec CMD=...    Execute command in VM"
+        echo "  task utm:vm:exec CMD=...    Execute goup-util command in VM"
+        echo "  task utm:vm:task TASK=...   Execute Taskfile task in VM"
+        echo ""
+        echo "  Or use goup-util directly:"
+        echo "    goup-util utm list"
+        echo "    goup-util utm exec \"Windows 11\" -- build windows ./myapp"
+        echo "    goup-util utm task \"Windows 11\" build:hybrid:windows"
         echo ""
         echo "FILE TRANSFER:"
         echo "  task utm:share:open         Open shared folder"
@@ -354,6 +382,6 @@ tasks:
         echo ""
         echo "BUILD & TEST:"
         echo "  task utm:build:exe BUILD_NAME=app   Build exe for Windows"
-        echo "  task utm:deploy                     Show VM access instructions"
+        echo "  task utm:test:exec                  Test command execution"
         echo ""
         echo "All idempotent - safe to run multiple times!"
