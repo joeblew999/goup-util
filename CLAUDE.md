@@ -4,6 +4,8 @@
 
 MUST use task file !!! SO we have consistency 
 
+MUST use the .src folder as needed.
+
 ## Project Overview
 
 **goup-util** is a specialized build tool for creating **cross-platform hybrid applications** using Go and Gio UI.
@@ -1611,146 +1613,26 @@ open examples/gio-plugin-webviewer/.bin/macos/gio-plugin-webviewer.app
 
 This is about **enabling pure Go development** for the kind of apps that traditionally require Swift + Kotlin + JavaScript. The webview integration is what makes hybrid apps possible while keeping native performance.
 
-## Screenshot Integration
+## Screenshots
 
-**IMPLEMENTED**: goup-util now has built-in screenshot capabilities using robotgo!
+**System**: robotgo-based screenshot capture with App Store presets.
 
-### Quick Usage
-
+**Usage**:
 ```bash
-# Show display information
-task screenshot:info
+# Capture example app screenshots
+task screenshot-hybrid                # Single app
+task screenshot-appstore-all          # All App Store sizes
 
-# Take a screenshot
-task screenshot
-
-# Capture with delay (for menus/tooltips)
-task screenshot:delay
-
-# Capture all displays
-task screenshot:all
-
-# Or use directly
-CGO_ENABLED=1 go run . screenshot output.png
+# Direct command
+CGO_ENABLED=1 go run -tags screenshot . run-and-capture examples/hybrid-dashboard output.png
 ```
 
-### macOS Permission Setup
+**macOS Setup**: Grant Screen Recording permission in System Settings → Privacy & Security.
 
-**CRITICAL**: On macOS 10.15+, grant Screen Recording permission:
-
-1. System Settings → Privacy & Security → Screen Recording
-2. Add Terminal.app (or your IDE)
-3. Restart the terminal
-
-The command will show a helpful error if permission is missing.
-
-### Documentation Best Practices
-
-### Screenshots for README
-
-**IMPORTANT**: The README should have visual proof that this works!
-
-Use the built-in screenshot command to capture running apps:
-
-1. **Desktop Apps** (macOS):
-```bash
-# Build and launch the app
-task run:hybrid
-
-# Capture screenshot with delay (wait for app to load)
-CGO_ENABLED=1 go run . screenshot --delay 2000 docs/screenshots/hybrid-dashboard-macos.png
-
-# Or use the task
-task docs:screenshots
-```
-
-2. **Mobile Simulators** (iOS/Android):
-```bash
-# iOS Simulator - use native screenshot
-# Build and launch
-task build:hybrid:ios
-open -a Simulator
-xcrun simctl install booted examples/hybrid-dashboard/.bin/hybrid-dashboard.app
-xcrun simctl launch booted com.example.hybrid-dashboard
-
-# Capture using simctl
-xcrun simctl io booted screenshot docs/screenshots/hybrid-dashboard-ios.png
-
-# Android Emulator - use adb
-task build:hybrid:android
-adb install examples/hybrid-dashboard/.bin/hybrid-dashboard.apk
-adb shell am start -n com.example.hybrid/.MainActivity
-
-# Capture using adb
-adb exec-out screencap -p > docs/screenshots/hybrid-dashboard-android.png
-```
-
-3. **README Structure**:
-```markdown
-# goup-util
-
-![macOS Screenshot](docs/screenshots/webviewer-macos.png)
-![iOS Screenshot](docs/screenshots/webviewer-ios.png)
-![Android Screenshot](docs/screenshots/webviewer-android.png)
-
-Build cross-platform hybrid apps in pure Go...
-```
-
-### Example Apps Should Be Complete
-
-**Current Issue**: webviewer example only loads external URLs (https://google.com)
-
-**Better**: Include embedded web server with example content
-
-```go
-// examples/hybrid-app-complete/
-// 
-// main.go - Gio UI + embedded HTTP server
-package main
-
-import (
-    "embed"
-    "net/http"
-    
-    "gioui.org/app"
-    "github.com/gioui-plugins/gio-plugins/webviewer"
-)
-
-//go:embed web/*
-var webContent embed.FS
-
-func main() {
-    // Start embedded web server
-    go func() {
-        http.Handle("/", http.FileServer(http.FS(webContent)))
-        http.ListenAndServe("localhost:8080", nil)
-    }()
-    
-    // Launch Gio app with webview pointing to localhost
-    // ...
-}
-
-// web/index.html - HTML/CSS/JS content
-// web/app.js - JavaScript that calls Go functions
-// web/styles.css - Styling
-```
-
-This shows:
-- ✅ Embedded web content (no external dependencies)
-- ✅ Go HTTP server (real backend)
-- ✅ Go ↔ JavaScript bridge (function calls)
-- ✅ Complete, working example
-- ✅ Can be used as template for real apps
-
-### When Creating Documentation
-
-1. **Always include screenshots** - Visual proof is powerful
-2. **Show it running** - Not just code, but actual output
-3. **Complete examples** - Should work out of the box
-4. **Link screenshots in README** - First thing people see
-5. **Update CLAUDE.md** when adding new patterns
-
-This helps AI assistants maintain documentation quality.
+**Files**:
+- `pkg/screenshot/` - robotgo integration
+- `cmd/runandcapture.go` - Automated capture workflow
+- Screenshots are gitignored, manually commit finals with `git add -f`
 
 ## Taskfile Maintenance
 

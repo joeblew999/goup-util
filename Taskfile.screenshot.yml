@@ -1,0 +1,198 @@
+# https://taskfile.dev
+# Screenshot tasks using robotgo (requires CGO)
+#
+# Namespaced as 'screenshot:' in main Taskfile
+# Usage: task screenshot:capture, task screenshot:appstore:ios, etc.
+#
+# Requires Screen Recording permission on macOS 10.15+
+#
+version: '3'
+
+vars:
+  BASIC_EXAMPLE: examples/gio-basic
+  WEBVIEWER_EXAMPLE: examples/gio-plugin-webviewer
+  HYPERLINK_EXAMPLE: examples/gio-plugin-hyperlink
+  HYBRID_EXAMPLE: examples/hybrid-dashboard
+  SRC_DIR: .src
+  SCREENSHOT_DIR: docs/screenshots
+  APPSTORE_DIR: docs/screenshots/appstore
+
+tasks:
+  # ===========================================================================
+  # BUILD
+  # ===========================================================================
+
+  build:
+    desc: Build goup-util with robotgo screenshot support (requires CGO)
+    cmds:
+      - echo "Building with robotgo support..."
+      - CGO_ENABLED=1 go build -tags screenshot -o goup-util .
+
+  # ===========================================================================
+  # BASIC COMMANDS
+  # ===========================================================================
+
+  capture:
+    desc: Take a full screen screenshot
+    cmds:
+      - CGO_ENABLED=1 go run -tags screenshot . screenshot screenshot.png
+
+  info:
+    desc: Show display information
+    cmds:
+      - CGO_ENABLED=1 go run -tags screenshot . screenshot --info
+
+  region:
+    desc: Capture a screen region (100,100 800x600)
+    cmds:
+      - CGO_ENABLED=1 go run -tags screenshot . screenshot --x 100 --y 100 -w 800 -H 600 screenshot-region.png
+
+  delay:
+    desc: Take screenshot with 3 second delay
+    cmds:
+      - CGO_ENABLED=1 go run -tags screenshot . screenshot --delay 3000 screenshot-delayed.png
+
+  test:
+    desc: Test screenshot functionality
+    cmds:
+      - echo "Testing screenshot functionality..."
+      - CGO_ENABLED=1 go run -tags screenshot . screenshot --info
+      - echo "Taking test screenshot..."
+      - CGO_ENABLED=1 go run -tags screenshot . screenshot --force test-screenshot.png
+      - ls -lh test-screenshot.png
+      - rm -f test-screenshot.png
+      - echo "Screenshot test complete"
+
+  # ===========================================================================
+  # EXAMPLE APP SCREENSHOTS
+  # ===========================================================================
+
+  example:hybrid:
+    desc: Capture hybrid-dashboard screenshot
+    cmds:
+      - mkdir -p {{.SCREENSHOT_DIR}}
+      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture {{.HYBRID_EXAMPLE}} {{.SCREENSHOT_DIR}}/hybrid-dashboard.png
+
+  example:webviewer:
+    desc: Capture webviewer example screenshot
+    cmds:
+      - mkdir -p {{.SCREENSHOT_DIR}}
+      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture {{.WEBVIEWER_EXAMPLE}} {{.SCREENSHOT_DIR}}/webviewer.png
+
+  example:hyperlink:
+    desc: Capture hyperlink example screenshot
+    cmds:
+      - mkdir -p {{.SCREENSHOT_DIR}}
+      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture {{.HYPERLINK_EXAMPLE}} {{.SCREENSHOT_DIR}}/hyperlink.png
+
+  example:basic:
+    desc: Capture basic example screenshot
+    cmds:
+      - mkdir -p {{.SCREENSHOT_DIR}}
+      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture {{.BASIC_EXAMPLE}} {{.SCREENSHOT_DIR}}/basic.png
+
+  example:all:
+    desc: Capture screenshots of all examples
+    cmds:
+      - echo "Capturing all example screenshots..."
+      - mkdir -p {{.SCREENSHOT_DIR}}
+      - task: example:hybrid
+      - task: example:webviewer
+      - task: example:basic
+      - echo ""
+      - echo "Screenshots saved to {{.SCREENSHOT_DIR}}/"
+      - ls -la {{.SCREENSHOT_DIR}}/
+
+  # ===========================================================================
+  # .SRC DEMO SCREENSHOTS
+  # ===========================================================================
+
+  src:webviewer:
+    desc: Capture .src webviewer demo screenshot
+    cmds:
+      - mkdir -p {{.SCREENSHOT_DIR}}
+      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture {{.SRC_DIR}}/gio-plugins/webviewer/demo {{.SCREENSHOT_DIR}}/src-webviewer-demo.png
+
+  src:hyperlink:
+    desc: Capture .src hyperlink demo screenshot
+    cmds:
+      - mkdir -p {{.SCREENSHOT_DIR}}
+      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture {{.SRC_DIR}}/gio-plugins/hyperlink/demo {{.SCREENSHOT_DIR}}/src-hyperlink-demo.png
+
+  src:all:
+    desc: Capture screenshots of all .src demos
+    cmds:
+      - echo "Capturing all .src demo screenshots..."
+      - mkdir -p {{.SCREENSHOT_DIR}}
+      - task: src:webviewer
+      - task: src:hyperlink
+      - echo ""
+      - echo "Screenshots saved to {{.SCREENSHOT_DIR}}/"
+
+  # ===========================================================================
+  # APP STORE SCREENSHOTS
+  # ===========================================================================
+
+  appstore:ios:
+    desc: Generate iOS App Store screenshots (all required sizes)
+    cmds:
+      - mkdir -p {{.APPSTORE_DIR}}/ios
+      - echo "Capturing iOS App Store screenshots..."
+      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture --preset iphone-6.9 {{.HYBRID_EXAMPLE}} {{.APPSTORE_DIR}}/ios/iphone-6.9.png
+      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture --preset iphone-6.7 {{.HYBRID_EXAMPLE}} {{.APPSTORE_DIR}}/ios/iphone-6.7.png
+      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture --preset iphone-6.5 {{.HYBRID_EXAMPLE}} {{.APPSTORE_DIR}}/ios/iphone-6.5.png
+      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture --preset ipad-12.9 {{.HYBRID_EXAMPLE}} {{.APPSTORE_DIR}}/ios/ipad-12.9.png
+      - ls -lh {{.APPSTORE_DIR}}/ios/
+
+  appstore:macos:
+    desc: Generate macOS App Store screenshots
+    cmds:
+      - mkdir -p {{.APPSTORE_DIR}}/macos
+      - echo "Capturing macOS App Store screenshots..."
+      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture --preset macos-retina {{.HYBRID_EXAMPLE}} {{.APPSTORE_DIR}}/macos/retina.png
+      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture --preset macos-retina-2k {{.HYBRID_EXAMPLE}} {{.APPSTORE_DIR}}/macos/retina-2k.png
+      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture --preset macos-standard {{.HYBRID_EXAMPLE}} {{.APPSTORE_DIR}}/macos/standard.png
+      - ls -lh {{.APPSTORE_DIR}}/macos/
+
+  appstore:android:
+    desc: Generate Android Play Store screenshots
+    cmds:
+      - mkdir -p {{.APPSTORE_DIR}}/android
+      - echo "Capturing Android Play Store screenshots..."
+      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture --preset android-phone {{.HYBRID_EXAMPLE}} {{.APPSTORE_DIR}}/android/phone.png
+      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture --preset android-phone-landscape {{.HYBRID_EXAMPLE}} {{.APPSTORE_DIR}}/android/phone-landscape.png
+      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture --preset android-tablet-10 {{.HYBRID_EXAMPLE}} {{.APPSTORE_DIR}}/android/tablet.png
+      - ls -lh {{.APPSTORE_DIR}}/android/
+
+  appstore:windows:
+    desc: Generate Windows Store screenshots
+    cmds:
+      - mkdir -p {{.APPSTORE_DIR}}/windows
+      - echo "Capturing Windows Store screenshots..."
+      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture --preset windows-hd {{.HYBRID_EXAMPLE}} {{.APPSTORE_DIR}}/windows/hd.png
+      - ls -lh {{.APPSTORE_DIR}}/windows/
+
+  appstore:all:
+    desc: Generate ALL App Store screenshots (iOS, macOS, Android, Windows)
+    cmds:
+      - echo "Generating App Store screenshots for all platforms..."
+      - task: appstore:ios
+      - task: appstore:macos
+      - task: appstore:android
+      - task: appstore:windows
+      - echo ""
+      - echo "All App Store screenshots generated"
+      - echo "See {{.APPSTORE_DIR}}/"
+
+  # ===========================================================================
+  # DOCUMENTATION
+  # ===========================================================================
+
+  docs:
+    desc: Capture all screenshots for documentation
+    cmds:
+      - echo "Capturing documentation screenshots..."
+      - task: example:all
+      - echo ""
+      - echo "Screenshots saved to {{.SCREENSHOT_DIR}}/"
+      - echo "Update README.md to reference these images"

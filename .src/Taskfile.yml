@@ -24,10 +24,10 @@ vars:
   ROBOTGO_VERSION: v0.100.10  # Latest stable
 
 tasks:
-  default:
-    desc: Show available tasks
+  help:
+    desc: Show available src tasks
     cmds:
-      - task --list
+      - 'task --list | grep "src:"'
 
   # Clone/update all dependencies
   update:all:

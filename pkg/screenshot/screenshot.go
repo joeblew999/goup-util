@@ -214,3 +214,67 @@ func Sleep(ms int) {
 func Platform() string {
 	return fmt.Sprintf("robotgo on %s", runtime.GOOS)
 }
+
+// WindowInfo contains information about a window
+type WindowInfo struct {
+	Title  string
+	PID    int
+	Bounds image.Rectangle
+}
+
+// CaptureActiveWindow captures the currently focused window
+func CaptureActiveWindow(output string, quality int) error {
+	// Get active window PID
+	pid := robotgo.GetPid()
+	if pid == 0 {
+		return fmt.Errorf("no active window found")
+	}
+
+	// Get window bounds for active PID
+	x, y, w, h := robotgo.GetBounds(pid)
+
+	if w <= 0 || h <= 0 {
+		return fmt.Errorf("invalid window bounds: %dx%d at (%d,%d)", w, h, x, y)
+	}
+
+	// Capture that region
+	return CaptureRegion(x, y, w, h, output, quality)
+}
+
+// CaptureWindowByPID captures window owned by process ID
+func CaptureWindowByPID(pid int, output string, quality int) error {
+	// Activate window first
+	if err := robotgo.ActivePid(pid); err != nil {
+		return fmt.Errorf("failed to activate window for PID %d: %w", pid, err)
+	}
+
+	// Give it time to come to front
+	robotgo.MilliSleep(200)
+
+	// Get window bounds
+	x, y, w, h := robotgo.GetBounds(pid)
+
+	if w <= 0 || h <= 0 {
+		return fmt.Errorf("invalid window bounds for PID %d: %dx%d at (%d,%d)", pid, w, h, x, y)
+	}
+
+	// Capture that region
+	return CaptureRegion(x, y, w, h, output, quality)
+}
+
+// WaitForWindow polls until window appears for PID
+func WaitForWindow(pid int, timeout time.Duration) error {
+	start := time.Now()
+
+	for time.Since(start) < timeout {
+		// Check if window has valid bounds (width and height > 0)
+		_, _, w, h := robotgo.GetBounds(pid)
+		if w > 0 && h > 0 {
+			return nil
+		}
+
+		robotgo.MilliSleep(100)
+	}
+
+	return fmt.Errorf("window for PID %d did not appear within %v", pid, timeout)
+}

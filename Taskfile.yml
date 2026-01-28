@@ -1,698 +1,76 @@
 # https://taskfile.dev
-
+# goup-util - Cross-platform hybrid app build tool
+#
+# All tasks are namespaced. Run 'task --list' to see available namespaces:
+#
+#   dev:*          Development (build, test, setup, SDKs)
+#   run:*          Run examples directly (go run .)
+#   build:*        Build examples for platforms
+#   screenshot:*   Screenshot capture (requires CGO)
+#   ci:*           CI/CD and release
+#   utm:*          UTM VM automation
+#   src:*          .src dependency management
+#   docs:*         Documentation
+#
+# Quick start:
+#   task dev:demo     Build and run hybrid-dashboard
+#   task dev:build    Build goup-util
+#   task dev:test     Run tests
+#
 version: '3'
 
-includes:
-  src:
-    taskfile: .src/Taskfile.yml
-    dir: .src
-
+# Global vars - available to all included taskfiles
 vars:
   GOUP: go run .
   BASIC_EXAMPLE: examples/gio-basic
   WEBVIEWER_EXAMPLE: examples/gio-plugin-webviewer
   HYPERLINK_EXAMPLE: examples/gio-plugin-hyperlink
   HYBRID_EXAMPLE: examples/hybrid-dashboard
-  SRC_DIR: .src
-  # CRITICAL: These specific versions are required for compatibility
-  # See CLAUDE.md "Gio Version Compatibility" section
-  # Updated: 2025-12-20 to Gio v0.9.1 and gio-plugins v0.9.1
-  # All examples use replace directives pointing to .src/ for centralized versioning
-  GIO_VERSION: 7bcb315ee174
-  GIO_PLUGINS_VERSION: v0.9.1
-  # Deep linking schemes for hybrid-dashboard
-  # Format: comma-separated list of URI scheme names (without ://)
-  # gogio adds the :// automatically when registering the handler
   HYBRID_SCHEMES: "hybrid,hybriddashboard"
-  # Android app queries (for checking if apps are installed)
-  ANDROID_QUERIES: ""
+
+includes:
+  dev:
+    taskfile: ./Taskfile.dev.yml
+  run:
+    taskfile: ./Taskfile.run.yml
+  build:
+    taskfile: ./Taskfile.build.yml
+  screenshot:
+    taskfile: ./Taskfile.screenshot.yml
+  ci:
+    taskfile: ./Taskfile.ci.yml
+  utm:
+    taskfile: ./Taskfile.utm.yml
+    optional: true
+  src:
+    taskfile: .src/Taskfile.yml
+    dir: .src
+    optional: true
+  docs:
+    taskfile: docs/Taskfile.yml
+    dir: docs
+    optional: true
 
 tasks:
   default:
-    desc: Show available tasks
-    cmds:
-      - task --list
-
-  # ==========================================================================
-  # .src DEPENDENCY MANAGEMENT
-  # ==========================================================================
-  # All .src tasks are available via the 'src:' namespace
-  # Example: task src:update:all, task src:demo:webviewer, task src:versions:compare
-  # The .src/Taskfile.yml is included above using the 'includes:' directive
-
-  # ==========================================================================
-  # RUN EXAMPLES (Direct - fast iteration)
-  # ==========================================================================
-
-  run-hybrid:
-    desc: Run hybrid-dashboard directly (fastest)
-    dir: "{{.HYBRID_EXAMPLE}}"
-    cmds:
-      - go run .
-
-  run-webviewer:
-    desc: Run webviewer example directly
-    dir: "{{.WEBVIEWER_EXAMPLE}}"
-    cmds:
-      - go run .
-
-  run-hyperlink:
-    desc: Run hyperlink example directly
-    dir: "{{.HYPERLINK_EXAMPLE}}"
-    cmds:
-      - go run .
-
-  run-basic:
-    desc: Run basic example directly
-    dir: "{{.BASIC_EXAMPLE}}"
-    cmds:
-      - go run .
-
-  # ==========================================================================
-  # RUN .src DEMOS (gio-plugins examples)
-  # ==========================================================================
-
-  run-demo-webviewer:
-    desc: Run .src webviewer demo (from gio-plugins)
-    cmds:
-      - task src:demo:webviewer
-
-  run-demo-hyperlink:
-    desc: Run .src hyperlink demo (from gio-plugins)
-    cmds:
-      - task src:demo:hyperlink
-
-  run-demo-explorer:
-    desc: Run .src explorer demo (file system access)
-    cmds:
-      - task src:demo:explorer
-
-  run-demo-share:
-    desc: Run .src share demo (share content)
-    cmds:
-      - task src:demo:share
-
-  run-demo-safedata-plugin:
-    desc: Run .src safedata demo (with gio-plugin integration)
-    cmds:
-      - task src:demo:safedata:plugin
-
-  run-demo-safedata-standalone:
-    desc: Run .src safedata demo (standalone version)
-    cmds:
-      - task src:demo:safedata:standalone
-
-  # ==========================================================================
-  # VERSION MANAGEMENT
-  # ==========================================================================
-
-  doctor:
-    desc: Check Gio version compatibility and .src status
-    cmds:
-      - task src-status
-      - echo ""
-      - echo "Checking example replace directives..."
-      - cd {{.BASIC_EXAMPLE}} && grep "replace gioui.org" go.mod || echo "WARN - No replace directive in gio-basic"
-      - cd {{.WEBVIEWER_EXAMPLE}} && grep "replace gioui.org" go.mod || echo "WARN - No replace directive in gio-plugin-webviewer"
-      - cd {{.HYPERLINK_EXAMPLE}} && grep "replace gioui.org" go.mod || echo "WARN - No replace directive in gio-plugin-hyperlink"
-      - cd {{.HYBRID_EXAMPLE}} && grep "replace gioui.org" go.mod || echo "WARN - No replace directive in hybrid-dashboard"
-
-  # Development tasks
-  dev:
-    desc: Build goup-util for development
-    cmds:
-      - go build -o goup-util .
-
-  test:
-    desc: Run tests
-    cmds:
-      - go test ./...
-
-  # Build goup-util itself
-  build:self:
-    desc: Build goup-util binaries for all platforms
-    cmds:
-      - "{{.GOUP}} self build"
-
-  # Example app tasks
-  run:hybrid:
-    desc: Build and run hybrid-dashboard example (macOS)
-    cmds:
-      - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
-      - open {{.HYBRID_EXAMPLE}}/.bin/hybrid-dashboard.app
-
-  run:hybrid:deeplink:
-    desc: Build and run hybrid-dashboard with deep linking (macOS)
-    cmds:
-      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' macos {{.HYBRID_EXAMPLE}}"
-      - open {{.HYBRID_EXAMPLE}}/.bin/hybrid-dashboard.app
-      - echo ""
-      - echo "Test deep linking with:"
-      - echo "  open 'hybrid://dashboard/stats'"
-      - echo "  open 'hybrid://dashboard/hello'"
-
-  run:webviewer:
-    desc: Build and run webviewer example (macOS)
-    cmds:
-      - "{{.GOUP}} build macos {{.WEBVIEWER_EXAMPLE}}"
-      - open {{.WEBVIEWER_EXAMPLE}}/.bin/gio-plugin-webviewer.app
-
-  run:basic:
-    desc: Build and run basic example (macOS)
-    cmds:
-      - "{{.GOUP}} build macos {{.BASIC_EXAMPLE}}"
-      - open {{.BASIC_EXAMPLE}}/.bin/gio-basic.app
-
-  # Build examples for different platforms
-  build:hybrid:macos:
-    desc: Build hybrid-dashboard for macOS (skips if up-to-date)
-    cmds:
-      - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
-
-  build:hybrid:macos:force:
-    desc: Force rebuild hybrid-dashboard for macOS
-    cmds:
-      - "{{.GOUP}} build --force macos {{.HYBRID_EXAMPLE}}"
-
-  build:hybrid:macos:check:
-    desc: Check if hybrid-dashboard needs rebuilding (exit 0=no, 1=yes)
-    cmds:
-      - "{{.GOUP}} build --check macos {{.HYBRID_EXAMPLE}}"
-
-  # Deep linking builds (with --schemes flag)
-  build:hybrid:macos:deeplink:
-    desc: Build hybrid-dashboard for macOS with deep linking
-    cmds:
-      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' macos {{.HYBRID_EXAMPLE}}"
-
-  build:hybrid:ios:
-    desc: Build hybrid-dashboard for iOS (skips if up-to-date)
-    cmds:
-      - "{{.GOUP}} build ios {{.HYBRID_EXAMPLE}}"
-
-  build:hybrid:ios:force:
-    desc: Force rebuild hybrid-dashboard for iOS
-    cmds:
-      - "{{.GOUP}} build --force ios {{.HYBRID_EXAMPLE}}"
-
-  build:hybrid:ios:deeplink:
-    desc: Build hybrid-dashboard for iOS with deep linking
-    cmds:
-      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' ios {{.HYBRID_EXAMPLE}}"
-
-  build:hybrid:android:
-    desc: Build hybrid-dashboard for Android (skips if up-to-date)
-    cmds:
-      - "{{.GOUP}} build android {{.HYBRID_EXAMPLE}}"
-
-  build:hybrid:android:force:
-    desc: Force rebuild hybrid-dashboard for Android
-    cmds:
-      - "{{.GOUP}} build --force android {{.HYBRID_EXAMPLE}}"
-
-  build:hybrid:android:deeplink:
-    desc: Build hybrid-dashboard for Android with deep linking
-    cmds:
-      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' android {{.HYBRID_EXAMPLE}}"
-
-  build:hybrid:all:
-    desc: Build hybrid-dashboard for all platforms
-    cmds:
-      - task: build:hybrid:macos
-      - task: build:hybrid:ios
-      - task: build:hybrid:android
-
-  build:hybrid:all:deeplink:
-    desc: Build hybrid-dashboard for all platforms with deep linking
-    cmds:
-      - task: build:hybrid:macos:deeplink
-      - task: build:hybrid:ios:deeplink
-      - task: build:hybrid:android:deeplink
-      - task: build:hybrid:windows:deeplink
-
-  # Windows builds
-  build:hybrid:windows:
-    desc: Build hybrid-dashboard for Windows
-    cmds:
-      - "{{.GOUP}} build windows {{.HYBRID_EXAMPLE}}"
-
-  build:hybrid:windows:deeplink:
-    desc: Build hybrid-dashboard for Windows with deep linking
-    cmds:
-      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' windows {{.HYBRID_EXAMPLE}}"
-
-  # Build all examples
-  build:examples:macos:
-    desc: Build all examples for macOS
-    cmds:
-      - "{{.GOUP}} build macos {{.BASIC_EXAMPLE}}"
-      - "{{.GOUP}} build macos {{.WEBVIEWER_EXAMPLE}}"
-      - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
-
-  build:examples:ios:
-    desc: Build all examples for iOS
-    cmds:
-      - "{{.GOUP}} build ios {{.BASIC_EXAMPLE}}"
-      - "{{.GOUP}} build ios {{.WEBVIEWER_EXAMPLE}}"
-      - "{{.GOUP}} build ios {{.HYBRID_EXAMPLE}}"
-
-  build:examples:android:
-    desc: Build all examples for Android
-    cmds:
-      - "{{.GOUP}} build android {{.BASIC_EXAMPLE}}"
-      - "{{.GOUP}} build android {{.WEBVIEWER_EXAMPLE}}"
-      - "{{.GOUP}} build android {{.HYBRID_EXAMPLE}}"
-
-  # SDK management
-  install:ndk:
-    desc: Install Android NDK
-    cmds:
-      - "{{.GOUP}} install ndk-bundle"
-
-  install:android-sdk:
-    desc: Install Android SDK
-    cmds:
-      - "{{.GOUP}} install android-sdk"
-
-  list:sdks:
-    desc: List available SDKs
-    cmds:
-      - "{{.GOUP}} list"
-
-  # Workspace management
-  workspace:init:
-    desc: Initialize Go workspace
-    cmds:
-      - go work init
-      - go work use .
-      - go work use {{.BASIC_EXAMPLE}}
-      - go work use {{.WEBVIEWER_EXAMPLE}}
-      - go work use {{.HYBRID_EXAMPLE}}
-
-  workspace:list:
-    desc: List workspace modules
-    cmds:
-      - "{{.GOUP}} workspace list"
-
-  # Icon generation
-  icons:hybrid:
-    desc: Generate icons for hybrid-dashboard
-    cmds:
-      - "{{.GOUP}} icons macos {{.HYBRID_EXAMPLE}}"
-      - "{{.GOUP}} icons android {{.HYBRID_EXAMPLE}}"
-      - "{{.GOUP}} icons ios {{.HYBRID_EXAMPLE}}"
-
-  # Configuration
-  config:
-    desc: Show goup-util configuration
-    cmds:
-      - "{{.GOUP}} config"
-
-  # Cleanup
-  clean:
-    desc: Clean build artifacts
-    cmds:
-      - rm -rf {{.BASIC_EXAMPLE}}/.bin
-      - rm -rf {{.BASIC_EXAMPLE}}/.build
-      - rm -rf {{.WEBVIEWER_EXAMPLE}}/.bin
-      - rm -rf {{.WEBVIEWER_EXAMPLE}}/.build
-      - rm -rf {{.HYBRID_EXAMPLE}}/.bin
-      - rm -rf {{.HYBRID_EXAMPLE}}/.build
-      - rm -f goup-util goup-util-*
-
-  clean:all:
-    desc: Clean everything including downloaded SDKs
-    cmds:
-      - task: clean
-      - "{{.GOUP}} cleanup"
-
-  # Quick demo workflow
-  demo:
-    desc: Quick demo - build and run hybrid-dashboard
-    cmds:
-      - echo "🚀 Building hybrid-dashboard example..."
-      - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
-      - echo "Build complete! Launching app..."
-      - open {{.HYBRID_EXAMPLE}}/.bin/hybrid-dashboard.app
-      - echo "💡 The app should now be running on your screen!"
-      - echo "📊 Watch the real-time stats update"
-      - echo "🔗 Click 'Call Go Function' to test the bridge"
-
-  # Deep linking demo
-  demo:deeplink:
-    desc: Demo deep linking - build with schemes and test
-    cmds:
-      - echo "🔗 Building hybrid-dashboard with deep linking..."
-      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' macos {{.HYBRID_EXAMPLE}}"
-      - echo "Build complete! Launching app..."
-      - open {{.HYBRID_EXAMPLE}}/.bin/hybrid-dashboard.app
-      - echo ""
-      - echo "⏳ Waiting for app to start..."
-      - sleep 2
-      - echo ""
-      - 'echo "🔗 Testing deep link: hybrid://dashboard/stats"'
-      - open "hybrid://dashboard/stats"
-      - echo ""
-      - echo "💡 The app should show the deep link was received!"
-      - echo "📋 Check the Deep Linking section in the app"
-
-  # Test deep linking
-  test:deeplink:
-    desc: Test deep linking with various URLs
-    cmds:
-      - echo "Testing deep link schemes..."
-      - echo ""
-      - 'echo "Test 1: hybrid://dashboard/stats"'
-      - open "hybrid://dashboard/stats" || echo "Failed - app may need to be running"
-      - sleep 1
-      - echo ""
-      - 'echo "Test 2: hybrid://dashboard/hello"'
-      - open "hybrid://dashboard/hello" || echo "Failed - app may need to be running"
-      - echo ""
-      - echo "If the app is running, check the Deep Linking section for results."
-
-  # Full test workflow
-  test:all:
-    desc: Build and test all examples on all platforms
-    cmds:
-      - echo "Building for macOS..."
-      - task: build:examples:macos
-      - echo "Building for iOS..."
-      - task: build:examples:ios
-      - echo "Building for Android..."
-      - task: build:examples:android
-      - echo "All examples built successfully!"
-
-  # Development setup
-  setup:
-    desc: Initial setup for development
-    cmds:
-      - echo "Setting up goup-util development environment..."
-      - task: workspace:init
-      - echo "Installing Android NDK..."
-      - task: install:ndk
-      - echo "Setup complete! Try task demo"
-
-  # ==========================================================================
-  # SCREENSHOT SYSTEM (using robotgo - requires CGO)
-  # ==========================================================================
-  # All screenshot tasks use consistent window sizes and positions
-  # Requires Screen Recording permission on macOS 10.15+
-
-  # Build goup-util with screenshot support
-  build-screenshot:
-    desc: Build goup-util with robotgo screenshot support (requires CGO)
-    cmds:
-      - echo "Building with robotgo support (CGO enabled)..."
-      - CGO_ENABLED=1 go build -tags screenshot -o goup-util .
-      - echo "Built goup-util with screenshot features"
-
-  # Basic screenshot commands
-  screenshot:
-    desc: Take a full screen screenshot
-    cmds:
-      - CGO_ENABLED=1 go run -tags screenshot . screenshot screenshot.png
-
-  screenshot-info:
-    desc: Show display information
-    cmds:
-      - CGO_ENABLED=1 go run -tags screenshot . screenshot --info
-
-  screenshot-region:
-    desc: Capture a screen region (100,100 800x600)
-    cmds:
-      - CGO_ENABLED=1 go run -tags screenshot . screenshot --x 100 --y 100 -w 800 -H 600 screenshot-region.png
-
-  screenshot-delay:
-    desc: Take screenshot with 3 second delay
-    cmds:
-      - CGO_ENABLED=1 go run -tags screenshot . screenshot --delay 3000 screenshot-delayed.png
-
-  # ==========================================================================
-  # EXAMPLE APP SCREENSHOTS
-  # ==========================================================================
-  # Run each example, position it, and capture a screenshot
-
-  screenshot-hybrid:
-    desc: Capture hybrid-dashboard screenshot
-    cmds:
-      - mkdir -p docs/screenshots
-      - echo "Starting hybrid-dashboard..."
-      - cd {{.HYBRID_EXAMPLE}} && go run . &
-      - sleep 3
-      - echo "Capturing screenshot..."
-      - CGO_ENABLED=1 go run -tags screenshot . screenshot --delay 500 docs/screenshots/hybrid-dashboard.png
-      - pkill -f "hybrid-dashboard" || true
-      - echo "Saved docs/screenshots/hybrid-dashboard.png"
-
-  screenshot-webviewer:
-    desc: Capture webviewer example screenshot
-    cmds:
-      - mkdir -p docs/screenshots
-      - echo "Starting webviewer..."
-      - cd {{.WEBVIEWER_EXAMPLE}} && go run . &
-      - sleep 3
-      - echo "Capturing screenshot..."
-      - CGO_ENABLED=1 go run -tags screenshot . screenshot --delay 500 docs/screenshots/webviewer.png
-      - pkill -f "main" || true
-      - echo "Saved docs/screenshots/webviewer.png"
-
-  screenshot-hyperlink:
-    desc: Capture hyperlink example screenshot
-    cmds:
-      - mkdir -p docs/screenshots
-      - echo "Starting hyperlink..."
-      - cd {{.HYPERLINK_EXAMPLE}} && go run . &
-      - sleep 3
-      - echo "Capturing screenshot..."
-      - CGO_ENABLED=1 go run -tags screenshot . screenshot --delay 500 docs/screenshots/hyperlink.png
-      - pkill -f "gio-plugin-hyperlink" || true
-      - echo "Saved docs/screenshots/hyperlink.png"
-
-  screenshot-basic:
-    desc: Capture basic example screenshot
-    cmds:
-      - mkdir -p docs/screenshots
-      - echo "Starting basic..."
-      - cd {{.BASIC_EXAMPLE}} && go run . &
-      - sleep 3
-      - echo "Capturing screenshot..."
-      - CGO_ENABLED=1 go run -tags screenshot . screenshot --delay 500 docs/screenshots/basic.png
-      - pkill -f "example-gio-app" || true
-      - echo "Saved docs/screenshots/basic.png"
-
-  # Capture .src demo screenshots
-  screenshot-src-webviewer:
-    desc: Capture .src webviewer demo screenshot
-    cmds:
-      - mkdir -p docs/screenshots
-      - echo "Starting .src webviewer demo..."
-      - cd {{.SRC_DIR}}/gio-plugins/webviewer/demo && GOWORK=off go run . &
-      - sleep 4
-      - echo "Capturing screenshot..."
-      - CGO_ENABLED=1 go run -tags screenshot . screenshot --delay 500 docs/screenshots/src-webviewer-demo.png
-      - pkill -f "demo" || true
-      - echo "Saved docs/screenshots/src-webviewer-demo.png"
-
-  screenshot-src-hyperlink:
-    desc: Capture .src hyperlink demo screenshot
-    cmds:
-      - mkdir -p docs/screenshots
-      - echo "Starting .src hyperlink demo..."
-      - cd {{.SRC_DIR}}/gio-plugins/hyperlink/demo && GOWORK=off go run . &
-      - sleep 3
-      - echo "Capturing screenshot..."
-      - CGO_ENABLED=1 go run -tags screenshot . screenshot --delay 500 docs/screenshots/src-hyperlink-demo.png
-      - pkill -f "demo" || true
-      - echo "Saved docs/screenshots/src-hyperlink-demo.png"
-
-  # Capture ALL screenshots
-  screenshot-all:
-    desc: Capture screenshots of all examples
-    cmds:
-      - echo "Capturing all example screenshots..."
-      - mkdir -p docs/screenshots
-      - task screenshot-hybrid
-      - task screenshot-webviewer
-      - task screenshot-basic
-      - echo ""
-      - echo "All screenshots saved to docs/screenshots/"
-      - ls -la docs/screenshots/
-
-  screenshot-all-src:
-    desc: Capture screenshots of all .src demos
-    cmds:
-      - echo "Capturing all .src demo screenshots..."
-      - mkdir -p docs/screenshots
-      - task screenshot-src-webviewer
-      - task screenshot-src-hyperlink
-      - echo ""
-      - echo "All .src screenshots saved to docs/screenshots/"
-      - ls -la docs/screenshots/
-
-  # Bundle commands (create app bundles with signing)
-  bundle-hybrid-macos:
-    desc: Create signed macOS app bundle for hybrid-dashboard
-    cmds:
-      - "{{.GOUP}} bundle macos {{.HYBRID_EXAMPLE}}"
-
-  # Test screenshot features
-  test-screenshot:
-    desc: Test screenshot features
-    cmds:
-      - echo "Testing screenshot functionality..."
-      - CGO_ENABLED=1 go run -tags screenshot . screenshot --info
-      - echo "Taking test screenshot..."
-      - CGO_ENABLED=1 go run -tags screenshot . screenshot --force test-screenshot.png
-      - ls -lh test-screenshot.png
-      - rm -f test-screenshot.png
-      - echo "Screenshot test complete"
-
-  # Documentation screenshots for README
-  docs-screenshots:
-    desc: Capture all screenshots for documentation
-    cmds:
-      - echo "Capturing documentation screenshots..."
-      - task screenshot-all
-      - echo ""
-      - echo "Screenshots saved to docs/screenshots/"
-      - echo "Update README.md to reference these images"
-
-  # CI/CD tasks leveraging idempotency
-  ci:check:
-    desc: Check if any examples need rebuilding (for CI/CD)
-    cmds:
-      - echo "Checking build status for all examples..."
-      - "{{.GOUP}} build --check macos {{.HYBRID_EXAMPLE}} && echo 'hybrid: up-to-date' || echo 'hybrid: needs rebuild'"
-      - "{{.GOUP}} build --check macos {{.WEBVIEWER_EXAMPLE}} && echo 'webviewer: up-to-date' || echo 'webviewer: needs rebuild'"
-      - "{{.GOUP}} build --check macos {{.BASIC_EXAMPLE}} && echo 'basic: up-to-date' || echo 'basic: needs rebuild'"
-
-  ci:build:
-    desc: Build all examples (only if needed) - idempotent
-    cmds:
-      - echo "Building all examples (skipping if up-to-date)..."
-      - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
-      - "{{.GOUP}} build macos {{.WEBVIEWER_EXAMPLE}}"
-      - "{{.GOUP}} build macos {{.BASIC_EXAMPLE}}"
-      - echo "Build complete (used cache where possible)"
-
-  ci:build:force:
-    desc: Force rebuild all examples - ignores cache
-    cmds:
-      - echo "Force rebuilding all examples..."
-      - "{{.GOUP}} build --force macos {{.HYBRID_EXAMPLE}}"
-      - "{{.GOUP}} build --force macos {{.WEBVIEWER_EXAMPLE}}"
-      - "{{.GOUP}} build --force macos {{.BASIC_EXAMPLE}}"
-      - echo "All examples rebuilt from scratch"
-
-  # Release workflow
-  release:prepare:
-    desc: Prepare for release (commit all changes)
-    cmds:
-      - echo "Checking git status..."
-      - git status --short
-      - echo ""
-      - echo "Ready to commit? (Ctrl+C to cancel, Enter to continue)"
-      - 'read -p "Commit message: " MSG && git add -A && git commit -m "$MSG"'
-      - echo "Committed. Ready to push and tag."
-
-  release:create:
-    desc: Create and push a new release tag
-    cmds:
-      - echo "Current tags:"
-      - git tag -l | tail -5
-      - echo ""
-      - echo "Enter new version (e.g., v0.1.0):"
-      - 'read -p "Version: " VERSION && git tag -a "$VERSION" -m "Release $VERSION" && git push origin main && git push origin "$VERSION"'
-      - echo ""
-      - echo "Tag $VERSION pushed! GitHub Actions will build binaries."
-      - 'echo "Check: https://github.com/joeblew999/goup-util/actions"'
-
-  release:full:
-    desc: Full release workflow (commit, tag, push)
-    cmds:
-      - task: release:prepare
-      - task: release:create
-      - echo ""
-      - echo "Release in progress!"
-      - 'echo "Monitor: https://github.com/joeblew999/goup-util/actions"'
-      - echo ""
-      - echo "After release completes, test bootstrap:"
-      - 'echo "  task bootstrap:test:macos"'
-
-  # Bootstrap testing
-  bootstrap:test:macos:
-    desc: Test macOS bootstrap script (downloads latest release)
-    cmds:
-      - echo "Testing macOS bootstrap script..."
-      - echo "This will install goup-util to /usr/local/bin/goup-util"
-      - echo ""
-      - echo "WARNING - This will download and run the bootstrap script!"
-      - echo "Ctrl+C to cancel, Enter to continue"
-      - 'read -p "Continue? "'
-      - bash scripts/macos-bootstrap.sh
-
-  bootstrap:test:macos:local:
-    desc: Test macOS bootstrap script locally (without download)
-    cmds:
-      - echo "Testing local bootstrap script..."
-      - bash -x scripts/macos-bootstrap.sh
-
-  bootstrap:info:
-    desc: Show bootstrap script URLs and installation locations
-    cmds:
-      - echo "Bootstrap Script URLs:"
-      - echo ""
-      - echo "macOS:"
-      - 'echo "  curl -fsSL https://raw.githubusercontent.com/joeblew999/goup-util/main/scripts/macos-bootstrap.sh | bash"'
-      - echo ""
-      - echo "Windows:"
-      - 'echo "  iwr https://raw.githubusercontent.com/joeblew999/goup-util/main/scripts/windows-bootstrap.ps1 -UseBasicParsing | iex"'
-      - echo ""
-      - echo "Installation Locations:"
-      - 'echo "  macOS - /usr/local/bin/goup-util"'
-      - 'echo "  Windows - %USERPROFILE%\\goup-util.exe"'
-      - echo ""
-      - echo "After install, update with:"
-      - echo "  goup-util self upgrade"
-
-  # UTM VM automation
-  utm:list:
-    desc: List all UTM virtual machines
-    cmds:
-      - go run . utm list
-
-  utm:status:
-    desc: Get status of Windows VM
-    cmds:
-      - go run . utm status "Windows 11"
-
-  utm:start:
-    desc: Start Windows VM
-    cmds:
-      - go run . utm start "Windows 11"
-
-  utm:stop:
-    desc: Stop Windows VM
-    cmds:
-      - go run . utm stop "Windows 11"
-
-  utm:test:build:
-    desc: Test Windows build in VM
-    cmds:
-      - go run . utm exec "Windows 11" -- build windows examples/hybrid-dashboard
-
-  utm:test:bundle:
-    desc: Test Windows bundle in VM
-    cmds:
-      - go run . utm exec "Windows 11" -- bundle windows examples/hybrid-dashboard
-
-  utm:test:task:
-    desc: Run a task in Windows VM
-    cmds:
-      - go run . utm task "Windows 11" build:hybrid:windows
-
-  utm:pull:msix:
-    desc: Pull MSIX from Windows VM
-    cmds:
-      - go run . utm pull "Windows 11" "C:\\Users\\User\\goup-util\\examples\\hybrid-dashboard\\.bin\\hybrid-dashboard.msix" ./artifacts/hybrid-dashboard.msix
+    desc: Show available task namespaces
+    silent: true
+    cmds:
+      - |
+        echo "goup-util task namespaces:"
+        echo ""
+        echo "  dev:*          Development (build, test, setup)"
+        echo "  run:*          Run examples (go run .)"
+        echo "  build:*        Build examples for platforms"
+        echo "  screenshot:*   Screenshots (capture, appstore)"
+        echo "  ci:*           CI/CD (build, release)"
+        echo "  utm:*          UTM VMs (start, stop, exec)"
+        echo "  src:*          Dependencies (.src management)"
+        echo "  docs:*         Documentation"
+        echo ""
+        echo "Quick start:"
+        echo "  task dev:demo          Build & run hybrid-dashboard"
+        echo "  task dev:build         Build goup-util"
+        echo "  task run:hybrid        Run example directly"
+        echo ""
+        echo "Run 'task --list' for all tasks"

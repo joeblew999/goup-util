@@ -1,3 +1,9 @@
+---
+title: "goup-util Documentation"
+date: 2025-12-21
+draft: false
+---
+
 # goup-util Documentation
 
 Welcome to the goup-util documentation.
@@ -14,11 +20,11 @@ Build pure Go apps that run everywhere:
 
 ## Quick Links
 
-- **[Quick Start Guide](quickstart.md)** - Get up and running in 5 minutes
-- **[Platform Support](platforms.md)** - Platform-specific features and requirements
-- **[Packaging Guide](PACKAGING.md)** - Create distribution-ready packages
-- **[Webview Analysis](WEBVIEW-ANALYSIS.md)** - Deep dive into hybrid app architecture
-- **[AI Collaboration](agents/)** - Guides for AI assistants working on this project
+- **[Quick Start Guide](/users/quickstart/)** - Get up and running in 5 minutes
+- **[Platform Support](/users/platforms/)** - Platform-specific features and requirements
+- **[Packaging Guide](/users/packaging/)** - Create distribution-ready packages
+- **[Webview Analysis](/architecture/webview/)** - Deep dive into hybrid app architecture
+- **[AI Collaboration](/dev/agents/)** - Guides for AI assistants working on this project
 
 ## Core Capabilities
 
@@ -95,25 +101,6 @@ Build apps that combine **native Gio UI** (controls, navigation) with **native w
 
 **One codebase → Runs everywhere**
 
-## Documentation Structure
-
-### Getting Started
-- [quickstart.md](quickstart.md) - Installation and first app
-- [platforms.md](platforms.md) - Platform-specific requirements
-
-### Core Features
-- [PACKAGING.md](PACKAGING.md) - Distribution packaging
-- [cicd.md](cicd.md) - CI/CD integration
-
-### Architecture
-- [WEBVIEW-ANALYSIS.md](WEBVIEW-ANALYSIS.md) - Hybrid app deep dive
-- [IMPROVEMENTS.md](IMPROVEMENTS.md) - Architectural overview and roadmap
-
-### AI Collaboration
-- [agents/README.md](agents/README.md) - AI assistant collaboration guide
-- [agents/gio-plugins.md](agents/gio-plugins.md) - Gio plugins reference
-- [agents/robotgo.md](agents/robotgo.md) - robotgo screenshot reference
-
 ## Key Features
 
 - ✅ **Pure Go Development** - One language for all platforms
@@ -134,8 +121,8 @@ The `examples/` directory contains working demonstrations:
 
 ## Getting Help
 
-- Check [TODO.md](../TODO.md) for known issues and roadmap
-- Read [CLAUDE.md](../CLAUDE.md) for development guidelines
+- Check TODO.md for known issues and roadmap
+- Read CLAUDE.md for development guidelines
 - File issues at https://github.com/joeblew99/goup-util/issues
 
 ## Philosophy
@@ -148,4 +135,4 @@ The `examples/` directory contains working demonstrations:
 
 ---
 
-**Ready to build hybrid apps in pure Go?** Start with the [Quick Start Guide](quickstart.md).
+**Ready to build hybrid apps in pure Go?** Start with the [Quick Start Guide](/users/quickstart/).

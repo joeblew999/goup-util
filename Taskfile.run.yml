@@ -1,0 +1,80 @@
+# https://taskfile.dev
+# Direct run tasks (go run . - fastest iteration)
+#
+# Namespaced as 'run:' in main Taskfile
+# Usage: task run:hybrid, task run:webviewer, etc.
+#
+version: '3'
+
+# Vars inherited from main Taskfile.yml
+
+tasks:
+  # ===========================================================================
+  # DIRECT RUN (go run . - fastest iteration)
+  # ===========================================================================
+
+  hybrid:
+    desc: Run hybrid-dashboard directly (fastest)
+    dir: "{{.HYBRID_EXAMPLE}}"
+    cmds:
+      - go run .
+
+  webviewer:
+    desc: Run webviewer example directly
+    dir: "{{.WEBVIEWER_EXAMPLE}}"
+    cmds:
+      - go run .
+
+  hyperlink:
+    desc: Run hyperlink example directly
+    dir: "{{.HYPERLINK_EXAMPLE}}"
+    cmds:
+      - go run .
+
+  basic:
+    desc: Run basic example directly
+    dir: "{{.BASIC_EXAMPLE}}"
+    cmds:
+      - go run .
+
+  # ===========================================================================
+  # BUILD AND LAUNCH (via gogio - creates .app bundles)
+  # ===========================================================================
+
+  launch:hybrid:
+    desc: Build and run hybrid-dashboard (macOS)
+    cmds:
+      - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
+      - open {{.HYBRID_EXAMPLE}}/.bin/hybrid-dashboard.app
+
+  launch:hybrid:deeplink:
+    desc: Build and run hybrid-dashboard with deep linking (macOS)
+    cmds:
+      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' macos {{.HYBRID_EXAMPLE}}"
+      - open {{.HYBRID_EXAMPLE}}/.bin/hybrid-dashboard.app
+      - echo ""
+      - 'echo "Test with: open hybrid://dashboard/stats"'
+
+  launch:webviewer:
+    desc: Build and run webviewer example (macOS)
+    cmds:
+      - "{{.GOUP}} build macos {{.WEBVIEWER_EXAMPLE}}"
+      - open {{.WEBVIEWER_EXAMPLE}}/.bin/gio-plugin-webviewer.app
+
+  launch:basic:
+    desc: Build and run basic example (macOS)
+    cmds:
+      - "{{.GOUP}} build macos {{.BASIC_EXAMPLE}}"
+      - open {{.BASIC_EXAMPLE}}/.bin/gio-basic.app
+
+  # ===========================================================================
+  # DEEP LINKING TESTS
+  # ===========================================================================
+
+  test:deeplink:
+    desc: Test deep linking with various URLs
+    cmds:
+      - echo "Testing deep link schemes..."
+      - 'open "hybrid://dashboard/stats" || echo "App may need to be running"'
+      - sleep 1
+      - 'open "hybrid://dashboard/hello" || echo "App may need to be running"'

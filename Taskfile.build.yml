@@ -1,0 +1,158 @@
+# https://taskfile.dev
+# Build tasks for example apps
+#
+# Namespaced as 'build:' in main Taskfile
+# Usage: task build:hybrid:macos, task build:all, etc.
+#
+version: '3'
+
+# Vars inherited from main Taskfile.yml
+
+tasks:
+  # ===========================================================================
+  # BUILD HYBRID-DASHBOARD
+  # ===========================================================================
+
+  hybrid:macos:
+    desc: Build hybrid-dashboard for macOS
+    cmds:
+      - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
+
+  hybrid:macos:force:
+    desc: Force rebuild hybrid-dashboard for macOS
+    cmds:
+      - "{{.GOUP}} build --force macos {{.HYBRID_EXAMPLE}}"
+
+  hybrid:macos:check:
+    desc: Check if hybrid-dashboard needs rebuilding
+    cmds:
+      - "{{.GOUP}} build --check macos {{.HYBRID_EXAMPLE}}"
+
+  hybrid:macos:deeplink:
+    desc: Build hybrid-dashboard for macOS with deep linking
+    cmds:
+      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' macos {{.HYBRID_EXAMPLE}}"
+
+  hybrid:ios:
+    desc: Build hybrid-dashboard for iOS
+    cmds:
+      - "{{.GOUP}} build ios {{.HYBRID_EXAMPLE}}"
+
+  hybrid:ios:force:
+    desc: Force rebuild hybrid-dashboard for iOS
+    cmds:
+      - "{{.GOUP}} build --force ios {{.HYBRID_EXAMPLE}}"
+
+  hybrid:ios:deeplink:
+    desc: Build hybrid-dashboard for iOS with deep linking
+    cmds:
+      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' ios {{.HYBRID_EXAMPLE}}"
+
+  hybrid:android:
+    desc: Build hybrid-dashboard for Android
+    cmds:
+      - "{{.GOUP}} build android {{.HYBRID_EXAMPLE}}"
+
+  hybrid:android:force:
+    desc: Force rebuild hybrid-dashboard for Android
+    cmds:
+      - "{{.GOUP}} build --force android {{.HYBRID_EXAMPLE}}"
+
+  hybrid:android:deeplink:
+    desc: Build hybrid-dashboard for Android with deep linking
+    cmds:
+      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' android {{.HYBRID_EXAMPLE}}"
+
+  hybrid:windows:
+    desc: Build hybrid-dashboard for Windows
+    cmds:
+      - "{{.GOUP}} build windows {{.HYBRID_EXAMPLE}}"
+
+  hybrid:windows:deeplink:
+    desc: Build hybrid-dashboard for Windows with deep linking
+    cmds:
+      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' windows {{.HYBRID_EXAMPLE}}"
+
+  hybrid:all:
+    desc: Build hybrid-dashboard for all platforms
+    cmds:
+      - task: hybrid:macos
+      - task: hybrid:ios
+      - task: hybrid:android
+      - task: hybrid:windows
+
+  hybrid:all:deeplink:
+    desc: Build hybrid-dashboard for all platforms with deep linking
+    cmds:
+      - task: hybrid:macos:deeplink
+      - task: hybrid:ios:deeplink
+      - task: hybrid:android:deeplink
+      - task: hybrid:windows:deeplink
+
+  # ===========================================================================
+  # BUILD ALL EXAMPLES
+  # ===========================================================================
+
+  macos:
+    desc: Build all examples for macOS
+    cmds:
+      - "{{.GOUP}} build macos {{.BASIC_EXAMPLE}}"
+      - "{{.GOUP}} build macos {{.WEBVIEWER_EXAMPLE}}"
+      - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
+
+  ios:
+    desc: Build all examples for iOS
+    cmds:
+      - "{{.GOUP}} build ios {{.BASIC_EXAMPLE}}"
+      - "{{.GOUP}} build ios {{.WEBVIEWER_EXAMPLE}}"
+      - "{{.GOUP}} build ios {{.HYBRID_EXAMPLE}}"
+
+  android:
+    desc: Build all examples for Android
+    cmds:
+      - "{{.GOUP}} build android {{.BASIC_EXAMPLE}}"
+      - "{{.GOUP}} build android {{.WEBVIEWER_EXAMPLE}}"
+      - "{{.GOUP}} build android {{.HYBRID_EXAMPLE}}"
+
+  all:
+    desc: Build all examples for all platforms
+    cmds:
+      - task: macos
+      - task: ios
+      - task: android
+
+  # ===========================================================================
+  # BUNDLING & PACKAGING
+  # ===========================================================================
+
+  bundle:hybrid:macos:
+    desc: Create signed macOS app bundle for hybrid-dashboard
+    cmds:
+      - "{{.GOUP}} bundle macos {{.HYBRID_EXAMPLE}}"
+
+  # ===========================================================================
+  # ICONS
+  # ===========================================================================
+
+  icons:hybrid:
+    desc: Generate icons for hybrid-dashboard (all platforms)
+    cmds:
+      - "{{.GOUP}} icons macos {{.HYBRID_EXAMPLE}}"
+      - "{{.GOUP}} icons android {{.HYBRID_EXAMPLE}}"
+      - "{{.GOUP}} icons ios {{.HYBRID_EXAMPLE}}"
+
+  # ===========================================================================
+  # CLEANUP
+  # ===========================================================================
+
+  clean:
+    desc: Clean build artifacts from all examples
+    cmds:
+      - rm -rf {{.BASIC_EXAMPLE}}/.bin
+      - rm -rf {{.BASIC_EXAMPLE}}/.build
+      - rm -rf {{.WEBVIEWER_EXAMPLE}}/.bin
+      - rm -rf {{.WEBVIEWER_EXAMPLE}}/.build
+      - rm -rf {{.HYPERLINK_EXAMPLE}}/.bin
+      - rm -rf {{.HYPERLINK_EXAMPLE}}/.build
+      - rm -rf {{.HYBRID_EXAMPLE}}/.bin
+      - rm -rf {{.HYBRID_EXAMPLE}}/.build

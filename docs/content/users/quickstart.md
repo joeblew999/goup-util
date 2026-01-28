@@ -1,3 +1,10 @@
+---
+title: "Quick Start"
+date: 2025-12-21
+draft: false
+weight: 1
+---
+
 # Quick Start Guide
 
 Get up and running with goup-util in under 5 minutes.
@@ -88,10 +95,10 @@ go run . self doctor
 
 ## Next Steps
 
-- Read [Platform Support](platforms.md) for platform-specific details
-- See [PACKAGING.md](PACKAGING.md) for distribution packaging
-- Explore [WEBVIEW-ANALYSIS.md](WEBVIEW-ANALYSIS.md) for hybrid app architecture
-- Check [agents/](agents/) for AI collaboration patterns
+- Read [Platform Support](/users/platforms/) for platform-specific details
+- See [Packaging Guide](/users/packaging/) for distribution packaging
+- Explore [Webview Analysis](/architecture/webview/) for hybrid app architecture
+- Check [AI Collaboration](/dev/agents/) for AI collaboration patterns
 
 ## Troubleshooting
 
@@ -109,5 +116,5 @@ go run . self doctor
 ## Getting Help
 
 - Run `go run . --help` for command reference
-- Check [TODO.md](../TODO.md) for known issues and roadmap
+- Check TODO.md for known issues and roadmap
 - File issues at https://github.com/joeblew99/goup-util/issues

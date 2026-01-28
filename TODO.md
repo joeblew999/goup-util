@@ -7,6 +7,12 @@ See [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md) for comprehensive improvement a
 
 ---
 
+Now i want the whole root taskfile system designed so that in each example in the examples folder, i can have a task file that allows me to run from there . The intent is to allow my Developers to easily use the system on any project via task file include.  
+
+
+
+---
+
 ## 🔥 High Priority (Do First)
 
 ### 1. Better Developer Experience
@@ -35,26 +41,31 @@ See [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md) for comprehensive improvement a
 
 ---
 
-### 2.5. Screenshot Command (NEW - High Priority)
+### 2.5. Screenshot Command ✅ IMPLEMENTED
 **Problem**: Need automated screenshots for docs/marketing
 **Impact**: Can't show what the tool produces visually
 
-**Solution**: Add `goup-util screenshot` command using platform CLI tools
+**Solution**: robotgo-based screenshot system with App Store presets
 
-**Tasks**:
-- [ ] Implement screenshot command in `cmd/screenshot.go`
-  - Desktop: `screencapture` (macOS), PowerShell (Windows), `scrot` (Linux)
-  - iOS Simulator: `xcrun simctl io booted screenshot`
-  - Android: `adb exec-out screencap -p`
-- [ ] Add Taskfile tasks: `screenshot:desktop`, `screenshot:ios`, `screenshot:android`, `screenshot:all`
-- [ ] Generate screenshots for all examples to `docs/screenshots/`
-- [ ] Update README with actual screenshots
+**Completed Tasks**:
+- [x] Implement screenshot command using robotgo (CGO-based, build tag gated)
+- [x] Window capture functions: `CaptureActiveWindow`, `CaptureWindowByPID`
+- [x] App Store screenshot presets (iOS, macOS, Android, Windows)
+- [x] `run-and-capture` command - automated app launch + screenshot workflow
+- [x] Taskfile integration - `screenshot-hybrid`, `screenshot-appstore-all`
+- [x] Fallback to full-screen capture when window detection fails
 
-**Strategy**: See [docs/SCREENSHOT-STRATEGY.md](docs/SCREENSHOT-STRATEGY.md)
-**Approach**: Platform CLI tools (no CGO), optional robotgo integration later
-**Implementation**: Week 1-2
+**Current Status**: ✅ Working! Can capture screenshots of all examples.
 
-**Note**: Considered go-vgo/robotgo (has screenshot + keyboard/mouse automation). Good for future, but starting simple with CLI tools for faster implementation and no CGO dependency.
+**Remaining Improvements** (Move to dedicated section):
+- [ ] Better preset display with `--store` filter
+- [ ] Screenshot metadata/watermarking for App Store submissions
+- [ ] Manual interactive mode (`--manual` flag to skip auto-detection)
+- [ ] Screenshot comparison tool (HTML grid view)
+- [ ] Screenshot validation (dimensions, file size, format)
+- [ ] Better permission detection and error messages
+- [ ] Screenshot cropping/post-processing (`--crop-*` flags)
+- [ ] Screenshot workflow/batch mode for different app states
 
 ---
 
@@ -118,7 +129,90 @@ Automated via:
 
 ## 🚀 Medium Priority
 
-### 5. Performance Improvements
+### 5. Screenshot System Enhancements
+**Status**: Basic system working, these are polish improvements
+**Impact**: Better App Store submission workflow, easier documentation
+
+#### 5.1 Better Preset Management
+- [ ] Add `--store` filter to `--list-presets`
+  - Example: `goup-util screenshot --list-presets --store ios`
+  - Shows only iOS presets, cleaner output
+- [ ] Group presets by store in `showPresets()` output
+- [ ] Add preset search by dimensions
+  - Example: `goup-util screenshot --find-preset 1920x1080`
+
+#### 5.2 Manual Interactive Mode
+**Quick Win - Highest Priority**
+- [ ] Add `--manual` flag to `run-and-capture`
+  - Skips window detection entirely
+  - Just launches app, waits configurable time, captures
+  - User has full control over window positioning
+- [ ] Add `--wait-manual` duration flag (default 5s)
+- [ ] Print clear instructions: "Position window now, capturing in 5s..."
+
+**Implementation**:
+```go
+runAndCaptureCmd.Flags().Bool("manual", false, "Manual mode - skip window detection")
+runAndCaptureCmd.Flags().Int("wait-manual", 5000, "Wait time in manual mode (ms)")
+```
+
+#### 5.3 App Store Submission Tools
+- [ ] Screenshot metadata/watermarking
+  - Optional device frame overlay (iPhone frame around screenshot)
+  - Optional text label (e.g., "iPhone 16 Pro Max")
+  - Date/version watermark for tracking submissions
+- [ ] Screenshot validation command
+  - Check dimensions match App Store requirements
+  - Check file size limits (iOS: 8MB max)
+  - Check format (PNG or JPEG only)
+  - Check color space (sRGB required)
+- [ ] Screenshot comparison HTML generator
+  - `task screenshot-compare-appstore`
+  - Generates HTML grid showing all screenshots
+  - Side-by-side view of all App Store sizes
+
+#### 5.4 Advanced Window Detection
+- [ ] macOS-specific: Try AppleScript for better window detection
+  - `osascript` can get window bounds more reliably than robotgo
+  - Fallback chain: robotgo → AppleScript → full screen
+- [ ] Interactive window selection mode
+  - User clicks on window they want to capture
+  - Uses robotgo mouse tracking
+- [ ] Better permission detection
+  - Check for Screen Recording permission before capturing
+  - Show macOS notification to grant permission
+  - Provide clickable link to System Settings
+
+#### 5.5 Post-Processing Features
+- [ ] Screenshot cropping
+  - `--crop-top 28` (remove macOS menu bar)
+  - `--crop-bottom 0`
+  - `--crop-left 0`
+  - `--crop-right 0`
+- [ ] Auto-trim whitespace/borders
+- [ ] Resize to specific dimensions (for App Store compliance)
+- [ ] Format conversion (PNG ↔ JPEG)
+- [ ] Compression optimization
+
+#### 5.6 Batch/Workflow Automation
+- [ ] Capture multiple screenshots of same app at different stages
+  - Example: Login screen → Dashboard → Settings
+- [ ] Support for deep link triggered states
+  - `--deeplink hybrid://settings` before screenshot
+- [ ] Scripted interactions before capture
+  - Click buttons, navigate tabs, fill forms
+  - Uses robotgo automation capabilities
+- [ ] Screenshot sequences for App Store preview videos
+
+**Implementation Priority**:
+1. **Week 1**: Manual interactive mode (#5.2) - Immediate value
+2. **Week 2**: Screenshot validation (#5.3) - App Store workflow
+3. **Week 3**: Better window detection (#5.4) - Polish
+4. **Later**: Post-processing and batch features (#5.5, #5.6)
+
+---
+
+### 6. Performance Improvements
 - [ ] **Incremental builds** - hash-based caching, skip unchanged
 - [ ] **Parallel builds** - build multiple platforms concurrently
 - [ ] **Parallel icon generation** - 5-10x faster
@@ -128,7 +222,7 @@ Automated via:
 
 ---
 
-### 6. Configuration System
+### 7. Configuration System
 - [ ] **goup.yaml** - project configuration file
 - [ ] **Platform-specific settings** - bundle IDs, permissions, signing
 - [ ] **Build profiles** - debug, release, staging
@@ -138,7 +232,7 @@ Automated via:
 
 ---
 
-### 7. Testing & Deployment
+### 8. Testing & Deployment
 - [ ] **Simulator/emulator automation** - `goup-util test ios --simulator`
 - [ ] **Device deployment** - `goup-util deploy android --device`
 - [ ] **Store helpers** - `goup-util deploy appstore --testflight`
@@ -150,17 +244,17 @@ Automated via:
 
 ## 🔮 Future (Nice to Have)
 
-### 8. Cross-Compilation Fixes
+### 9. Cross-Compilation Fixes
 - [ ] **Linux cross-compile** - Docker-based builds from macOS
 - [ ] **Windows cross-compile** - Docker or remote builds
 - [ ] **Better CGo detection** - warn early about cross-compile issues
 
-### 9. Plugin System
+### 10. Plugin System
 - [ ] **Custom commands** - extend goup-util via plugins
 - [ ] **Build hooks** - pre-build, post-build, pre-deploy
 - [ ] **Plugin marketplace** - share community plugins
 
-### 10. Enhanced Examples
+### 11. Enhanced Examples
 - [ ] **Hybrid dashboard** - Gio UI + web charts/graphs
 - [ ] **Offline-first app** - IndexedDB + Go backend sync
 - [ ] **Camera integration** - Native camera + Go processing

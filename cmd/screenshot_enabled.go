@@ -59,10 +59,30 @@ Using: ` + screenshot.Platform(),
 		quality, _ := cmd.Flags().GetInt("quality")
 		info, _ := cmd.Flags().GetBool("info")
 		force, _ := cmd.Flags().GetBool("force")
+		windowMode, _ := cmd.Flags().GetBool("window")
+		pid, _ := cmd.Flags().GetInt("pid")
+		preset, _ := cmd.Flags().GetString("preset")
+		listPresets, _ := cmd.Flags().GetBool("list-presets")
 
 		// Show display info
 		if info {
 			return showDisplayInfo()
+		}
+
+		// List presets
+		if listPresets {
+			return showPresets()
+		}
+
+		// Handle preset
+		if preset != "" {
+			p, ok := screenshot.GetPreset(preset)
+			if !ok {
+				return fmt.Errorf("unknown preset: %s (use --list-presets to see available presets)", preset)
+			}
+			fmt.Printf("Using preset: %s (%dx%d)\n", p.Name, p.Width, p.Height)
+			width = p.Width
+			height = p.Height
 		}
 
 		// Determine output file
@@ -109,6 +129,17 @@ Using: ` + screenshot.Platform(),
 			return fmt.Errorf("output file required (or use --all with --prefix)")
 		}
 
+		// Window mode - capture specific window
+		if windowMode || pid > 0 {
+			if pid > 0 {
+				// Capture by PID
+				return screenshot.CaptureWindowByPID(pid, output, quality)
+			} else {
+				// Capture active window
+				return screenshot.CaptureActiveWindow(output, quality)
+			}
+		}
+
 		// Capture
 		if err := screenshot.Capture(cfg); err != nil {
 			return fmt.Errorf("screenshot failed: %w", err)
@@ -149,6 +180,43 @@ func showDisplayInfo() error {
 	return nil
 }
 
+func showPresets() error {
+	fmt.Println("Available App Store Screenshot Presets:\n")
+
+	stores := []string{"ios", "macos", "android", "windows"}
+	storeNames := map[string]string{
+		"ios":     "iOS App Store",
+		"macos":   "macOS App Store",
+		"android": "Android Play Store",
+		"windows": "Windows Store",
+	}
+
+	for _, store := range stores {
+		presets := screenshot.ListPresets(store)
+		if len(presets) == 0 {
+			continue
+		}
+
+		fmt.Printf("%s:\n", storeNames[store])
+		for _, p := range presets {
+			// Find preset name by value
+			for name, preset := range screenshot.Presets {
+				if preset.Name == p.Name {
+					fmt.Printf("  %-25s %dx%-5d  %s\n", name, p.Width, p.Height, p.Description)
+					break
+				}
+			}
+		}
+		fmt.Println()
+	}
+
+	fmt.Println("Usage:")
+	fmt.Println("  goup-util screenshot --preset macos-retina output.png")
+	fmt.Println("  goup-util screenshot --preset iphone-6.9 output.png")
+
+	return nil
+}
+
 func init() {
 	screenshotCmd.Flags().Int("x", 0, "X coordinate of region to capture")
 	screenshotCmd.Flags().Int("y", 0, "Y coordinate of region to capture")
@@ -160,6 +228,10 @@ func init() {
 	screenshotCmd.Flags().IntP("quality", "q", 90, "JPEG quality (1-100)")
 	screenshotCmd.Flags().Bool("info", false, "Show display information")
 	screenshotCmd.Flags().Bool("force", false, "Overwrite existing screenshot")
+	screenshotCmd.Flags().Bool("window", false, "Capture active window only")
+	screenshotCmd.Flags().Int("pid", 0, "Capture window by process ID")
+	screenshotCmd.Flags().String("preset", "", "Use App Store preset (e.g., macos-retina, iphone-6.9)")
+	screenshotCmd.Flags().Bool("list-presets", false, "List available App Store presets")
 
 	rootCmd.AddCommand(screenshotCmd)
 }

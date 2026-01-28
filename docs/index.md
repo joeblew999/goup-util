@@ -1,55 +1,76 @@
-# Documentation Index
+# goup-util Documentation
 
-Welcome to the goup-util documentation. This tool simplifies cross-platform development by providing automated SDK management and build processes for mobile, desktop, and web applications.
+Build cross-platform hybrid apps in pure Go.
 
-## Getting Started
+## Quick Navigation
 
-- **[Quick Start Guide](quickstart.md)** - Get up and running in 5 minutes
-- **[Platform Support](platforms.md)** - Overview of supported platforms and features
+### 📚 Getting Started
+- [Quick Start Guide](quickstart.md) - Get up and running in 5 minutes
+- [Platform Support](platforms.md) - Platform-specific features and requirements
 
-## Core Concepts
+### 🔧 Core Features
+- [Packaging Guide](PACKAGING.md) - Create distribution-ready packages
+- [CI/CD Integration](cicd.md) - Automated build pipelines
 
-- **[Asset Management](assets.md)** - Automated icon and resource generation
-- **[Project Structure](project.md)** - How goup-util organizes your projects
-- **[SDK Management](sdks.md)** - Automated SDK installation and management
+### 🏗️ Architecture
+- [Webview Analysis](WEBVIEW-ANALYSIS.md) - Deep dive into hybrid app architecture
+- [Improvements Roadmap](IMPROVEMENTS.md) - Architectural overview and future plans
 
-## Advanced Topics
+### 🤖 AI Collaboration
+- [AI Assistant Guide](agents/README.md) - Collaboration patterns for AI assistants
+- [Gio Plugins Reference](agents/gio-plugins.md) - gio-plugins deep dive
+- [robotgo Reference](agents/robotgo.md) - Screenshot system reference
 
-- **[CI/CD Integration](cicd.md)** - Using goup-util in automated pipelines
-- **[Advanced Configuration](advanced.md)** - Customizing builds and workflows
-- **[Troubleshooting](troubleshooting.md)** - Common issues and solutions
+## What is goup-util?
 
-## API Reference
+A build tool for creating **cross-platform hybrid applications** using Go and Gio UI.
 
-- **[Command Reference](commands.md)** - Complete CLI command documentation
-- **[Configuration Files](config.md)** - Project configuration options
-- **[Environment Variables](env.md)** - Environment configuration
+**One codebase → Runs everywhere:**
+- 🖥️ Desktop: macOS, Windows, Linux
+- 📱 Mobile: iOS, Android
+- 🌐 Web: Browser (WASM)
+- 🔀 Hybrid: Native Gio UI + native webviews
+
+## Key Capabilities
+
+✅ **Pure Go Development** - One language for all platforms
+✅ **Hybrid Architecture** - Native UI + webview content
+✅ **SDK Management** - Automated install and caching
+✅ **Asset Generation** - Icons for all platforms
+✅ **Idempotent Builds** - Safe to run multiple times
+✅ **Screenshot Capture** - App Store screenshot generation
+
+## Quick Commands
+
+```bash
+# Build for macOS
+go run . build macos examples/hybrid-dashboard
+
+# Install Android SDK
+go run . install android-sdk
+
+# Generate icons
+go run . icons examples/hybrid-dashboard
+
+# Capture screenshots
+task screenshot-hybrid
+```
 
 ## Examples
 
-- **[Basic App](examples/basic.md)** - Simple cross-platform application
-- **[Enterprise Setup](examples/enterprise.md)** - Large-scale deployment
-- **[CI/CD Pipeline](examples/cicd.md)** - Complete automation example
+Working demonstrations in `examples/`:
+
+- **hybrid-dashboard** - Recommended starting point (Gio + webview)
+- **gio-basic** - Simple Gio UI demo
+- **gio-plugin-hyperlink** - URL handling
+- **gio-plugin-webviewer** - Multi-tab browser
+
+## Getting Help
+
+- [TODO.md](../TODO.md) - Known issues and roadmap
+- [CLAUDE.md](../CLAUDE.md) - Development guidelines
+- [GitHub Issues](https://github.com/joeblew99/goup-util/issues) - Report bugs
 
 ---
 
-## Key Features
-
-### 🎯 One Tool, Every Platform
-Build for iOS, Android, macOS, Windows, Linux, and web from a single codebase.
-
-### 🔧 Zero-Config SDK Management
-Automatically download and manage all required SDKs without system pollution.
-
-### 🎨 Automated Asset Pipeline
-Generate icons, splash screens, and platform-specific resources automatically.
-
-### 🚀 CI/CD Ready
-Perfect for automated build pipelines with reproducible results.
-
-### 📱 Production Ready
-All outputs are store-ready with proper signing and platform conventions.
-
----
-
-*Questions? Issues? Check the [troubleshooting guide](troubleshooting.md) or open an issue on GitHub.*
+**Start here:** [Quick Start Guide](quickstart.md)

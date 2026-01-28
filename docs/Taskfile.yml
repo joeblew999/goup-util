@@ -1,0 +1,99 @@
+version: '3'
+
+vars:
+  DOCS_VERSION: 'latest'
+  DOCS_SRC: '{{.TASKFILE_DIR}}'
+  DOCS_BIN: '{{.TASKFILE_DIR}}/.bin'
+  DOCS_DATA: '{{.TASKFILE_DIR}}/.data'
+  DOCS_PORT: '1313'
+
+tasks:
+  src:clone:
+    desc: Docs source is in git (no-op)
+    status:
+      - test -d {{.DOCS_SRC}}/content
+    cmds:
+      - echo "Docs source is in git, nothing to clone"
+
+  src:update:
+    desc: Update docs source (no-op, use git pull)
+    cmds:
+      - echo "Use git pull to update docs source"
+
+  build:
+    desc: Build Hugo site
+    dir: '{{.DOCS_SRC}}'
+    deps: [ensure]
+    sources:
+      - '{{.DOCS_SRC}}/content/**/*'
+      - '{{.DOCS_SRC}}/layouts/**/*'
+      - '{{.DOCS_SRC}}/static/**/*'
+      - '{{.DOCS_SRC}}/hugo.toml'
+    generates:
+      - '{{.DOCS_BIN}}/**/*'
+    cmds:
+      - hugo --minify -d {{.DOCS_BIN}}
+
+  run:
+    desc: Run Hugo dev server with hot reload
+    dir: '{{.DOCS_SRC}}'
+    deps: [ensure]
+    cmds:
+      - hugo server -D --bind 0.0.0.0 --port {{.DOCS_PORT}}
+
+  ensure:
+    desc: Ensure Hugo is installed (installs via go if missing)
+    status:
+      - command -v hugo
+    cmds:
+      - go install github.com/gohugoio/hugo@latest
+
+  bin:download:
+    desc: Hugo is a system tool (no-op)
+    status:
+      - command -v hugo
+    cmds:
+      - echo "Hugo is installed via system package manager"
+
+  test:
+    desc: Check Hugo build works
+    dir: '{{.DOCS_SRC}}'
+    cmds:
+      - hugo --minify -d {{.DOCS_BIN}}
+
+  deps:
+    desc: No dependencies for Hugo docs
+    cmds:
+      - echo "Hugo docs have no dependencies"
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf {{.DOCS_BIN}}
+    status:
+      - '! test -d {{.DOCS_BIN}}'
+
+  clean:data:
+    desc: Clean data directory
+    cmds:
+      - rm -rf {{.DOCS_DATA}}
+    status:
+      - '! test -d {{.DOCS_DATA}}'
+
+  clean:src:
+    desc: Clean source directory (no-op, source is in git)
+    cmds:
+      - echo "Docs source is in git, not .src/"
+
+  clean:all:
+    desc: Clean everything (.bin, .data)
+    cmds:
+      - rm -rf {{.DOCS_BIN}} {{.DOCS_DATA}} {{.DOCS_SRC}}/.hugo_build.lock
+
+  "new":
+    desc: "Create new content (usage: task docs:new PAGE=architecture/new-page)"
+    vars:
+      PAGE: '{{.PAGE | default "posts/new-post"}}'
+    dir: '{{.DOCS_SRC}}'
+    cmds:
+      - hugo new content/{{.PAGE}}.md

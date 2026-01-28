@@ -1,0 +1,359 @@
+# https://taskfile.dev
+# UTM Virtual Machine management for Windows testing
+#
+# ALL LOCAL - No system-wide installs, no vagrant, no homebrew pollution
+# IDEMPOTENT - All tasks safe to run multiple times
+# PORTABLE - Can be copied to any project
+#
+# Storage:
+#   .bin/UTM.app     - UTM application
+#   .data/utm/vms/   - Virtual machines (.utm files)
+#   .data/utm/iso/   - ISO images for VM creation
+#   .data/utm/share/ - Shared folder for file transfer
+#
+# Resources:
+# - UTM App: https://mac.getutm.app/
+# - Windows ARM ISO: https://archive.org/details/windows-11-24h2-arm64-iso
+#
+version: '3'
+
+vars:
+  # VM settings
+  UTM_VM: '{{.UTM_VM | default "Windows 11"}}'
+  UTM_WIN_DIR: 'C:\Users\User\goup-util'
+  # Local storage (all in repo)
+  UTM_DATA: .data/utm
+  UTM_VMS: .data/utm/vms
+  UTM_ISO: .data/utm/iso
+  UTM_SHARE: .data/utm/share
+  # Windows ISO
+  UTM_WIN_ISO: .data/utm/iso/Windows11_ARM64.iso
+  UTM_WIN_ISO_URL: "https://archive.org/download/windows-11-24h2-arm64-iso/Win11_24H2_English_Arm64.iso"
+  # UTM app (local install)
+  UTM_APP: .bin/UTM.app
+  UTM_CTL: .bin/UTM.app/Contents/MacOS/utmctl
+  UTM_VERSION: "5.0.1"
+  UTM_DMG_URL: "https://github.com/utmapp/UTM/releases/download/v{{.UTM_VERSION}}/UTM.dmg"
+
+tasks:
+  # ===========================================================================
+  # INSTALL - Download UTM to .bin (idempotent)
+  # ===========================================================================
+
+  install:
+    desc: Download UTM.app to .bin/ (skips if exists)
+    cmds:
+      - mkdir -p .bin {{.UTM_VMS}} {{.UTM_ISO}} {{.UTM_SHARE}}
+      - echo "Downloading UTM v{{.UTM_VERSION}}..."
+      - curl -L -o .bin/UTM.dmg "{{.UTM_DMG_URL}}"
+      - echo "Mounting DMG..."
+      - hdiutil attach .bin/UTM.dmg -mountpoint /tmp/utm-mount -quiet
+      - echo "Copying UTM.app to .bin/..."
+      - cp -R /tmp/utm-mount/UTM.app .bin/
+      - hdiutil detach /tmp/utm-mount -quiet
+      - rm .bin/UTM.dmg
+      - echo "Done! UTM v{{.UTM_VERSION}} installed"
+    status:
+      - test -x {{.UTM_CTL}}
+
+  install:check:
+    desc: Check UTM installation status
+    silent: true
+    cmds:
+      - |
+        echo "=== UTM Status ==="
+        echo ""
+        if [ -x "{{.UTM_CTL}}" ]; then
+          echo "UTM App:     OK (.bin/UTM.app)"
+        else
+          echo "UTM App:     MISSING (run: task utm:install)"
+        fi
+        [ -d "{{.UTM_VMS}}" ] && echo "VMs dir:     OK" || echo "VMs dir:     MISSING"
+        [ -d "{{.UTM_ISO}}" ] && echo "ISO dir:     OK" || echo "ISO dir:     MISSING"
+        [ -d "{{.UTM_SHARE}}" ] && echo "Share dir:   OK" || echo "Share dir:   MISSING"
+        [ -f "{{.UTM_WIN_ISO}}" ] && echo "Windows ISO: OK ($(du -h "{{.UTM_WIN_ISO}}" | cut -f1))" || echo "Windows ISO: MISSING (run: task utm:windows:download)"
+        echo ""
+        echo "Registered VMs:"
+        "{{.UTM_CTL}}" list 2>/dev/null || echo "  (utmctl not available)"
+
+  setup:
+    desc: Create all local data directories (idempotent)
+    cmds:
+      - mkdir -p {{.UTM_VMS}} {{.UTM_ISO}} {{.UTM_SHARE}}
+    status:
+      - test -d {{.UTM_VMS}}
+      - test -d {{.UTM_ISO}}
+      - test -d {{.UTM_SHARE}}
+
+  # ===========================================================================
+  # WINDOWS - Download ISO and manage VM (idempotent)
+  # ===========================================================================
+
+  windows:download:
+    desc: Download Windows 11 ARM ISO (~5.1 GB, skips if exists)
+    cmds:
+      - mkdir -p {{.UTM_ISO}}
+      - echo "Downloading Windows 11 ARM64 ISO (~5.1 GB)..."
+      - 'echo "Source: archive.org (official Microsoft ISO)"'
+      - curl -L -o "{{.UTM_WIN_ISO}}" "{{.UTM_WIN_ISO_URL}}" --progress-bar
+      - echo "Done! ISO saved to {{.UTM_WIN_ISO}}"
+    status:
+      - test -f {{.UTM_WIN_ISO}}
+
+  windows:create:
+    desc: Open UTM to create Windows 11 VM (requires ISO)
+    deps: [install, windows:download]
+    cmds:
+      - |
+        echo "Opening UTM..."
+        open "{{.UTM_APP}}"
+        echo ""
+        echo "Create VM in UTM:"
+        echo "  1. Click + → Virtualize → Windows"
+        echo "  2. Browse to: {{.UTM_WIN_ISO}}"
+        echo "  3. RAM: 4096 MB, CPU: 2 cores, Disk: 64 GB"
+        echo "  4. Shared directory: $(pwd)/{{.UTM_SHARE}}"
+        echo "  5. Save and start"
+        echo ""
+        echo "After Windows setup, install SPICE guest tools for shared folders"
+
+  windows:move:
+    desc: Move Windows VM from system location to .data/
+    cmds:
+      - |
+        SYS_DIR="$HOME/Library/Containers/com.utmapp.UTM/Data/Documents"
+        for vm in "$SYS_DIR"/*.utm; do
+          [ -d "$vm" ] || continue
+          name=$(basename "$vm")
+          if [ -d "{{.UTM_VMS}}/$name" ]; then
+            echo "SKIP: $name already in {{.UTM_VMS}}/"
+          else
+            echo "Moving: $name"
+            mv "$vm" "{{.UTM_VMS}}/"
+          fi
+        done
+        echo ""
+        echo "Local VMs:"
+        ls -1 {{.UTM_VMS}}/*.utm 2>/dev/null | sed 's/.*\//  /' || echo "  (none)"
+
+  # ===========================================================================
+  # VM Management (via utmctl)
+  # ===========================================================================
+
+  vm:list:
+    desc: List all VMs (registered and local)
+    cmds:
+      - |
+        echo "=== Registered VMs (utmctl) ==="
+        "{{.UTM_CTL}}" list 2>/dev/null || echo "(none)"
+        echo ""
+        echo "=== Local VMs ({{.UTM_VMS}}/) ==="
+        ls -1 {{.UTM_VMS}}/*.utm 2>/dev/null | sed 's/.*\//  /' || echo "  (none)"
+
+  vm:start:
+    desc: Start VM (UTM_VM=name)
+    cmds:
+      - '{{.UTM_CTL}} start "{{.UTM_VM}}"'
+
+  vm:stop:
+    desc: Stop VM (UTM_VM=name)
+    cmds:
+      - '{{.UTM_CTL}} stop "{{.UTM_VM}}"'
+
+  vm:status:
+    desc: Show VM status (UTM_VM=name)
+    cmds:
+      - '{{.UTM_CTL}} status "{{.UTM_VM}}"'
+
+  vm:ip:
+    desc: Get VM IP address (UTM_VM=name)
+    cmds:
+      - '{{.UTM_CTL}} ip-address "{{.UTM_VM}}"'
+
+  vm:exec:
+    desc: Execute command in VM (UTM_VM=name, CMD=command)
+    cmds:
+      - '{{.UTM_CTL}} exec "{{.UTM_VM}}" --cmd "{{.CMD}}"'
+
+  vm:clone:
+    desc: Clone a VM (UTM_VM=source, NAME=new-name)
+    cmds:
+      - '{{.UTM_CTL}} clone "{{.UTM_VM}}" --name "{{.NAME}}"'
+
+  vm:delete:
+    desc: Delete a VM (UTM_VM=name) - NO CONFIRMATION!
+    cmds:
+      - '{{.UTM_CTL}} delete "{{.UTM_VM}}"'
+
+  # ===========================================================================
+  # File Transfer (utmctl file + shared folder)
+  # ===========================================================================
+
+  share:open:
+    desc: Open shared folder in Finder
+    cmds:
+      - mkdir -p {{.UTM_SHARE}}
+      - open {{.UTM_SHARE}}
+
+  share:list:
+    desc: List shared folder contents
+    cmds:
+      - ls -la {{.UTM_SHARE}} 2>/dev/null || echo "(empty)"
+
+  file:push:
+    desc: Push file to VM (UTM_VM=name, SRC=local, DST=guest-path)
+    cmds:
+      - 'cat "{{.SRC}}" | {{.UTM_CTL}} file push "{{.UTM_VM}}" "{{.DST}}"'
+
+  file:pull:
+    desc: Pull file from VM (UTM_VM=name, SRC=guest-path, DST=local)
+    cmds:
+      - '{{.UTM_CTL}} file pull "{{.UTM_VM}}" "{{.SRC}}" > "{{.DST}}"'
+
+  # ===========================================================================
+  # Build & Deploy (generic - customize for your project)
+  # ===========================================================================
+
+  build:exe:
+    desc: Build Windows exe and copy to share (customize for your project)
+    vars:
+      # Override these in your main Taskfile or via CLI
+      BUILD_NAME: '{{.BUILD_NAME | default "app"}}'
+      BUILD_PKG: '{{.BUILD_PKG | default "."}}'
+    cmds:
+      - mkdir -p {{.UTM_SHARE}}
+      - GOOS=windows GOARCH=amd64 go build -o {{.UTM_SHARE}}/{{.BUILD_NAME}}.exe {{.BUILD_PKG}}
+      - ls -lh {{.UTM_SHARE}}/{{.BUILD_NAME}}.exe
+
+  deploy:
+    desc: Show how to access shared folder in VM
+    cmds:
+      - |
+        echo "Files in shared folder:"
+        ls -la {{.UTM_SHARE}}/ 2>/dev/null || echo "(empty)"
+        echo ""
+        echo "In Windows VM:"
+        echo "  1. Open File Explorer"
+        echo "  2. Go to: \\\\Mac\\share (or check network locations)"
+        echo "  3. Run your .exe file"
+        echo ""
+        echo "To build and copy your exe:"
+        echo "  task utm:build:exe BUILD_NAME=myapp BUILD_PKG=./cmd/myapp"
+
+  # ===========================================================================
+  # Test Workflows
+  # ===========================================================================
+
+  test:ping:
+    desc: Test VM connectivity
+    cmds:
+      - |
+        echo "Getting VM IP..."
+        IP=$("{{.UTM_CTL}}" ip-address "{{.UTM_VM}}" 2>/dev/null | head -1)
+        if [ -n "$IP" ]; then
+          echo "VM IP: $IP"
+          ping -c 3 "$IP"
+        else
+          echo "Could not get VM IP. Is the VM running with guest tools?"
+        fi
+
+  test:exec:
+    desc: Test command execution in VM
+    cmds:
+      - '{{.UTM_CTL}} exec "{{.UTM_VM}}" --cmd "echo Hello from Windows! & ver"'
+
+  # ===========================================================================
+  # Quick Actions
+  # ===========================================================================
+
+  open:
+    desc: Open UTM app
+    cmds:
+      - open "{{.UTM_APP}}"
+
+  open:vms:
+    desc: Open local VMs folder in Finder
+    cmds:
+      - mkdir -p {{.UTM_VMS}}
+      - open {{.UTM_VMS}}
+
+  # ===========================================================================
+  # Cleanup
+  # ===========================================================================
+
+  clean:check:
+    desc: Show UTM artifacts (local and system)
+    silent: true
+    cmds:
+      - |
+        echo "=== UTM Artifacts ==="
+        echo ""
+        echo "LOCAL (in repo):"
+        [ -d ".bin/UTM.app" ] && echo "  .bin/UTM.app" || echo "  (no UTM app)"
+        [ -d "{{.UTM_DATA}}" ] && echo "  {{.UTM_DATA}}/" || echo "  (no data dir)"
+        [ -f "{{.UTM_WIN_ISO}}" ] && echo "  {{.UTM_WIN_ISO}} ($(du -h "{{.UTM_WIN_ISO}}" | cut -f1))" || true
+        echo ""
+        echo "SYSTEM (outside repo):"
+        [ -d "/Applications/UTM.app" ] && echo "  /Applications/UTM.app" || true
+        brew list --cask 2>/dev/null | grep -q "^utm$" && echo "  Homebrew: utm" || true
+        for c in com.utmapp.QEMUHelper com.utmapp.UTM com.utmapp.utmctl; do
+          [ -d "$HOME/Library/Containers/$c" ] && echo "  ~/Library/Containers/$c" || true
+        done
+        [ -d ~/UTM-Share ] && echo "  ~/UTM-Share" || true
+        if ls "$HOME/Library/Containers/com.utmapp.UTM/Data/Documents/"*.utm 2>/dev/null | grep -q .; then
+          echo "  VMs in system location:"
+          ls -1 "$HOME/Library/Containers/com.utmapp.UTM/Data/Documents/"*.utm 2>/dev/null | head -3 | sed 's/.*\//    /'
+        fi
+        echo ""
+
+  clean:local:
+    desc: Remove local UTM data (keeps UTM.app)
+    cmds:
+      - rm -rf {{.UTM_DATA}}
+      - echo "Removed {{.UTM_DATA}}"
+
+  clean:iso:
+    desc: Remove downloaded ISO (frees ~5GB)
+    cmds:
+      - rm -f {{.UTM_WIN_ISO}}
+      - echo "Removed Windows ISO"
+
+  clean:all:
+    desc: Remove all local UTM files
+    cmds:
+      - rm -rf {{.UTM_DATA}} .bin/UTM.app
+      - echo "Removed local UTM installation"
+
+  # ===========================================================================
+  # Help
+  # ===========================================================================
+
+  help:
+    desc: Show UTM usage guide
+    silent: true
+    cmds:
+      - |
+        echo "=== UTM Windows Testing (Local Only) ==="
+        echo ""
+        echo "QUICK START:"
+        echo "  task utm:install            Download UTM (skips if exists)"
+        echo "  task utm:windows:download   Download Windows ISO (skips if exists)"
+        echo "  task utm:windows:create     Open UTM to create VM"
+        echo ""
+        echo "VM CONTROL:"
+        echo "  task utm:vm:list            List all VMs"
+        echo "  task utm:vm:start           Start VM"
+        echo "  task utm:vm:stop            Stop VM"
+        echo "  task utm:vm:ip              Get VM IP address"
+        echo "  task utm:vm:exec CMD=...    Execute command in VM"
+        echo ""
+        echo "FILE TRANSFER:"
+        echo "  task utm:share:open         Open shared folder"
+        echo "  task utm:file:push SRC=... DST=...   Push file to VM"
+        echo "  task utm:file:pull SRC=... DST=...   Pull file from VM"
+        echo ""
+        echo "BUILD & TEST:"
+        echo "  task utm:build:exe BUILD_NAME=app   Build exe for Windows"
+        echo "  task utm:deploy                     Show VM access instructions"
+        echo ""
+        echo "All idempotent - safe to run multiple times!"

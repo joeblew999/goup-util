@@ -1,0 +1,138 @@
+# https://taskfile.dev
+# Development tasks for goup-util
+#
+# Namespaced as 'dev:' in main Taskfile
+#
+version: '3'
+
+# Vars inherited from main Taskfile.yml: GOUP, HYBRID_EXAMPLE, HYBRID_SCHEMES
+
+tasks:
+  # ===========================================================================
+  # BUILD & TEST
+  # ===========================================================================
+
+  build:
+    desc: Build goup-util binary for development
+    cmds:
+      - go build -o goup-util .
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test ./...
+
+  config:
+    desc: Show goup-util configuration
+    cmds:
+      - "{{.GOUP}} config"
+
+  doctor:
+    desc: Check Gio version compatibility
+    cmds:
+      - echo "Checking .src dependencies..."
+      - task src:status || echo ".src not configured"
+      - echo ""
+      - echo "Checking example replace directives..."
+      - grep "replace gioui.org" {{.HYBRID_EXAMPLE}}/go.mod || echo "WARN - No replace directive"
+
+  # ===========================================================================
+  # SETUP
+  # ===========================================================================
+
+  setup:
+    desc: Initial setup for development
+    cmds:
+      - echo "Setting up goup-util development environment..."
+      - task dev:workspace:init
+      - echo "Installing Android NDK..."
+      - task dev:sdk:ndk
+      - echo "Setup complete!"
+
+  # ===========================================================================
+  # WORKSPACE
+  # ===========================================================================
+
+  workspace:init:
+    desc: Initialize Go workspace
+    cmds:
+      - go work init
+      - go work use .
+      - go work use examples/gio-basic
+      - go work use examples/gio-plugin-webviewer
+      - go work use examples/gio-plugin-hyperlink
+      - go work use examples/hybrid-dashboard
+
+  workspace:list:
+    desc: List workspace modules
+    cmds:
+      - "{{.GOUP}} workspace list"
+
+  # ===========================================================================
+  # SDK
+  # ===========================================================================
+
+  sdk:ndk:
+    desc: Install Android NDK
+    cmds:
+      - "{{.GOUP}} install ndk-bundle"
+
+  sdk:android:
+    desc: Install Android SDK
+    cmds:
+      - "{{.GOUP}} install android-sdk"
+
+  sdk:list:
+    desc: List available SDKs
+    cmds:
+      - "{{.GOUP}} list"
+
+  # ===========================================================================
+  # SELF BUILD
+  # ===========================================================================
+
+  self:build:
+    desc: Build goup-util for all platforms
+    cmds:
+      - "{{.GOUP}} self build"
+
+  self:test:
+    desc: Test self build locally
+    cmds:
+      - "{{.GOUP}} self test"
+
+  # ===========================================================================
+  # CLEANUP
+  # ===========================================================================
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - task examples:clean
+      - rm -f goup-util goup-util-*
+
+  clean:all:
+    desc: Clean everything including SDKs
+    cmds:
+      - task dev:clean
+      - "{{.GOUP}} cleanup"
+
+  # ===========================================================================
+  # DEMO (quick start)
+  # ===========================================================================
+
+  demo:
+    desc: Quick demo - build and run hybrid-dashboard
+    cmds:
+      - echo "Building hybrid-dashboard..."
+      - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
+      - echo "Launching..."
+      - open {{.HYBRID_EXAMPLE}}/.bin/hybrid-dashboard.app
+
+  demo:deeplink:
+    desc: Demo with deep linking
+    cmds:
+      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' macos {{.HYBRID_EXAMPLE}}"
+      - open {{.HYBRID_EXAMPLE}}/.bin/hybrid-dashboard.app
+      - sleep 2
+      - 'open "hybrid://dashboard/stats"'
