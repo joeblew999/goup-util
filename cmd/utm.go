@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 
+	"github.com/joeblew999/goup-util/pkg/utm"
 	"github.com/spf13/cobra"
 )
 
@@ -20,6 +20,9 @@ Requires UTM to be installed and QEMU guest agent running in the VM.
 Examples:
   # List all VMs
   goup-util utm list
+
+  # List available VMs from gallery
+  goup-util utm gallery
 
   # Check VM status
   goup-util utm status "Windows 11"
@@ -41,8 +44,176 @@ var utmListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all UTM virtual machines",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runUTMCtl("list")
+		return utm.RunUTMCtlInteractive("list")
 	},
+}
+
+var utmGalleryCmd = &cobra.Command{
+	Use:   "gallery",
+	Short: "List available VMs from the gallery",
+	Long: `List VMs available in the gallery for installation.
+
+The gallery contains pre-configured VM definitions for common operating systems
+including Windows 11 ARM, Ubuntu, Debian, and Fedora.
+
+Examples:
+  goup-util utm gallery
+  goup-util utm gallery --os windows
+  goup-util utm gallery --arch arm64`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		gallery, err := utm.LoadGallery()
+		if err != nil {
+			return fmt.Errorf("failed to load gallery: %w", err)
+		}
+
+		osFilter, _ := cmd.Flags().GetString("os")
+		archFilter, _ := cmd.Flags().GetString("arch")
+
+		vms := gallery.VMs
+
+		// Apply filters
+		if osFilter != "" {
+			vms = gallery.FilterByOS(osFilter)
+		}
+		if archFilter != "" {
+			filtered := make(map[string]utm.VMEntry)
+			for k, v := range vms {
+				if v.Arch == archFilter {
+					filtered[k] = v
+				}
+			}
+			vms = filtered
+		}
+
+		if len(vms) == 0 {
+			fmt.Println("No VMs match the filter criteria")
+			return nil
+		}
+
+		fmt.Println("Available VMs in gallery:")
+		fmt.Println()
+		for key, vm := range vms {
+			fmt.Printf("  %s\n", key)
+			fmt.Printf("    Name: %s\n", vm.Name)
+			fmt.Printf("    OS:   %s (%s)\n", vm.OS, vm.Arch)
+			if vm.Description != "" {
+				fmt.Printf("    Desc: %s\n", vm.Description)
+			}
+			fmt.Printf("    RAM:  %d MB, Disk: %d MB, CPU: %d\n",
+				vm.Template.RAM, vm.Template.Disk, vm.Template.CPU)
+			if vm.ISO.URL != "" {
+				sizeGB := float64(vm.ISO.Size) / 1024 / 1024 / 1024
+				fmt.Printf("    ISO:  %.1f GB\n", sizeGB)
+			}
+			fmt.Println()
+		}
+
+		return nil
+	},
+}
+
+var utmPathsCmd = &cobra.Command{
+	Use:   "paths",
+	Short: "Show UTM paths configuration",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		paths := utm.GetPaths()
+		fmt.Println("UTM Paths:")
+		fmt.Printf("  App:   %s\n", paths.App)
+		fmt.Printf("  VMs:   %s\n", paths.VMs)
+		fmt.Printf("  ISO:   %s\n", paths.ISO)
+		fmt.Printf("  Share: %s\n", paths.Share)
+		fmt.Println()
+		fmt.Printf("utmctl: %s\n", utm.GetUTMCtlPath())
+		fmt.Printf("Installed: %v\n", utm.IsUTMInstalled())
+		return nil
+	},
+}
+
+var utmInstallCmd = &cobra.Command{
+	Use:   "install [vm-key]",
+	Short: "Install UTM app or download VM ISO",
+	Long: `Install the UTM application or download a VM ISO from the gallery.
+
+Without arguments, installs the UTM application.
+With a VM key, downloads the ISO for that VM.
+
+Examples:
+  # Install UTM app
+  goup-util utm install
+
+  # Download Windows 11 ISO
+  goup-util utm install windows-11-arm
+
+  # Force reinstall UTM
+  goup-util utm install --force`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		force, _ := cmd.Flags().GetBool("force")
+
+		if len(args) == 0 {
+			// Install UTM app
+			return utm.InstallUTM(force)
+		}
+
+		// Download ISO for specified VM
+		return utm.DownloadISO(args[0], force)
+	},
+}
+
+var utmUninstallCmd = &cobra.Command{
+	Use:   "uninstall",
+	Short: "Uninstall UTM app",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return utm.UninstallUTM()
+	},
+}
+
+var utmDoctorCmd = &cobra.Command{
+	Use:   "doctor",
+	Short: "Check UTM installation status",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		status, err := utm.GetInstallStatus()
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("UTM Installation Status:")
+		fmt.Println()
+
+		if status.Installed {
+			fmt.Printf("  ✓ UTM installed at %s\n", status.InstalledPath)
+			if status.InstalledVersion != "" {
+				fmt.Printf("    Version: %s\n", status.InstalledVersion)
+			}
+		} else {
+			fmt.Printf("  ✗ UTM not installed\n")
+			fmt.Printf("    Run: goup-util utm install\n")
+		}
+
+		fmt.Printf("  Gallery version: %s\n", status.GalleryVersion)
+
+		if status.UpdateAvailable {
+			fmt.Printf("  ⚠ Update available: %s\n", status.GalleryVersion)
+			fmt.Printf("    Run: goup-util utm install --force\n")
+		}
+
+		// Check directories
+		paths := utm.GetPaths()
+		fmt.Println()
+		fmt.Println("Directories:")
+		checkDir("VMs", paths.VMs)
+		checkDir("ISO", paths.ISO)
+		checkDir("Share", paths.Share)
+
+		return nil
+	},
+}
+
+func checkDir(name, path string) {
+	if _, err := os.Stat(path); err == nil {
+		fmt.Printf("  ✓ %s: %s\n", name, path)
+	} else {
+		fmt.Printf("  ✗ %s: %s (missing)\n", name, path)
+	}
 }
 
 var utmStatusCmd = &cobra.Command{
@@ -50,7 +221,12 @@ var utmStatusCmd = &cobra.Command{
 	Short: "Get status of a VM",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runUTMCtl("status", args[0])
+		status, err := utm.GetVMStatus(args[0])
+		if err != nil {
+			return err
+		}
+		fmt.Println(status)
+		return nil
 	},
 }
 
@@ -59,7 +235,7 @@ var utmStartCmd = &cobra.Command{
 	Short: "Start a VM",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runUTMCtl("start", args[0])
+		return utm.StartVM(args[0])
 	},
 }
 
@@ -68,7 +244,7 @@ var utmStopCmd = &cobra.Command{
 	Short: "Stop a VM",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runUTMCtl("stop", args[0])
+		return utm.StopVM(args[0])
 	},
 }
 
@@ -77,7 +253,12 @@ var utmIPCmd = &cobra.Command{
 	Short: "Get IP address of a VM",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runUTMCtl("ip-address", args[0])
+		ip, err := utm.GetVMIP(args[0])
+		if err != nil {
+			return err
+		}
+		fmt.Println(ip)
+		return nil
 	},
 }
 
@@ -124,8 +305,7 @@ Examples:
 
 		fmt.Printf("Executing in VM '%s': %s\n\n", vmName, cmdStr)
 
-		// Execute via utmctl
-		return runUTMCtl("exec", vmName, "--cmd", cmdStr)
+		return utm.ExecInVM(vmName, cmdStr)
 	},
 }
 
@@ -146,9 +326,8 @@ Examples:
 
 		fmt.Printf("Executing task '%s' in VM '%s'\n\n", taskName, vmName)
 
-		// Execute task via utmctl
 		cmdStr := fmt.Sprintf("task %s", taskName)
-		return runUTMCtl("exec", vmName, "--cmd", cmdStr)
+		return utm.ExecInVM(vmName, cmdStr)
 	},
 }
 
@@ -173,22 +352,8 @@ Examples:
 		fmt.Printf("  Remote: %s\n", remotePath)
 		fmt.Printf("  Local:  %s\n\n", localPath)
 
-		// Use utmctl file pull
-		utmctlPath := findUTMCtl()
-		pullCmd := exec.Command(utmctlPath, "file", "pull", vmName, remotePath)
-
-		// Create output file
-		outFile, err := os.Create(localPath)
-		if err != nil {
-			return fmt.Errorf("failed to create output file: %w", err)
-		}
-		defer outFile.Close()
-
-		pullCmd.Stdout = outFile
-		pullCmd.Stderr = os.Stderr
-
-		if err := pullCmd.Run(); err != nil {
-			return fmt.Errorf("utmctl file pull failed: %w", err)
+		if err := utm.PullFile(vmName, remotePath, localPath); err != nil {
+			return err
 		}
 
 		fmt.Printf("✓ File pulled successfully\n")
@@ -217,23 +382,8 @@ Examples:
 		fmt.Printf("  Local:  %s\n", localPath)
 		fmt.Printf("  Remote: %s\n\n", remotePath)
 
-		// Use utmctl file push
-		utmctlPath := findUTMCtl()
-		pushCmd := exec.Command(utmctlPath, "file", "push", vmName, remotePath)
-
-		// Open input file
-		inFile, err := os.Open(localPath)
-		if err != nil {
-			return fmt.Errorf("failed to open input file: %w", err)
-		}
-		defer inFile.Close()
-
-		pushCmd.Stdin = inFile
-		pushCmd.Stdout = os.Stdout
-		pushCmd.Stderr = os.Stderr
-
-		if err := pushCmd.Run(); err != nil {
-			return fmt.Errorf("utmctl file push failed: %w", err)
+		if err := utm.PushFile(vmName, localPath, remotePath); err != nil {
+			return err
 		}
 
 		fmt.Printf("✓ File pushed successfully\n")
@@ -244,6 +394,11 @@ Examples:
 func init() {
 	rootCmd.AddCommand(utmCmd)
 	utmCmd.AddCommand(utmListCmd)
+	utmCmd.AddCommand(utmGalleryCmd)
+	utmCmd.AddCommand(utmPathsCmd)
+	utmCmd.AddCommand(utmInstallCmd)
+	utmCmd.AddCommand(utmUninstallCmd)
+	utmCmd.AddCommand(utmDoctorCmd)
 	utmCmd.AddCommand(utmStatusCmd)
 	utmCmd.AddCommand(utmStartCmd)
 	utmCmd.AddCommand(utmStopCmd)
@@ -252,35 +407,11 @@ func init() {
 	utmCmd.AddCommand(utmTaskCmd)
 	utmCmd.AddCommand(utmPullCmd)
 	utmCmd.AddCommand(utmPushCmd)
-}
 
-// findUTMCtl locates the utmctl binary
-func findUTMCtl() string {
-	// Try common locations
-	locations := []string{
-		"/opt/homebrew/bin/utmctl",
-		"/usr/local/bin/utmctl",
-		"/Applications/UTM.app/Contents/MacOS/utmctl",
-	}
+	// Gallery filters
+	utmGalleryCmd.Flags().String("os", "", "Filter by OS (windows, linux)")
+	utmGalleryCmd.Flags().String("arch", "", "Filter by architecture (arm64, amd64)")
 
-	for _, loc := range locations {
-		if _, err := os.Stat(loc); err == nil {
-			return loc
-		}
-	}
-
-	// Fallback to PATH
-	return "utmctl"
-}
-
-// runUTMCtl executes utmctl with the given arguments
-func runUTMCtl(args ...string) error {
-	utmctlPath := findUTMCtl()
-
-	cmd := exec.Command(utmctlPath, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-
-	return cmd.Run()
+	// Install flags
+	utmInstallCmd.Flags().Bool("force", false, "Force reinstall/redownload")
 }

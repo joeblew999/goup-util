@@ -1,0 +1,119 @@
+{
+  "meta": {
+    "schemaVersion": "1.0",
+    "paths": {
+      "app": ".bin/UTM.app",
+      "vms": ".data/utm/vms",
+      "iso": ".data/utm/iso",
+      "share": ".data/utm/share"
+    },
+    "utmApp": {
+      "version": "5.0.1",
+      "url": "https://github.com/utmapp/UTM/releases/download/v5.0.1/UTM.dmg",
+      "checksum": "sha256:to_be_added",
+      "minMacOS": "11.0"
+    }
+  },
+  "vms": {
+    "windows-11-arm": {
+      "name": "Windows 11",
+      "description": "Windows 11 ARM64 for Apple Silicon",
+      "arch": "arm64",
+      "os": "windows",
+      "iso": {
+        "url": "https://archive.org/download/windows-11-24h2-arm64-iso/Win11_24H2_English_Arm64.iso",
+        "filename": "Windows11_ARM64.iso",
+        "size": 5500000000
+      },
+      "template": {
+        "type": "windows-arm64",
+        "ram": 4096,
+        "disk": 65536,
+        "cpu": 2,
+        "gpu": true,
+        "sharedDir": true
+      },
+      "tags": ["windows", "arm64", "primary"]
+    },
+    "windows-11-x64": {
+      "name": "Windows 11 (x64 Emulated)",
+      "description": "Windows 11 x64 with QEMU emulation (slower)",
+      "arch": "amd64",
+      "os": "windows",
+      "iso": {
+        "url": "https://www.microsoft.com/software-download/windows11",
+        "filename": "Windows11_x64.iso",
+        "size": 5800000000
+      },
+      "template": {
+        "type": "windows-x64-emulated",
+        "ram": 4096,
+        "disk": 65536,
+        "cpu": 2,
+        "gpu": false,
+        "sharedDir": true
+      },
+      "tags": ["windows", "amd64", "emulated"]
+    },
+    "ubuntu-24-arm": {
+      "name": "Ubuntu 24.04 LTS",
+      "description": "Ubuntu 24.04 LTS ARM64 for Apple Silicon",
+      "arch": "arm64",
+      "os": "linux",
+      "iso": {
+        "url": "https://cdimage.ubuntu.com/releases/24.04/release/ubuntu-24.04-live-server-arm64.iso",
+        "filename": "ubuntu-24.04-arm64.iso",
+        "size": 2500000000
+      },
+      "template": {
+        "type": "linux-arm64",
+        "ram": 2048,
+        "disk": 32768,
+        "cpu": 2,
+        "gpu": false,
+        "sharedDir": true
+      },
+      "tags": ["linux", "ubuntu", "arm64"]
+    },
+    "debian-12-arm": {
+      "name": "Debian 12 Bookworm",
+      "description": "Debian 12 ARM64 for Apple Silicon",
+      "arch": "arm64",
+      "os": "linux",
+      "iso": {
+        "url": "https://cdimage.debian.org/debian-cd/current/arm64/iso-cd/debian-12.5.0-arm64-netinst.iso",
+        "filename": "debian-12-arm64.iso",
+        "size": 700000000
+      },
+      "template": {
+        "type": "linux-arm64",
+        "ram": 2048,
+        "disk": 20480,
+        "cpu": 2,
+        "gpu": false,
+        "sharedDir": true
+      },
+      "tags": ["linux", "debian", "arm64"]
+    },
+    "fedora-40-arm": {
+      "name": "Fedora 40 Workstation",
+      "description": "Fedora 40 ARM64 for Apple Silicon",
+      "arch": "arm64",
+      "os": "linux",
+      "iso": {
+        "url": "https://download.fedoraproject.org/pub/fedora/linux/releases/40/Workstation/aarch64/iso/Fedora-Workstation-Live-aarch64-40-1.14.iso",
+        "filename": "fedora-40-arm64.iso",
+        "size": 2200000000
+      },
+      "template": {
+        "type": "linux-arm64",
+        "ram": 4096,
+        "disk": 40960,
+        "cpu": 2,
+        "gpu": true,
+        "sharedDir": true
+      },
+      "tags": ["linux", "fedora", "arm64"]
+    }
+  }
+}
