@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+	"time"
 )
 
 //go:embed templates/macos-info.plist.tmpl
@@ -24,10 +25,12 @@ type MacOSBundleConfig struct {
 	BundleID    string // Bundle identifier (e.g., "com.example.myapp")
 	Version     string // Version string (e.g., "1.0.0")
 	BuildNumber string // Build number (e.g., "1")
+	Year        string // Copyright year (auto-filled if empty)
 
 	// Paths
 	BinaryPath string // Path to the compiled binary
 	OutputDir  string // Where to create the .app bundle
+	IconPath   string // Path to .icns icon file (optional)
 
 	// Code signing
 	SigningIdentity string // Code signing identity (empty for ad-hoc)
@@ -65,6 +68,9 @@ func CreateMacOSBundle(config MacOSBundleConfig) error {
 	if config.BuildNumber == "" {
 		config.BuildNumber = "1"
 	}
+	if config.Year == "" {
+		config.Year = fmt.Sprintf("%d", time.Now().Year())
+	}
 
 	// Check binary exists
 	if _, err := os.Stat(config.BinaryPath); os.IsNotExist(err) {
@@ -97,6 +103,18 @@ func CreateMacOSBundle(config MacOSBundleConfig) error {
 	}
 
 	fmt.Printf("  ✓ Binary copied to %s\n", executablePath)
+
+	// Copy icon if available
+	if config.IconPath != "" {
+		if _, err := os.Stat(config.IconPath); err == nil {
+			iconDst := filepath.Join(resourcesDir, "AppIcon.icns")
+			if err := copyFile(config.IconPath, iconDst); err != nil {
+				fmt.Printf("  ⚠️  Failed to copy icon: %v\n", err)
+			} else {
+				fmt.Printf("  ✓ Icon copied to %s\n", iconDst)
+			}
+		}
+	}
 
 	// Generate Info.plist
 	infoPlistPath := filepath.Join(contentsDir, "Info.plist")

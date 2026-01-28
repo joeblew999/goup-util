@@ -118,6 +118,21 @@ func bundleMacOS(proj *project.GioProject, bundleID, version, signingIdentity, o
 			platformBinaryInApp, legacyBinaryInApp, standaloneBinary, proj.RootDir)
 	}
 
+	// Find icon file (check multiple locations)
+	var iconPath string
+	iconLocations := []string{
+		filepath.Join(proj.RootDir, "assets", "icon.icns"),
+		filepath.Join(proj.RootDir, "assets", "AppIcon.icns"),
+		filepath.Join(platformAppBundle, "Contents", "Resources", "icon.icns"),
+		filepath.Join(legacyAppBundle, "Contents", "Resources", "icon.icns"),
+	}
+	for _, loc := range iconLocations {
+		if _, err := os.Stat(loc); err == nil {
+			iconPath = loc
+			break
+		}
+	}
+
 	// Create bundle config
 	config := packaging.MacOSBundleConfig{
 		Name:            proj.Name,
@@ -127,6 +142,7 @@ func bundleMacOS(proj *project.GioProject, bundleID, version, signingIdentity, o
 		BuildNumber:     "1",
 		BinaryPath:      binaryPath,
 		OutputDir:       outputDir,
+		IconPath:        iconPath,
 		SigningIdentity: signingIdentity,
 		Entitlements:    useEntitlements,
 	}
