@@ -185,13 +185,26 @@ func bundleWindows(proj *project.GioProject, bundleID, version, publisher, outpu
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
-	// Find the built binary
+	// Find the built binary - check multiple locations
 	binDir := filepath.Join(proj.RootDir, constants.BinDir)
-	binaryPath := filepath.Join(binDir, proj.Name+".exe")
+	var binaryPath string
 
-	// Check if binary exists
-	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
-		return fmt.Errorf("binary not found: %s\nRun 'goup-util build windows %s' first", binaryPath, proj.RootDir)
+	// Check locations in order of preference:
+	// 1. Platform-specific directory: .bin/windows/<name>.exe
+	// 2. Legacy location: .bin/<name>.exe
+	windowsBinDir := filepath.Join(binDir, "windows")
+	platformBinary := filepath.Join(windowsBinDir, proj.Name+".exe")
+	legacyBinary := filepath.Join(binDir, proj.Name+".exe")
+
+	if _, err := os.Stat(platformBinary); err == nil {
+		binaryPath = platformBinary
+		fmt.Println("ℹ️  Found binary in .bin/windows/")
+	} else if _, err := os.Stat(legacyBinary); err == nil {
+		binaryPath = legacyBinary
+		fmt.Println("ℹ️  Found binary in .bin/")
+	} else {
+		return fmt.Errorf("binary not found in:\n  %s\n  %s\nRun 'goup-util build windows %s' first",
+			platformBinary, legacyBinary, proj.RootDir)
 	}
 
 	// Check for assets directory

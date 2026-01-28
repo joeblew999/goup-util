@@ -81,7 +81,13 @@ func CreateWindowsBundle(config WindowsBundleConfig) error {
 	if err := os.MkdirAll(stagingDir, 0755); err != nil {
 		return fmt.Errorf("failed to create staging directory: %w", err)
 	}
-	defer os.RemoveAll(stagingDir) // Clean up staging when done
+	// Only clean up staging after successful MSIX creation on Windows
+	cleanupStaging := false
+	defer func() {
+		if cleanupStaging {
+			os.RemoveAll(stagingDir)
+		}
+	}()
 
 	// Copy binary to staging
 	executableName := config.Name + ".exe"
@@ -126,7 +132,7 @@ func CreateWindowsBundle(config WindowsBundleConfig) error {
 	if config.CreateMSIX {
 		if runtime.GOOS != "windows" {
 			fmt.Println("⚠️  Skipping MSIX creation: requires Windows")
-			fmt.Println("   Bundle structure created, ready to package on Windows")
+			fmt.Println("   Bundle structure created in .staging/, ready to package on Windows")
 		} else {
 			msixPath := filepath.Join(config.OutputDir, config.Name+".msix")
 			if err := createMSIXPackage(stagingDir, msixPath); err != nil {
@@ -134,10 +140,16 @@ func CreateWindowsBundle(config WindowsBundleConfig) error {
 			}
 			fmt.Printf("  ✓ MSIX package created: %s\n", msixPath)
 
-			// Code signing (future implementation)
+			// Sign the MSIX if certificate provided
 			if config.SigningCertificate != "" {
-				fmt.Println("  ⚠️  Code signing not yet implemented")
+				if err := signMSIX(msixPath, config.SigningCertificate, config.CertificatePassword); err != nil {
+					return fmt.Errorf("failed to sign MSIX: %w", err)
+				}
+				fmt.Printf("  ✓ MSIX signed with certificate\n")
 			}
+
+			// Clean up staging after successful MSIX creation
+			cleanupStaging = true
 		}
 	}
 
@@ -192,6 +204,36 @@ func createMSIXPackage(sourceDir, outputPath string) error {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("msix pack failed: %w\nOutput: %s", err, output)
+	}
+
+	return nil
+}
+
+// signMSIX signs an MSIX package using signtool
+func signMSIX(msixPath, certPath, password string) error {
+	// Check if signtool is available
+	signtool, err := exec.LookPath("signtool")
+	if err != nil {
+		return fmt.Errorf("signtool not found. Install Windows SDK or use Visual Studio Developer Command Prompt")
+	}
+
+	// Build signtool command
+	args := []string{
+		"sign",
+		"/fd", "SHA256",
+		"/f", certPath,
+	}
+
+	if password != "" {
+		args = append(args, "/p", password)
+	}
+
+	args = append(args, msixPath)
+
+	cmd := exec.Command(signtool, args...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("signtool failed: %w\nOutput: %s", err, output)
 	}
 
 	return nil
