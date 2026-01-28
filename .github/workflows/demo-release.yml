@@ -23,9 +23,14 @@ jobs:
 
       - name: Install Task
         uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clone .src dependencies
         run: task src:update:all
+
+      - name: Install gogio
+        run: go install gioui.org/cmd/gogio@latest
 
       - name: Build hybrid-dashboard for macOS
         run: |
@@ -51,14 +56,19 @@ jobs:
 
       - name: Install Task
         uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clone .src dependencies
         run: task src:update:all
 
+      - name: Install gogio
+        run: go install gioui.org/cmd/gogio@latest
+
       - name: Build hybrid-dashboard for Windows
         run: |
           task build:hybrid:windows
-          Compress-Archive -Path examples/hybrid-dashboard/.bin/windows-amd64/* -DestinationPath examples/hybrid-dashboard/.bin/hybrid-dashboard-windows.zip
+          Compress-Archive -Path examples/hybrid-dashboard/.bin/*.exe -DestinationPath examples/hybrid-dashboard/.bin/hybrid-dashboard-windows.zip
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
@@ -83,6 +93,8 @@ jobs:
 
       - name: Install Task
         uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clone .src dependencies
         run: task src:update:all
