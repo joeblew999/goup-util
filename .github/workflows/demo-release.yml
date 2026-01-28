@@ -1,4 +1,5 @@
 # Build demo app binaries for releases
+# Uses Task to build - same tasks that work locally work in CI
 name: Demo Release
 
 on:
@@ -21,6 +22,9 @@ jobs:
         with:
           go-version: '1.23'
 
+      - name: Install gogio
+        run: go install gioui.org/cmd/gogio@latest
+
       - name: Install Task
         uses: arduino/setup-task@v2
         with:
@@ -29,15 +33,13 @@ jobs:
       - name: Clone .src dependencies
         run: task src:update:all
 
-      - name: Install gogio
-        run: go install gioui.org/cmd/gogio@latest
-
       - name: Build hybrid-dashboard for macOS
-        working-directory: examples/hybrid-dashboard
+        run: task build:hybrid:macos
+
+      - name: Package macOS artifact
         run: |
-          GOWORK=off gogio -target macos -o .bin/hybrid-dashboard.app .
-          cd .bin
-          zip -r hybrid-dashboard-macos.zip hybrid-dashboard.app
+          cd examples/hybrid-dashboard/.bin
+          zip -r hybrid-dashboard-macos.zip *.app
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
@@ -55,6 +57,9 @@ jobs:
         with:
           go-version: '1.23'
 
+      - name: Install gogio
+        run: go install gioui.org/cmd/gogio@latest
+
       - name: Install Task
         uses: arduino/setup-task@v2
         with:
@@ -63,15 +68,11 @@ jobs:
       - name: Clone .src dependencies
         run: task src:update:all
 
-      - name: Install gogio
-        run: go install gioui.org/cmd/gogio@latest
-
       - name: Build hybrid-dashboard for Windows
-        working-directory: examples/hybrid-dashboard
-        run: |
-          $env:GOWORK="off"
-          gogio -target windows -o .bin/hybrid-dashboard.exe .
-          Compress-Archive -Path .bin/*.exe -DestinationPath .bin/hybrid-dashboard-windows.zip
+        run: task build:hybrid:windows
+
+      - name: Package Windows artifact
+        run: Compress-Archive -Path examples/hybrid-dashboard/.bin/*.exe -DestinationPath examples/hybrid-dashboard/.bin/hybrid-dashboard-windows.zip
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
@@ -92,7 +93,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-dev xorg-dev libwayland-dev libxkbcommon-dev libvulkan-dev
+          sudo apt-get install -y libgl1-mesa-dev xorg-dev libwayland-dev libxkbcommon-dev libvulkan-dev gcc
 
       - name: Install Task
         uses: arduino/setup-task@v2
@@ -103,16 +104,18 @@ jobs:
         run: task src:update:all
 
       - name: Build basic example for Linux (no webview)
-        working-directory: examples/gio-basic
+        run: task build:basic:linux
+
+      - name: Package Linux artifact
         run: |
-          GOWORK=off go build -o gio-basic .
-          tar -czvf ../gio-basic-linux.tar.gz gio-basic
+          cd examples/gio-basic/.bin
+          tar -czvf gio-basic-linux.tar.gz *
 
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
           name: demo-linux
-          path: examples/gio-basic-linux.tar.gz
+          path: examples/gio-basic/.bin/gio-basic-linux.tar.gz
 
   release:
     needs: [build-macos, build-windows, build-linux]

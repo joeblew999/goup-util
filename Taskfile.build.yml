@@ -101,6 +101,25 @@ tasks:
       - task: hybrid:windows:deeplink
 
   # ===========================================================================
+  # BUILD BASIC EXAMPLE
+  # ===========================================================================
+
+  basic:macos:
+    desc: Build gio-basic for macOS
+    cmds:
+      - "{{.GOUP}} build macos {{.BASIC_EXAMPLE}}"
+
+  basic:linux:
+    desc: Build gio-basic for Linux
+    cmds:
+      - "{{.GOUP}} build linux {{.BASIC_EXAMPLE}}"
+
+  basic:windows:
+    desc: Build gio-basic for Windows
+    cmds:
+      - "{{.GOUP}} build windows {{.BASIC_EXAMPLE}}"
+
+  # ===========================================================================
   # BUILD ALL EXAMPLES
   # ===========================================================================
 

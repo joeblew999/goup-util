@@ -66,7 +66,7 @@ Examples:
 		appDir := args[1]
 
 		// Validate platform
-		validPlatforms := []string{"macos", "android", "ios", "ios-simulator", "windows", "all"}
+		validPlatforms := []string{"macos", "android", "ios", "ios-simulator", "windows", "linux", "all"}
 		if !utils.Contains(validPlatforms, platform) {
 			return fmt.Errorf("invalid platform: %s. Valid platforms: %v", platform, validPlatforms)
 		}
@@ -127,6 +127,8 @@ Examples:
 			return buildIOS(proj.RootDir, proj.Name, outputDir, "ios-simulator", opts, true)
 		case "windows":
 			return buildWindows(proj.RootDir, proj.Name, outputDir, platform, opts)
+		case "linux":
+			return buildLinux(proj.RootDir, proj.Name, outputDir, platform, opts)
 		case "all":
 			return buildAll(proj.RootDir, proj.Name, outputDir, opts)
 		}
@@ -181,9 +183,14 @@ func buildMacOS(appDir, appName, outputDir, platform string, opts BuildOptions) 
 		os.RemoveAll(appPath)
 	}
 
-	// Build with gogio
-	iconPath := filepath.Join(appDir, "icon-source.png")
-	args := []string{"-target", "macos", "-arch", "arm64", "-icon", iconPath, "-o", appPath}
+	// Build with gogio - run from app directory with GOWORK=off
+	// Convert paths to absolute since we're changing working directory
+	absAppDir, _ := filepath.Abs(appDir)
+	absOutputDir, _ := filepath.Abs(outputDir)
+	absAppPath := filepath.Join(absOutputDir, appName+".app")
+	iconPath := filepath.Join(absAppDir, "icon-source.png")
+
+	args := []string{"-target", "macos", "-arch", "arm64", "-icon", iconPath, "-o", absAppPath}
 
 	// Add deep linking schemes if specified
 	if opts.Schemes != "" {
@@ -195,8 +202,11 @@ func buildMacOS(appDir, appName, outputDir, platform string, opts BuildOptions) 
 		args = append(args, "-signkey", opts.SignKey)
 	}
 
-	args = append(args, appDir)
+	args = append(args, ".") // Build current directory (we'll set Dir to appDir)
 	gogioCmd := exec.Command("gogio", args...)
+	gogioCmd.Dir = absAppDir // Run from app directory so its go.mod is used
+	// Set GOWORK=off to avoid workspace interference with example modules
+	gogioCmd.Env = append(os.Environ(), "GOWORK=off")
 	gogioCmd.Stdout = os.Stdout
 	gogioCmd.Stderr = os.Stderr
 
@@ -269,14 +279,20 @@ func buildAndroid(appDir, appName, outputDir, platform string, opts BuildOptions
 
 	// Set Android environment variables with absolute paths
 	env := os.Environ()
+	env = append(env, "GOWORK=off") // Avoid workspace interference with example modules
 	javaHome := filepath.Join(sdkRoot, "openjdk", "17", "jdk-17.0.11+9", "Contents", "Home")
 	env = append(env, "JAVA_HOME="+javaHome)
 	env = append(env, "ANDROID_SDK_ROOT="+sdkRoot)
 	env = append(env, "ANDROID_HOME="+sdkRoot)
 	env = append(env, "ANDROID_NDK_ROOT="+ndkPath)
 
-	// Build with gogio
-	args := []string{"-target", "android", "-o", apkPath}
+	// Build with gogio - run from app directory with GOWORK=off
+	// Convert paths to absolute since we're changing working directory
+	absAppDir, _ := filepath.Abs(appDir)
+	absOutputDir, _ := filepath.Abs(outputDir)
+	absApkPath := filepath.Join(absOutputDir, appName+".apk")
+
+	args := []string{"-target", "android", "-o", absApkPath}
 
 	// Add deep linking schemes if specified
 	if opts.Schemes != "" {
@@ -288,14 +304,15 @@ func buildAndroid(appDir, appName, outputDir, platform string, opts BuildOptions
 		args = append(args, "-queries", opts.Queries)
 	}
 
-	args = append(args, appDir)
+	args = append(args, ".") // Build current directory (we'll set Dir to appDir)
 	gogioCmd := exec.Command("gogio", args...)
+	gogioCmd.Dir = absAppDir // Run from app directory so its go.mod is used
 	gogioCmd.Env = env
 	gogioCmd.Stdout = os.Stdout
 	gogioCmd.Stderr = os.Stderr
 
 	if err := gogioCmd.Run(); err != nil {
-		cache.RecordBuild(appName, platform, appDir, apkPath, false)
+		cache.RecordBuild(appName, platform, appDir, absApkPath, false)
 		return fmt.Errorf("gogio build failed: %w", err)
 	}
 
@@ -352,28 +369,36 @@ func buildIOS(appDir, appName, outputDir, platform string, opts BuildOptions, si
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
-	// Build with gogio
-	args := []string{"-target", "ios", "-o", appPath}
+	// Build with gogio - run from app directory with GOWORK=off
+	// Convert paths to absolute since we're changing working directory
+	absAppDir, _ := filepath.Abs(appDir)
+	absOutputDir, _ := filepath.Abs(outputDir)
+	absAppPath := filepath.Join(absOutputDir, appName+".app")
+
+	args := []string{"-target", "ios", "-o", absAppPath}
 
 	// Add deep linking schemes if specified
 	if opts.Schemes != "" {
 		args = append(args, "-schemes", opts.Schemes)
 	}
 
-	args = append(args, appDir)
+	args = append(args, ".") // Build current directory (we'll set Dir to appDir)
 	gogioCmd := exec.Command("gogio", args...)
+	gogioCmd.Dir = absAppDir // Run from app directory so its go.mod is used
+	// Set GOWORK=off to avoid workspace interference with example modules
+	gogioCmd.Env = append(os.Environ(), "GOWORK=off")
 	gogioCmd.Stdout = os.Stdout
 	gogioCmd.Stderr = os.Stderr
 
 	if err := gogioCmd.Run(); err != nil {
-		cache.RecordBuild(appName, platform, appDir, appPath, false)
+		cache.RecordBuild(appName, platform, appDir, absAppPath, false)
 		return fmt.Errorf("gogio build failed: %w", err)
 	}
 
 	// Record successful build
-	cache.RecordBuild(appName, platform, appDir, appPath, true)
+	cache.RecordBuild(appName, platform, appDir, absAppPath, true)
 
-	fmt.Printf("✓ Built %s for %s: %s\n", appName, target, appPath)
+	fmt.Printf("✓ Built %s for %s: %s\n", appName, target, absAppPath)
 	return nil
 }
 
@@ -420,26 +445,91 @@ func buildWindows(appDir, appName, outputDir, platform string, opts BuildOptions
 
 	// Set Windows environment
 	env := os.Environ()
+	env = append(env, "GOWORK=off") // Avoid workspace interference with example modules
 	env = append(env, "GOOS=windows")
-	env = append(env, "GOARCH=arm64")
+	env = append(env, "GOARCH=amd64") // Use amd64 for broader Windows compatibility
 
-	// Build with gogio
-	iconPath := filepath.Join(appDir, "icon-source.png")
-	gogioCmd := exec.Command("gogio", "-o", exePath, "-target", "windows", "-icon", iconPath, appDir)
+	// Build with gogio - run from app directory with GOWORK=off
+	// Convert paths to absolute since we're changing working directory
+	absAppDir, _ := filepath.Abs(appDir)
+	absOutputDir, _ := filepath.Abs(outputDir)
+	absExePath := filepath.Join(absOutputDir, appName+".exe")
+	iconPath := filepath.Join(absAppDir, "icon-source.png")
+
+	gogioCmd := exec.Command("gogio", "-o", absExePath, "-target", "windows", "-icon", iconPath, ".")
+	gogioCmd.Dir = absAppDir // Run from app directory so its go.mod is used
 	gogioCmd.Env = env
 	gogioCmd.Stdout = os.Stdout
 	gogioCmd.Stderr = os.Stderr
-	gogioCmd.Dir = appDir
 
 	if err := gogioCmd.Run(); err != nil {
-		cache.RecordBuild(appName, platform, appDir, exePath, false)
+		cache.RecordBuild(appName, platform, appDir, absExePath, false)
 		return fmt.Errorf("gogio build failed: %w", err)
 	}
 
 	// Record successful build
-	cache.RecordBuild(appName, platform, appDir, exePath, true)
+	cache.RecordBuild(appName, platform, appDir, absExePath, true)
 
-	fmt.Printf("✓ Built %s for Windows: %s\n", appName, exePath)
+	fmt.Printf("✓ Built %s for Windows: %s\n", appName, absExePath)
+	return nil
+}
+
+func buildLinux(appDir, appName, outputDir, platform string, opts BuildOptions) error {
+	binPath := filepath.Join(outputDir, appName)
+	cache := getBuildCache()
+
+	// Check if rebuild is needed
+	if !opts.Force {
+		needsRebuild, reason := cache.NeedsRebuild(appName, platform, appDir, binPath)
+
+		if opts.CheckOnly {
+			if needsRebuild {
+				fmt.Printf("Rebuild needed: %s\n", reason)
+				os.Exit(1)
+			} else {
+				fmt.Printf("Up to date: %s\n", binPath)
+				os.Exit(0)
+			}
+		}
+
+		if !needsRebuild {
+			fmt.Printf("✓ %s for %s is up-to-date (use --force to rebuild)\n", appName, platform)
+			return nil
+		}
+
+		fmt.Printf("Rebuilding: %s\n", reason)
+	}
+
+	fmt.Printf("Building %s for Linux...\n", appName)
+
+	// Create output directory
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return fmt.Errorf("failed to create output directory: %w", err)
+	}
+
+	// Build with go build (Linux doesn't need gogio for basic builds)
+	// For webview apps, gogio would be needed but Linux webview support is limited
+	env := os.Environ()
+	env = append(env, "GOWORK=off") // Avoid workspace interference with example modules
+	env = append(env, "GOOS=linux")
+	env = append(env, "GOARCH=amd64")
+	env = append(env, "CGO_ENABLED=1")
+
+	buildCmd := exec.Command("go", "build", "-o", binPath, ".")
+	buildCmd.Env = env
+	buildCmd.Dir = appDir
+	buildCmd.Stdout = os.Stdout
+	buildCmd.Stderr = os.Stderr
+
+	if err := buildCmd.Run(); err != nil {
+		cache.RecordBuild(appName, platform, appDir, binPath, false)
+		return fmt.Errorf("go build failed: %w", err)
+	}
+
+	// Record successful build
+	cache.RecordBuild(appName, platform, appDir, binPath, true)
+
+	fmt.Printf("✓ Built %s for Linux: %s\n", appName, binPath)
 	return nil
 }
 
