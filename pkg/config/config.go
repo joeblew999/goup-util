@@ -2,10 +2,12 @@ package config
 
 import (
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 )
 
 //go:embed sdk-android-list.json
@@ -47,6 +49,79 @@ type MetaFile struct {
 	Meta struct {
 		Setups map[string][]string `json:"setups"`
 	} `json:"meta"`
+}
+
+// AndroidBuildDefaults contains build configuration for Android
+type AndroidBuildDefaults struct {
+	MinSdk    int `json:"minSdk"`
+	TargetSdk int `json:"targetSdk"`
+}
+
+// IOSBuildDefaults contains build configuration for iOS
+type IOSBuildDefaults struct {
+	MinOS string `json:"minOS"`
+}
+
+// AndroidSdkFile defines the structure for android SDK list with meta
+type AndroidSdkFile struct {
+	SDKs map[string][]SdkItem `json:"sdks"`
+	Meta struct {
+		SchemaVersion string               `json:"schemaVersion"`
+		BuildDefaults AndroidBuildDefaults `json:"buildDefaults"`
+		Setups        map[string][]string  `json:"setups"`
+	} `json:"meta"`
+}
+
+// IOSSdkFile defines the structure for iOS SDK list with meta
+type IOSSdkFile struct {
+	SDKs map[string][]SdkItem `json:"sdks"`
+	Meta struct {
+		SchemaVersion string           `json:"schemaVersion"`
+		BuildDefaults IOSBuildDefaults `json:"buildDefaults"`
+		Setups        map[string][]string  `json:"setups"`
+	} `json:"meta"`
+}
+
+// GetAndroidBuildDefaults returns the Android build defaults from config
+func GetAndroidBuildDefaults() AndroidBuildDefaults {
+	var sdkFile AndroidSdkFile
+	if err := json.Unmarshal(AndroidSdkList, &sdkFile); err != nil {
+		// Return sensible defaults if parsing fails
+		return AndroidBuildDefaults{MinSdk: 21, TargetSdk: 34}
+	}
+	return sdkFile.Meta.BuildDefaults
+}
+
+// GetIOSBuildDefaults returns the iOS build defaults from config
+func GetIOSBuildDefaults() IOSBuildDefaults {
+	var sdkFile IOSSdkFile
+	if err := json.Unmarshal(IosSdkList, &sdkFile); err != nil {
+		// Return sensible defaults if parsing fails
+		return IOSBuildDefaults{MinOS: "15.0"}
+	}
+	return sdkFile.Meta.BuildDefaults
+}
+
+// GetAndroidMinSdk returns the Android minimum SDK as a string for gogio
+func GetAndroidMinSdk() string {
+	defaults := GetAndroidBuildDefaults()
+	return strconv.Itoa(defaults.MinSdk)
+}
+
+// GetIOSMinOS returns the iOS minimum OS version as a string for gogio
+func GetIOSMinOS() string {
+	defaults := GetIOSBuildDefaults()
+	if defaults.MinOS == "" {
+		return "15.0"
+	}
+	// Strip the minor version if present (e.g., "15.0" -> "15")
+	// gogio expects just the major version number
+	for i, c := range defaults.MinOS {
+		if c == '.' {
+			return defaults.MinOS[:i]
+		}
+	}
+	return defaults.MinOS
 }
 
 // GetCacheDir returns the OS-appropriate cache directory for goup-util

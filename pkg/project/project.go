@@ -175,20 +175,30 @@ func (p *GioProject) HasSourceIcon() bool {
 }
 
 // GetOutputPath returns the path for a specific platform build
+// Uses platform-specific subdirectories to avoid overwrites (e.g., .bin/macos/, .bin/ios/)
 func (p *GioProject) GetOutputPath(platform string) string {
 	paths := p.Paths()
+	platformDir := filepath.Join(paths.Output, platform)
 	switch platform {
 	case "macos":
-		return filepath.Join(paths.Output, p.Name+".app")
+		return filepath.Join(platformDir, p.Name+".app")
 	case "android":
-		return filepath.Join(paths.Output, p.Name+".apk")
+		return filepath.Join(platformDir, p.Name+".apk")
 	case "ios", "ios-simulator":
-		return filepath.Join(paths.Output, p.Name+".app")
+		return filepath.Join(platformDir, p.Name+".app")
 	case "windows":
-		return filepath.Join(paths.Output, p.Name+".exe")
+		return filepath.Join(platformDir, p.Name+".exe")
+	case "linux":
+		return filepath.Join(platformDir, p.Name)
 	default:
-		return filepath.Join(paths.Output, p.Name)
+		return filepath.Join(platformDir, p.Name)
 	}
+}
+
+// GetPlatformDir returns the platform-specific output directory (e.g., .bin/macos/)
+func (p *GioProject) GetPlatformDir(platform string) string {
+	paths := p.Paths()
+	return filepath.Join(paths.Output, platform)
 }
 
 // GenerateSourceIcon creates a source icon for the project if it doesn't exist

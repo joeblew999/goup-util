@@ -41,13 +41,13 @@ jobs:
 
       - name: Package macOS artifact
         run: |
-          cd examples/hybrid-dashboard/.bin
-          zip -r hybrid-dashboard-macos.zip *.app
+          cd examples/hybrid-dashboard/.bin/macos
+          zip -r ../hybrid-dashboard-macos.zip hybrid-dashboard.app
 
       - name: Package iOS artifact
         run: |
-          cd examples/hybrid-dashboard/.bin
-          zip -r hybrid-dashboard-ios.zip *.app || echo "iOS build may have different output"
+          cd examples/hybrid-dashboard/.bin/ios
+          zip -r ../hybrid-dashboard-ios.zip hybrid-dashboard.app
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
@@ -87,7 +87,7 @@ jobs:
         run: task build:hybrid:windows
 
       - name: Package Windows artifact
-        run: Compress-Archive -Path examples/hybrid-dashboard/.bin/*.exe -DestinationPath examples/hybrid-dashboard/.bin/hybrid-dashboard-windows.zip
+        run: Compress-Archive -Path examples/hybrid-dashboard/.bin/windows/*.exe -DestinationPath examples/hybrid-dashboard/.bin/hybrid-dashboard-windows.zip
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4

@@ -110,8 +110,12 @@
     ]
   },
   "meta": {
-    "schemaVersion": "1.1",
+    "schemaVersion": "1.2",
     "generatedAt": "2023-11-15T00:00:00Z",
+    "buildDefaults": {
+      "minSdk": 21,
+      "targetSdk": 34
+    },
     "setups": {
       "default-android": [
         "openjdk-17",

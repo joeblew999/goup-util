@@ -44,28 +44,24 @@ tasks:
   launch:hybrid:
     desc: Build and run hybrid-dashboard (macOS)
     cmds:
-      - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
-      - open {{.HYBRID_EXAMPLE}}/.bin/hybrid-dashboard.app
+      - "{{.GOUP}} run macos {{.HYBRID_EXAMPLE}}"
 
   launch:hybrid:deeplink:
     desc: Build and run hybrid-dashboard with deep linking (macOS)
     cmds:
-      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' macos {{.HYBRID_EXAMPLE}}"
-      - open {{.HYBRID_EXAMPLE}}/.bin/hybrid-dashboard.app
+      - "{{.GOUP}} run --schemes '{{.HYBRID_SCHEMES}}' macos {{.HYBRID_EXAMPLE}}"
       - echo ""
       - 'echo "Test with: open hybrid://dashboard/stats"'
 
   launch:webviewer:
     desc: Build and run webviewer example (macOS)
     cmds:
-      - "{{.GOUP}} build macos {{.WEBVIEWER_EXAMPLE}}"
-      - open {{.WEBVIEWER_EXAMPLE}}/.bin/gio-plugin-webviewer.app
+      - "{{.GOUP}} run macos {{.WEBVIEWER_EXAMPLE}}"
 
   launch:basic:
     desc: Build and run basic example (macOS)
     cmds:
-      - "{{.GOUP}} build macos {{.BASIC_EXAMPLE}}"
-      - open {{.BASIC_EXAMPLE}}/.bin/gio-basic.app
+      - "{{.GOUP}} run macos {{.BASIC_EXAMPLE}}"
 
   # ===========================================================================
   # DEEP LINKING TESTS

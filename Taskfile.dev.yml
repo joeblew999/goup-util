@@ -124,15 +124,11 @@ tasks:
   demo:
     desc: Quick demo - build and run hybrid-dashboard
     cmds:
-      - echo "Building hybrid-dashboard..."
-      - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
-      - echo "Launching..."
-      - open {{.HYBRID_EXAMPLE}}/.bin/hybrid-dashboard.app
+      - "{{.GOUP}} run macos {{.HYBRID_EXAMPLE}}"
 
   demo:deeplink:
     desc: Demo with deep linking
     cmds:
-      - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' macos {{.HYBRID_EXAMPLE}}"
-      - open {{.HYBRID_EXAMPLE}}/.bin/hybrid-dashboard.app
+      - "{{.GOUP}} run --schemes '{{.HYBRID_SCHEMES}}' macos {{.HYBRID_EXAMPLE}}"
       - sleep 2
       - 'open "hybrid://dashboard/stats"'
