@@ -1,0 +1,88 @@
+# Deploy Gio demo to GitHub Pages (WASM)
+#
+# NOTE: Currently DISABLED due to upstream issue in go-text/typesetting:
+# The fontscan package imports os/user which is not supported in WASM.
+# See: gioui.org/text -> github.com/go-text/typesetting/fontscan -> os/user
+# Track: https://github.com/go-text/typesetting/issues - needs WASM build tag support
+#
+name: Deploy Demo
+
+on:
+  # push:
+  #   branches: [main]
+  workflow_dispatch:  # Manual trigger only until os/user issue is fixed
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev xorg-dev
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+
+      - name: Clone .src dependencies
+        run: task src:update:gio-cmd
+
+      - name: Build WASM demo (basic example)
+        run: task build:web
+
+      - name: Create index page
+        run: |
+          mkdir -p _site
+          cp -r examples/gio-basic/.bin/web/* _site/
+          cat > _site/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>goup-util Demo - Gio Basic</title>
+              <style>
+                  body { margin: 0; background: #1a1a2e; }
+                  #giowindow { width: 100vw; height: 100vh; }
+              </style>
+          </head>
+          <body>
+              <script src="wasm.js"></script>
+          </body>
+          </html>
+          EOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '_site'
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

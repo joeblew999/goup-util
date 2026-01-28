@@ -73,6 +73,16 @@ tasks:
     cmds:
       - "{{.GOUP}} build --schemes '{{.HYBRID_SCHEMES}}' windows {{.HYBRID_EXAMPLE}}"
 
+  # NOTE: WASM builds currently fail - see web: task comment above
+  hybrid:web:
+    desc: Build hybrid-dashboard for web (WASM - BROKEN until upstream fix)
+    deps: [gogio]
+    dir: "{{.HYBRID_EXAMPLE}}"
+    cmds:
+      - mkdir -p .bin/web
+      - 'echo "WARNING: WASM builds currently broken due to os/user in go-text/typesetting/fontscan"'
+      - 'GOWORK=off ../../.src/gogio -target js -o .bin/web . || echo "WASM build failed"'
+
   hybrid:all:
     desc: Build hybrid-dashboard for all platforms
     cmds:
@@ -80,6 +90,7 @@ tasks:
       - task: hybrid:ios
       - task: hybrid:android
       - task: hybrid:windows
+      - task: hybrid:web
 
   hybrid:all:deeplink:
     desc: Build hybrid-dashboard for all platforms with deep linking
@@ -114,12 +125,36 @@ tasks:
       - "{{.GOUP}} build android {{.WEBVIEWER_EXAMPLE}}"
       - "{{.GOUP}} build android {{.HYBRID_EXAMPLE}}"
 
+  # Build gogio tool from .src (respects .src pattern)
+  gogio:
+    desc: Build gogio tool from .src/gio-cmd
+    dir: .src/gio-cmd
+    cmds:
+      - GOWORK=off go build -o ../gogio ./gogio
+    status:
+      - test -f .src/gogio
+    sources:
+      - .src/gio-cmd/gogio/**/*.go
+
+  # NOTE: WASM builds currently fail due to upstream issue in go-text/typesetting:
+  # The fontscan package imports os/user which is not supported in WASM.
+  # Track: https://github.com/go-text/typesetting - needs WASM build tag support
+  web:
+    desc: Build basic example for web (WASM - BROKEN until upstream fix)
+    deps: [gogio]
+    dir: "{{.BASIC_EXAMPLE}}"
+    cmds:
+      - mkdir -p .bin/web
+      - 'echo "WARNING: WASM builds currently broken due to os/user in go-text/typesetting/fontscan"'
+      - 'GOWORK=off ../../.src/gogio -target js -o .bin/web . || echo "WASM build failed"'
+
   all:
     desc: Build all examples for all platforms
     cmds:
       - task: macos
       - task: ios
       - task: android
+      - task: web
 
   # ===========================================================================
   # BUNDLING & PACKAGING
