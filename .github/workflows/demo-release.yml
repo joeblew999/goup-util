@@ -33,9 +33,10 @@ jobs:
         run: go install gioui.org/cmd/gogio@latest
 
       - name: Build hybrid-dashboard for macOS
+        working-directory: examples/hybrid-dashboard
         run: |
-          task build:hybrid:macos
-          cd examples/hybrid-dashboard/.bin
+          GOWORK=off gogio -target macos -o .bin/hybrid-dashboard.app .
+          cd .bin
           zip -r hybrid-dashboard-macos.zip hybrid-dashboard.app
 
       - name: Upload macOS artifact
@@ -66,9 +67,11 @@ jobs:
         run: go install gioui.org/cmd/gogio@latest
 
       - name: Build hybrid-dashboard for Windows
+        working-directory: examples/hybrid-dashboard
         run: |
-          task build:hybrid:windows
-          Compress-Archive -Path examples/hybrid-dashboard/.bin/*.exe -DestinationPath examples/hybrid-dashboard/.bin/hybrid-dashboard-windows.zip
+          $env:GOWORK="off"
+          gogio -target windows -o .bin/hybrid-dashboard.exe .
+          Compress-Archive -Path .bin/*.exe -DestinationPath .bin/hybrid-dashboard-windows.zip
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
@@ -89,7 +92,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-dev xorg-dev libwayland-dev libxkbcommon-dev
+          sudo apt-get install -y libgl1-mesa-dev xorg-dev libwayland-dev libxkbcommon-dev libvulkan-dev
 
       - name: Install Task
         uses: arduino/setup-task@v2
