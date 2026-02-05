@@ -78,6 +78,7 @@ func Build(opts BuildOptions) error {
 			"GOOS="+arch.GOOS,
 			"GOARCH="+arch.GOARCH,
 			"CGO_ENABLED=0", // Disable CGO for cross-platform builds
+			"GOWORK=off",    // Avoid workspace interference
 		)
 		buildCmd.Stdout = os.Stdout
 		buildCmd.Stderr = os.Stderr

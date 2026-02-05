@@ -404,3 +404,43 @@ Given you want **iOS App Store distribution**:
 | **Total** | | **~$13** |
 
 Want me to sketch out the Swift app architecture that bridges ESP32 WiFi ↔ your NATS backend?
+
+
+### WILD STUFF going on
+
+
+https://wildhornets.com/en/
+
+This is the heavy hitter of the volunteer-to-industry pipeline. Their site is where they showcase the Sting interceptors and the Queen Hornet (the "Mavic replacement" bomber).
+What to look for: Check their "Products" or "News" section for the 2026 updates on the Hornet Vision digital link system—it’s the tech they built specifically to compete with DJI’s O3 Air Unit but without the Chinese telemetry.
+Twitter/X: @wilendhornets (Highly active with footage of their drones taking down Shaheds).
+
+---
+
+https://firstcontact.biz/en/
+
+These guys have been at it since 2014, long before the current craze. They are a formal MilTech firm rather than just a volunteer group.
+The "Yautja" (Predator): On their projects page, look for the Yautja and Vidsich models. These are the hardened, non-Chinese quads designed for recon and strike in high-EW environments.
+Deep Tech: They also have some wild projects on their site like the VAL-1, an underwater kamikaze drone with an 800km range.
+
+---
+
+https://militarnyi.com/en/
+
+If you want to track the technical teardowns of these drones (comparing them to the Mav 3 you flew), this is the "Wall Street Journal" of Ukrainian defense tech. They do deep dives into the flight controllers and radio links of the First Contact and Wild Hornet fleets.
+
+A Pro Tip for the Recon Pilot: > If you're looking for the software side of how they replaced DJI Fly, keep an eye on "Mission Control" and "Delta"—the Ukrainian battlefield management systems that these drones now plug into directly.
+
+---
+
+https://github.com/o-gs/dji-firmware-tools
+
+PYTHON
+
+---
+
+https://github.com/ANG13T/DroneXtract
+
+GOLANG
+
+DroneXtract is a comprehensive digital forensics suite for DJI drones made with Golang. It can be used to analyze drone sensor values and telemetry data, visualize drone flight maps, audit for criminal activity, and extract pertinent data within multiple file formats.

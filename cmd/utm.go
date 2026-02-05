@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/joeblew999/goup-util/pkg/utm"
@@ -41,8 +42,9 @@ Examples:
 }
 
 var utmListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List all UTM virtual machines",
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List all UTM virtual machines",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return utm.RunUTMCtlInteractive("list")
 	},
@@ -196,6 +198,23 @@ var utmDoctorCmd = &cobra.Command{
 			fmt.Printf("    Run: goup-util utm install --force\n")
 		}
 
+		// Show driver capabilities
+		if status.Installed {
+			driver, err := utm.NewDriver()
+			if err == nil {
+				fmt.Println()
+				fmt.Println("Capabilities:")
+				capStr := func(supported bool) string {
+					if supported {
+						return "✓"
+					}
+					return "✗"
+				}
+				fmt.Printf("  %s Export/Import (UTM 4.6+)\n", capStr(driver.SupportsExport()))
+				fmt.Printf("  %s Guest Tools (UTM 4.6+)\n", capStr(driver.SupportsGuestTools()))
+			}
+		}
+
 		// Check directories
 		paths := utm.GetPaths()
 		fmt.Println()
@@ -217,9 +236,10 @@ func checkDir(name, path string) {
 }
 
 var utmStatusCmd = &cobra.Command{
-	Use:   "status <vm-name>",
-	Short: "Get status of a VM",
-	Args:  cobra.ExactArgs(1),
+	Use:     "status <vm-name>",
+	Aliases: []string{"st"},
+	Short:   "Get status of a VM",
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		status, err := utm.GetVMStatus(args[0])
 		if err != nil {
@@ -391,7 +411,203 @@ Examples:
 	},
 }
 
+var utmCreateCmd = &cobra.Command{
+	Use:   "create <vm-key>",
+	Short: "Create a VM from gallery template (automated)",
+	Long: `Create a new UTM virtual machine from the gallery template.
+
+This uses UTM's AppleScript API to fully automate VM creation including:
+  - Creating the VM with correct backend (QEMU/Apple)
+  - Configuring CPU, RAM, and UEFI settings
+  - Adding disk drive with appropriate size
+  - Attaching the boot ISO
+  - Configuring network interface
+
+AppleScript automation adapted from github.com/naveenrajm7/packer-plugin-utm
+
+Prerequisites:
+  1. UTM must be installed: goup-util utm install
+  2. ISO must be downloaded: goup-util utm install <vm-key>
+  3. UTM Automation permission granted in System Settings
+
+Examples:
+  # Create Debian ARM64 VM (automated)
+  goup-util utm create debian-13-arm
+
+  # Create with verbose output
+  goup-util utm create debian-13-arm --verbose
+
+  # Force recreate existing VM
+  goup-util utm create debian-13-arm --force
+
+  # Use manual mode (shows instructions instead of automating)
+  goup-util utm create debian-13-arm --manual`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		force, _ := cmd.Flags().GetBool("force")
+		manual, _ := cmd.Flags().GetBool("manual")
+		verbose, _ := cmd.Flags().GetBool("verbose")
+
+		opts := utm.CreateVMOptions{
+			Force:   force,
+			Manual:  manual,
+			Verbose: verbose,
+		}
+		return utm.CreateVM(args[0], opts)
+	},
+}
+
+var utmMigrateCmd = &cobra.Command{
+	Use:   "migrate",
+	Short: "Migrate UTM files from local to global location",
+	Long: `Migrate UTM.app and ISOs from local repo paths to global SDK location.
+
+This moves:
+  .bin/UTM.app     -> ~/goup-util-sdks/utm/UTM.app
+  .data/utm/iso/*  -> ~/goup-util-sdks/utm/iso/
+
+VMs and share directories remain local (project-specific).
+
+The migration is idempotent - running it multiple times is safe.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return utm.MigrateAll()
+	},
+}
+
+var utmExportCmd = &cobra.Command{
+	Use:   "export <vm-name> <output-path>",
+	Short: "Export a VM to a .utm file (UTM 4.6+)",
+	Long: `Export a virtual machine to a .utm file for sharing or backup.
+
+The exported file can be imported on another machine or used as a template.
+Requires UTM 4.6 or later.
+
+Examples:
+  # Export to current directory
+  goup-util utm export "Debian 13 Trixie" ./debian-template.utm
+
+  # Export to specific path
+  goup-util utm export "Windows 11" ~/vm-templates/windows-dev.utm`,
+	Args: cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		vmName := args[0]
+		outputPath := args[1]
+
+		fmt.Printf("Exporting VM '%s' to %s...\n", vmName, outputPath)
+
+		if err := utm.ExportVM(vmName, outputPath); err != nil {
+			return err
+		}
+
+		fmt.Printf("✓ VM exported successfully\n")
+		return nil
+	},
+}
+
+var utmImportCmd = &cobra.Command{
+	Use:   "import <utm-file>",
+	Short: "Import a VM from a .utm file (UTM 4.6+)",
+	Long: `Import a virtual machine from a .utm file.
+
+This creates a new VM from the exported template.
+Requires UTM 4.6 or later.
+
+Examples:
+  # Import a VM template
+  goup-util utm import ./debian-template.utm
+
+  # Import from absolute path
+  goup-util utm import ~/vm-templates/windows-dev.utm`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		utmPath := args[0]
+
+		fmt.Printf("Importing VM from %s...\n", utmPath)
+
+		vmID, err := utm.ImportVM(utmPath)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("✓ VM imported successfully (ID: %s)\n", vmID)
+		return nil
+	},
+}
+
+var utmPortForwardCmd = &cobra.Command{
+	Use:   "port-forward <vm-name> <guest-port> <host-port>",
+	Short: "Set up port forwarding for a VM",
+	Long: `Set up port forwarding from host to guest VM.
+
+This allows you to access services running in the VM from your host machine.
+The VM must have an emulated VLAN network interface configured.
+
+Note: Port forwarding only works with "Emulated VLAN" network mode, not "Shared Network".
+Use --setup-network to automatically configure the required network interfaces.
+
+Examples:
+  # Forward SSH (guest:22 -> host:2222)
+  goup-util utm port-forward "Debian 13 Trixie" 22 2222
+
+  # Forward with network setup (adds emulated VLAN if needed)
+  goup-util utm port-forward "Debian 13 Trixie" 22 2222 --setup-network
+
+  # Forward HTTP
+  goup-util utm port-forward "Windows 11" 80 8080`,
+	Args: cobra.ExactArgs(3),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		vmName := args[0]
+
+		guestPort, err := strconv.Atoi(args[1])
+		if err != nil {
+			return fmt.Errorf("invalid guest port: %s", args[1])
+		}
+
+		hostPort, err := strconv.Atoi(args[2])
+		if err != nil {
+			return fmt.Errorf("invalid host port: %s", args[2])
+		}
+
+		setupNetwork, _ := cmd.Flags().GetBool("setup-network")
+
+		// Setup network if requested
+		if setupNetwork {
+			fmt.Printf("Setting up emulated network for '%s'...\n", vmName)
+			if err := utm.SetupEmulatedNetwork(vmName); err != nil {
+				return fmt.Errorf("failed to setup network: %w", err)
+			}
+		}
+
+		protocol, _ := cmd.Flags().GetString("protocol")
+
+		rule := utm.PortForward{
+			Protocol:     protocol,
+			GuestAddress: "",
+			GuestPort:    guestPort,
+			HostAddress:  "127.0.0.1",
+			HostPort:     hostPort,
+		}
+
+		// Network index 1 is typically the emulated VLAN interface
+		networkIndex, _ := cmd.Flags().GetInt("network-index")
+
+		fmt.Printf("Adding port forward: localhost:%d -> %s:%d (%s)\n",
+			hostPort, vmName, guestPort, protocol)
+
+		if err := utm.AddPortForward(vmName, networkIndex, rule); err != nil {
+			return err
+		}
+
+		fmt.Printf("✓ Port forwarding configured\n")
+		fmt.Printf("  Access via: %s://localhost:%d\n", protocol, hostPort)
+		return nil
+	},
+}
+
 func init() {
+	// Command group for help organization
+	utmCmd.GroupID = "vm"
+
 	rootCmd.AddCommand(utmCmd)
 	utmCmd.AddCommand(utmListCmd)
 	utmCmd.AddCommand(utmGalleryCmd)
@@ -407,6 +623,16 @@ func init() {
 	utmCmd.AddCommand(utmTaskCmd)
 	utmCmd.AddCommand(utmPullCmd)
 	utmCmd.AddCommand(utmPushCmd)
+	utmCmd.AddCommand(utmMigrateCmd)
+	utmCmd.AddCommand(utmCreateCmd)
+	utmCmd.AddCommand(utmExportCmd)
+	utmCmd.AddCommand(utmImportCmd)
+	utmCmd.AddCommand(utmPortForwardCmd)
+
+	// Create flags
+	utmCreateCmd.Flags().Bool("force", false, "Force recreate VM if exists")
+	utmCreateCmd.Flags().Bool("manual", false, "Show manual instructions instead of automating")
+	utmCreateCmd.Flags().BoolP("verbose", "v", false, "Verbose output")
 
 	// Gallery filters
 	utmGalleryCmd.Flags().String("os", "", "Filter by OS (windows, linux)")
@@ -414,4 +640,9 @@ func init() {
 
 	// Install flags
 	utmInstallCmd.Flags().Bool("force", false, "Force reinstall/redownload")
+
+	// Port forward flags
+	utmPortForwardCmd.Flags().String("protocol", "tcp", "Protocol (tcp or udp)")
+	utmPortForwardCmd.Flags().Int("network-index", 1, "Network interface index (1 = emulated VLAN)")
+	utmPortForwardCmd.Flags().Bool("setup-network", false, "Setup emulated network if not configured")
 }

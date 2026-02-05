@@ -68,6 +68,9 @@ Examples:
 }
 
 func init() {
+	// Group for help organization
+	iconsCmd.GroupID = "tools"
+
 	rootCmd.AddCommand(iconsCmd)
 
 	// Add maintenance flags

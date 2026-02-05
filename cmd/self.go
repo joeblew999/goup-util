@@ -151,6 +151,9 @@ This is a TRIGGER ONLY - no local builds or tests. GitHub Actions does all the w
 }
 
 func init() {
+	// Group for help organization
+	selfCmd.GroupID = "self"
+
 	rootCmd.AddCommand(selfCmd)
 
 	// User commands

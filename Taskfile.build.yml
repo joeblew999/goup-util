@@ -81,7 +81,7 @@ tasks:
     cmds:
       - mkdir -p .bin/web
       - 'echo "WARNING: WASM builds currently broken due to os/user in go-text/typesetting/fontscan"'
-      - 'GOWORK=off ../../.src/gogio -target js -o .bin/web . || echo "WASM build failed"'
+      - '../../.src/gogio -target js -o .bin/web . || echo "WASM build failed"'
 
   hybrid:all:
     desc: Build hybrid-dashboard for all platforms
@@ -149,7 +149,7 @@ tasks:
     desc: Build gogio tool from .src/gio-cmd
     dir: .src/gio-cmd
     cmds:
-      - GOWORK=off go build -o ../gogio ./gogio
+      - go build -o ../gogio ./gogio
     status:
       - test -f .src/gogio
     sources:
@@ -165,7 +165,7 @@ tasks:
     cmds:
       - mkdir -p .bin/web
       - 'echo "WARNING: WASM builds currently broken due to os/user in go-text/typesetting/fontscan"'
-      - 'GOWORK=off ../../.src/gogio -target js -o .bin/web . || echo "WASM build failed"'
+      - '../../.src/gogio -target js -o .bin/web . || echo "WASM build failed"'
 
   all:
     desc: Build all examples for all platforms

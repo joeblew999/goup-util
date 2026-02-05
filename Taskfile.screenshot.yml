@@ -26,7 +26,8 @@ tasks:
     desc: Build goup-util with robotgo screenshot support (requires CGO)
     cmds:
       - echo "Building with robotgo support..."
-      - CGO_ENABLED=1 go build -tags screenshot -o goup-util .
+      - mkdir -p .bin
+      - CGO_ENABLED=1 go build -tags screenshot -o .bin/goup-util .
 
   # ===========================================================================
   # BASIC COMMANDS

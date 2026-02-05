@@ -3,19 +3,21 @@
 // Architecture:
 //   - This package handles VM configuration, paths, and gallery management
 //   - cmd/utm.go provides the CLI interface using this package
-//   - Taskfile.utm.yml handles environment setup (downloading UTM app, ISOs)
 //
-// Paths (all local to project):
-//   - .bin/UTM.app       - UTM application
-//   - .data/utm/vms/     - Virtual machine files (.utm)
-//   - .data/utm/iso/     - ISO images for VM creation
-//   - .data/utm/share/   - Shared folder for file transfer
+// Paths:
+//   Global (shared across projects - ~/goup-util-sdks/utm/):
+//   - ~/goup-util-sdks/utm/UTM.app  - UTM application
+//   - ~/goup-util-sdks/utm/iso/     - ISO images for VM creation
+//   - ~/goup-util-sdks/utm/vms/     - Virtual machine files (.utm)
+//   - ~/goup-util-sdks/utm/share/   - Shared folder for host<->VM file transfer
 package utm
 
 import (
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/joeblew999/goup-util/pkg/config"
 )
 
 // Paths holds all UTM-related paths
@@ -36,8 +38,23 @@ type Paths struct {
 	Share string
 }
 
-// DefaultPaths returns the default UTM paths relative to project root
+// DefaultPaths returns the default UTM paths
+// All paths are global (shared across projects)
 func DefaultPaths() Paths {
+	sdkDir := config.GetSDKDir() // ~/goup-util-sdks
+
+	return Paths{
+		// Global paths (shared across projects)
+		Root:  filepath.Join(sdkDir, "utm"),
+		App:   filepath.Join(sdkDir, "utm", "UTM.app"),
+		ISO:   filepath.Join(sdkDir, "utm", "iso"),
+		VMs:   filepath.Join(sdkDir, "utm", "vms"),
+		Share: filepath.Join(sdkDir, "utm", "share"),
+	}
+}
+
+// LegacyPaths returns the old local paths (for migration)
+func LegacyPaths() Paths {
 	return Paths{
 		Root:  ".data/utm",
 		App:   ".bin/UTM.app",
@@ -60,11 +77,14 @@ func GetUTMCtlPath() string {
 	}
 
 	paths := GetPaths()
+	legacy := LegacyPaths()
 
 	// Check common locations in order of preference
 	locations := []string{
-		// Local install (preferred)
+		// Global install (preferred - new location)
 		filepath.Join(paths.App, "Contents/MacOS/utmctl"),
+		// Legacy local install (for migration)
+		filepath.Join(legacy.App, "Contents/MacOS/utmctl"),
 		// Homebrew
 		"/opt/homebrew/bin/utmctl",
 		"/usr/local/bin/utmctl",
@@ -106,15 +126,15 @@ func GetISOPath(isoName string) string {
 	return filepath.Join(paths.ISO, isoName)
 }
 
-// EnsureDirectories creates all required UTM directories
+// EnsureDirectories creates all required UTM directories (all global)
 func EnsureDirectories() error {
 	paths := GetPaths()
 
 	dirs := []string{
-		paths.Root,
-		paths.VMs,
-		paths.ISO,
-		paths.Share,
+		paths.Root,  // ~/goup-util-sdks/utm
+		paths.ISO,   // ~/goup-util-sdks/utm/iso
+		paths.VMs,   // ~/goup-util-sdks/utm/vms
+		paths.Share, // ~/goup-util-sdks/utm/share
 	}
 
 	for _, dir := range dirs {
@@ -125,3 +145,24 @@ func EnsureDirectories() error {
 
 	return nil
 }
+
+// EnsureGlobalDirectories creates all UTM directories (all are global now)
+func EnsureGlobalDirectories() error {
+	paths := GetPaths()
+
+	dirs := []string{
+		paths.Root,  // ~/goup-util-sdks/utm
+		paths.ISO,   // ~/goup-util-sdks/utm/iso
+		paths.VMs,   // ~/goup-util-sdks/utm/vms
+		paths.Share, // ~/goup-util-sdks/utm/share
+	}
+
+	for _, dir := range dirs {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+

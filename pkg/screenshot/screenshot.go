@@ -278,3 +278,64 @@ func WaitForWindow(pid int, timeout time.Duration) error {
 
 	return fmt.Errorf("window for PID %d did not appear within %v", pid, timeout)
 }
+
+// FindWindowByTitle searches for a window by partial title match and returns its ID
+func FindWindowByTitle(partialTitle string) (int, error) {
+	ids, err := robotgo.FindIds(partialTitle)
+	if err != nil {
+		return 0, fmt.Errorf("failed to find windows: %w", err)
+	}
+	if len(ids) == 0 {
+		return 0, fmt.Errorf("no window found matching '%s'", partialTitle)
+	}
+	return ids[0], nil
+}
+
+// CaptureWindowByTitle captures a window found by partial title match
+func CaptureWindowByTitle(partialTitle string, output string, quality int) error {
+	// Find window by title
+	winID, err := FindWindowByTitle(partialTitle)
+	if err != nil {
+		return err
+	}
+
+	// Activate window first
+	if err := robotgo.ActivePid(winID); err != nil {
+		// Non-fatal - window might still be capturable
+		fmt.Printf("Warning: could not activate window: %v\n", err)
+	}
+
+	// Give it time to come to front
+	robotgo.MilliSleep(200)
+
+	// Try GetBounds with window ID
+	x, y, w, h := robotgo.GetBounds(winID)
+
+	if w <= 0 || h <= 0 {
+		return fmt.Errorf("invalid window bounds for '%s' (ID %d): %dx%d at (%d,%d)", partialTitle, winID, w, h, x, y)
+	}
+
+	// Capture that region
+	return CaptureRegion(x, y, w, h, output, quality)
+}
+
+// WaitForWindowByTitle waits for a window with partial title match
+func WaitForWindowByTitle(partialTitle string, timeout time.Duration) (int, error) {
+	start := time.Now()
+
+	for time.Since(start) < timeout {
+		ids, err := robotgo.FindIds(partialTitle)
+		if err == nil && len(ids) > 0 {
+			// Found a window, check if it has valid bounds
+			winID := ids[0]
+			_, _, w, h := robotgo.GetBounds(winID)
+			if w > 0 && h > 0 {
+				return winID, nil
+			}
+			// Window found but no valid bounds yet - keep waiting
+		}
+		robotgo.MilliSleep(100)
+	}
+
+	return 0, fmt.Errorf("window matching '%s' did not appear within %v", partialTitle, timeout)
+}

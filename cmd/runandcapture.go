@@ -7,11 +7,47 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/joeblew999/goup-util/pkg/screenshot"
 	"github.com/spf13/cobra"
 )
+
+// generateTitleVariations creates different possible window title variations from a directory name
+// Example: "hybrid-dashboard" -> ["hybrid", "dashboard", "Hybrid", "Dashboard", "Hybrid Dashboard"]
+func generateTitleVariations(dirName string) []string {
+	variations := []string{}
+
+	// Split by hyphen and underscore
+	parts := strings.FieldsFunc(dirName, func(r rune) bool {
+		return r == '-' || r == '_'
+	})
+
+	// Add individual parts (lowercase)
+	for _, part := range parts {
+		if len(part) > 2 { // Skip very short parts
+			variations = append(variations, part)
+		}
+	}
+
+	// Add title-cased version (e.g., "Hybrid Dashboard")
+	titleParts := make([]string, len(parts))
+	for i, part := range parts {
+		if len(part) > 0 {
+			titleParts[i] = strings.ToUpper(part[:1]) + strings.ToLower(part[1:])
+		}
+	}
+	titleCase := strings.Join(titleParts, " ")
+	if titleCase != "" {
+		variations = append(variations, titleCase)
+	}
+
+	// Add the original directory name as last resort
+	variations = append(variations, dirName)
+
+	return variations
+}
 
 var runAndCaptureCmd = &cobra.Command{
 	Use:   "run-and-capture <app-dir> <output-file>",
@@ -79,6 +115,7 @@ Examples:
 		binaryPath := filepath.Join(absAppDir, "app-temp")
 		cmdBuild := exec.Command("go", "build", "-o", binaryPath, ".")
 		cmdBuild.Dir = absAppDir
+		cmdBuild.Env = append(os.Environ(), "GOWORK=off") // Avoid workspace interference
 		cmdBuild.Stdout = os.Stdout
 		cmdBuild.Stderr = os.Stderr
 
@@ -110,13 +147,47 @@ Examples:
 			os.Remove(binaryPath)
 		}()
 
-		// Wait for window to appear
+		// Wait for window to appear - try multiple detection methods
 		fmt.Printf("Waiting for app to initialize...\n")
 		timeout := time.Duration(waitTime) * time.Millisecond
+
+		// Method 1: Try PID-based detection with robotgo (works for some apps)
 		err = screenshot.WaitForWindow(pid, timeout)
+		windowDetected := err == nil
+		useCoreGraphics := false
+
+		// Method 2: Try CoreGraphics-based detection on macOS (works for Gio apps!)
+		if !windowDetected {
+			fmt.Printf("⚠ PID-based window detection failed, trying CoreGraphics...\n")
+			err = screenshot.WaitForCGWindow(pid, timeout)
+			if err == nil {
+				windowDetected = true
+				useCoreGraphics = true
+				fmt.Printf("✓ Found window via CoreGraphics\n")
+			}
+		}
+
+		// Method 3: Try title-based detection if CoreGraphics also failed
+		// Extract app name from directory for title search
+		appName := filepath.Base(absAppDir)
+		var windowID int
+		if !windowDetected {
+			fmt.Printf("⚠ CoreGraphics detection failed, trying title search...\n")
+			// Try variations of the app name for title matching
+			titleVariations := generateTitleVariations(appName)
+			for _, titleGuess := range titleVariations {
+				windowID, err = screenshot.WaitForWindowByTitle(titleGuess, 2*time.Second)
+				if err == nil {
+					windowDetected = true
+					fmt.Printf("✓ Found window by title search '%s' (ID: %d)\n", titleGuess, windowID)
+					break
+				}
+			}
+		}
+		_ = windowID // May be used later for title-based capture
 
 		// If window detection fails, fall back to full screen capture
-		if err != nil {
+		if !windowDetected {
 			fmt.Printf("⚠ Window detection failed (robotgo may not support Gio windows on this platform)\n")
 			fmt.Printf("⚠ Falling back to full screen capture\n")
 			fmt.Printf("⚠ Please manually position the app window before screenshot\n")
@@ -143,10 +214,16 @@ Examples:
 				fmt.Printf("      Will capture window at its current size\n")
 			}
 
-			// Capture screenshot by PID
+			// Capture screenshot using the method that worked
 			fmt.Printf("Capturing window screenshot...\n")
-			if err := screenshot.CaptureWindowByPID(pid, absOutput, quality); err != nil {
-				return fmt.Errorf("failed to capture screenshot: %w", err)
+			var captureErr error
+			if useCoreGraphics {
+				captureErr = screenshot.CaptureWindowByCGBounds(pid, absOutput, quality)
+			} else {
+				captureErr = screenshot.CaptureWindowByPID(pid, absOutput, quality)
+			}
+			if captureErr != nil {
+				return fmt.Errorf("failed to capture screenshot: %w", captureErr)
 			}
 		}
 

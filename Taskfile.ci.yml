@@ -137,3 +137,68 @@ tasks:
     desc: Test self build locally
     cmds:
       - "{{.GOUP}} self test"
+
+  # ===========================================================================
+  # GENERATE TASKS
+  # ===========================================================================
+
+  generate:
+    desc: Run all generate tasks (docs, etc.)
+    cmds:
+      - echo "Running all generate tasks..."
+      - task: generate:docs
+      - echo "All generate tasks complete!"
+
+  generate:docs:
+    desc: Generate CLI documentation
+    cmds:
+      - echo "Generating CLI documentation..."
+      - "{{.GOUP}} docs docs/cli"
+      - echo "✓ CLI docs generated in docs/cli/"
+
+  generate:all:
+    desc: Generate everything (alias for generate)
+    cmds:
+      - task: generate
+
+  # ===========================================================================
+  # PREPARE (BUILD + GENERATE + TEST)
+  # ===========================================================================
+
+  prepare:
+    desc: Prepare release (build + generate + test) - like xplat pattern
+    cmds:
+      - echo "=== Prepare Release ==="
+      - echo ""
+      - echo "1. Running tests..."
+      - go test ./...
+      - echo ""
+      - echo "2. Building examples..."
+      - task: build
+      - echo ""
+      - echo "3. Generating documentation..."
+      - task: generate
+      - echo ""
+      - echo "4. Checking git status..."
+      - git status --short
+      - echo ""
+      - echo "=== Prepare complete! Ready for release ==="
+
+  prepare:full:
+    desc: Full prepare with force rebuild
+    cmds:
+      - echo "=== Full Prepare (Force Rebuild) ==="
+      - echo ""
+      - echo "1. Running tests..."
+      - go test ./...
+      - echo ""
+      - echo "2. Force rebuilding examples..."
+      - task: build:force
+      - echo ""
+      - echo "3. Generating documentation..."
+      - task: generate
+      - echo ""
+      - echo "4. Checking git status..."
+      - git status --short
+      - echo ""
+      - echo "=== Full prepare complete! ==="

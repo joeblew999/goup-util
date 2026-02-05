@@ -262,5 +262,8 @@ func init() {
 	bundleCmd.Flags().String("publisher", "", "Publisher for Windows MSIX (e.g., CN=MyCompany)")
 	bundleCmd.Flags().Bool("create-msix", false, "Create MSIX package (Windows-only, requires msix toolkit)")
 
+	// Group for help organization
+	bundleCmd.GroupID = "build"
+
 	rootCmd.AddCommand(bundleCmd)
 }

@@ -8,9 +8,10 @@
 #   build:*        Build examples for platforms
 #   screenshot:*   Screenshot capture (requires CGO)
 #   ci:*           CI/CD and release
-#   utm:*          UTM VM automation
 #   src:*          .src dependency management
 #   docs:*         Documentation
+#
+# UTM: Use 'goup-util utm' CLI commands instead of Taskfile
 #
 # Quick start:
 #   task dev:demo     Build and run hybrid-dashboard
@@ -28,6 +29,10 @@ vars:
   HYBRID_EXAMPLE: examples/hybrid-dashboard
   HYBRID_SCHEMES: "hybrid,hybriddashboard"
 
+# Global environment - avoid go.work interference
+env:
+  GOWORK: "off"
+
 includes:
   dev:
     taskfile: ./Taskfile.dev.yml
@@ -39,9 +44,6 @@ includes:
     taskfile: ./Taskfile.screenshot.yml
   ci:
     taskfile: ./Taskfile.ci.yml
-  utm:
-    taskfile: ./Taskfile.utm.yml
-    optional: true
   src:
     taskfile: .src/Taskfile.yml
     dir: .src
@@ -64,7 +66,6 @@ tasks:
         echo "  build:*        Build examples for platforms"
         echo "  screenshot:*   Screenshots (capture, appstore)"
         echo "  ci:*           CI/CD (build, release)"
-        echo "  utm:*          UTM VMs (start, stop, exec)"
         echo "  src:*          Dependencies (.src management)"
         echo "  docs:*         Documentation"
         echo ""
@@ -72,5 +73,7 @@ tasks:
         echo "  task dev:demo          Build & run hybrid-dashboard"
         echo "  task dev:build         Build goup-util"
         echo "  task run:hybrid        Run example directly"
+        echo ""
+        echo "UTM: Use 'goup-util utm' CLI commands"
         echo ""
         echo "Run 'task --list' for all tasks"

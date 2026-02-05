@@ -15,7 +15,8 @@ tasks:
   build:
     desc: Build goup-util binary for development
     cmds:
-      - go build -o goup-util .
+      - mkdir -p .bin
+      - go build -o .bin/goup-util .
 
   test:
     desc: Run tests
@@ -109,6 +110,7 @@ tasks:
     desc: Clean build artifacts
     cmds:
       - task examples:clean
+      - rm -rf .bin/goup-util
       - rm -f goup-util goup-util-*
 
   clean:all:
@@ -132,3 +134,137 @@ tasks:
       - "{{.GOUP}} run --schemes '{{.HYBRID_SCHEMES}}' macos {{.HYBRID_EXAMPLE}}"
       - sleep 2
       - 'open "hybrid://dashboard/stats"'
+
+  # ===========================================================================
+  # DOCUMENTATION
+  # ===========================================================================
+
+  docs:generate:
+    desc: Generate CLI documentation from Cobra commands
+    cmds:
+      - "{{.GOUP}} generate all"
+      - echo "Documentation generated in docs/cli/"
+
+  docs:readme:
+    desc: Generate CLI reference summary for README
+    cmds:
+      - echo "Generating CLI reference for README..."
+      - |
+        cat > docs/CLI-REFERENCE.md << 'EOF'
+        # CLI Reference
+
+        This is an auto-generated summary of goup-util commands.
+        For detailed documentation, see [docs/cli/](cli/).
+
+        ## Commands
+
+        | Command | Description |
+        |---------|-------------|
+        EOF
+      - |
+        # Extract command descriptions from generated docs
+        for f in docs/cli/goup-util_*.md; do
+          name=$(basename "$f" .md | sed 's/goup-util_//' | sed 's/_/ /g')
+          desc=$(grep -A1 "^## " "$f" | grep -v "^##" | head -1 | sed 's/^[[:space:]]*//')
+          [ -n "$desc" ] && echo "| \`goup-util $name\` | $desc |" >> docs/CLI-REFERENCE.md
+        done
+      - echo "" >> docs/CLI-REFERENCE.md
+      - echo "*Generated on $(date -u '+%Y-%m-%d')*" >> docs/CLI-REFERENCE.md
+      - echo "CLI reference generated at docs/CLI-REFERENCE.md"
+
+  # ===========================================================================
+  # UTM / WINDOWS TESTING
+  # ===========================================================================
+
+  utm:doctor:
+    desc: Check UTM installation status
+    cmds:
+      - "{{.GOUP}} utm doctor"
+
+  utm:list:
+    desc: List available UTM VMs
+    cmds:
+      - "{{.GOUP}} utm list"
+
+  utm:gallery:
+    desc: Show available VM templates
+    cmds:
+      - "{{.GOUP}} utm gallery"
+
+  utm:windows:create:
+    desc: Create Windows 11 ARM VM from template
+    cmds:
+      - "{{.GOUP}} utm create windows-11-arm"
+
+  utm:windows:start:
+    desc: Start Windows 11 VM
+    cmds:
+      - "{{.GOUP}} utm start 'Windows 11'"
+
+  utm:windows:stop:
+    desc: Stop Windows 11 VM
+    cmds:
+      - "{{.GOUP}} utm stop 'Windows 11'"
+
+  utm:windows:status:
+    desc: Check Windows 11 VM status
+    cmds:
+      - "{{.GOUP}} utm status 'Windows 11'"
+
+  utm:windows:setup:
+    desc: Install toolchain in Windows VM (git, go, task via winget)
+    cmds:
+      - echo "Installing toolchain in Windows VM..."
+      - "{{.GOUP}} utm exec 'Windows 11' -- self setup"
+      - echo "Toolchain installed!"
+
+  utm:windows:push:
+    desc: Push goup-util binary to Windows VM
+    vars:
+      BINARY: goup-util-windows-arm64.exe
+    cmds:
+      - echo "Building Windows ARM64 binary..."
+      - GOOS=windows GOARCH=arm64 go build -o {{.BINARY}} .
+      - echo "Pushing to Windows VM..."
+      - "{{.GOUP}} utm push 'Windows 11' ./{{.BINARY}} 'C:/Users/User/goup-util.exe'"
+      - rm {{.BINARY}}
+      - echo "Binary pushed to C:/Users/User/goup-util.exe"
+
+  utm:windows:screenshot:info:
+    desc: Test screenshot info in Windows VM
+    cmds:
+      - "{{.GOUP}} utm exec 'Windows 11' -- screenshot --info"
+
+  utm:windows:screenshot:test:
+    desc: Full screenshot test in Windows VM
+    cmds:
+      - echo "Testing screenshot capture in Windows VM..."
+      - "{{.GOUP}} utm exec 'Windows 11' -- screenshot test-windows.png"
+      - echo "Pulling screenshot..."
+      - "{{.GOUP}} utm pull 'Windows 11' test-windows.png ./docs/screenshots/"
+      - echo "Screenshot saved to docs/screenshots/test-windows.png"
+
+  utm:windows:build:hybrid:
+    desc: Build hybrid-dashboard in Windows VM
+    cmds:
+      - echo "Building hybrid-dashboard in Windows VM..."
+      - "{{.GOUP}} utm exec 'Windows 11' -- build windows examples/hybrid-dashboard"
+
+  utm:windows:test:all:
+    desc: Full Windows test suite via UTM
+    cmds:
+      - echo "=== Full Windows Test Suite ==="
+      - echo ""
+      - echo "1. Checking VM status..."
+      - task dev:utm:windows:status
+      - echo ""
+      - echo "2. Testing screenshot info..."
+      - task dev:utm:windows:screenshot:info
+      - echo ""
+      - echo "3. Building hybrid-dashboard..."
+      - task dev:utm:windows:build:hybrid
+      - echo ""
+      - echo "4. Taking screenshot..."
+      - task dev:utm:windows:screenshot:test
+      - echo ""
+      - echo "=== Windows tests complete! ==="

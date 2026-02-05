@@ -36,6 +36,11 @@ func init() {
 	listCmd.Flags().StringVarP(&categoryFilter, "category", "c", "", "Filter by category (e.g., openjdk, android, build-tools)")
 	listCmd.Flags().BoolVar(&compactOutput, "compact", false, "Show compact output without categories")
 	listCmd.Flags().BoolVar(&cachedOnly, "cached", false, "Show only cached SDKs from download cache")
+
+	// Alias and group
+	listCmd.Aliases = []string{"ls"}
+	listCmd.GroupID = "sdk"
+
 	rootCmd.AddCommand(listCmd)
 }
 

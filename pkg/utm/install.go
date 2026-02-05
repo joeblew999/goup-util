@@ -74,25 +74,34 @@ func InstallUTM(force bool) error {
 		return fmt.Errorf("failed to load gallery: %w", err)
 	}
 
+	utmApp := gallery.Meta.UTMApp
 	paths := GetPaths()
 	appPath := paths.App
-	utmctlPath := filepath.Join(appPath, "Contents/MacOS/utmctl")
 
-	// Check if already installed
+	// Check cache first (idempotent)
+	if !force && IsUTMAppCached(utmApp.Version, utmApp.Checksum) {
+		fmt.Printf("UTM v%s is already installed and cached at %s\n", utmApp.Version, appPath)
+		return nil
+	}
+
+	// Check if already installed (but not in cache - add to cache)
+	utmctlPath := filepath.Join(appPath, "Contents/MacOS/utmctl")
 	if !force {
 		if _, err := os.Stat(utmctlPath); err == nil {
 			fmt.Printf("UTM is already installed at %s\n", appPath)
-			fmt.Println("Use --force to reinstall")
+			// Add to cache for future idempotency
+			if err := AddUTMAppToCache(utmApp.Version, utmApp.Checksum); err != nil {
+				fmt.Printf("Warning: failed to update cache: %v\n", err)
+			}
 			return nil
 		}
 	}
 
-	utmApp := gallery.Meta.UTMApp
 	fmt.Printf("Installing UTM v%s...\n", utmApp.Version)
 
-	// Ensure parent directory exists
-	if err := os.MkdirAll(filepath.Dir(appPath), 0755); err != nil {
-		return fmt.Errorf("failed to create directory: %w", err)
+	// Ensure global directories exist
+	if err := EnsureGlobalDirectories(); err != nil {
+		return fmt.Errorf("failed to create directories: %w", err)
 	}
 
 	// Download DMG
@@ -123,6 +132,11 @@ func InstallUTM(force bool) error {
 	srcApp := filepath.Join(mountPoint, "UTM.app")
 	if err := copyDir(srcApp, appPath); err != nil {
 		return fmt.Errorf("failed to copy UTM.app: %w", err)
+	}
+
+	// Add to cache for idempotency
+	if err := AddUTMAppToCache(utmApp.Version, utmApp.Checksum); err != nil {
+		fmt.Printf("Warning: failed to update cache: %v\n", err)
 	}
 
 	fmt.Printf("✓ UTM v%s installed successfully\n", utmApp.Version)
@@ -207,18 +221,27 @@ func DownloadISO(vmKey string, force bool) error {
 	paths := GetPaths()
 	isoPath := filepath.Join(paths.ISO, vm.ISO.Filename)
 
-	// Check if already downloaded
+	// Check cache first (idempotent)
+	if !force && IsISOCached(vmKey) {
+		fmt.Printf("ISO already cached at %s\n", isoPath)
+		return nil
+	}
+
+	// Check if already downloaded (but not in cache - add to cache)
 	if !force {
 		if _, err := os.Stat(isoPath); err == nil {
 			fmt.Printf("ISO already exists at %s\n", isoPath)
-			fmt.Println("Use --force to re-download")
+			// Add to cache for future idempotency
+			if err := AddISOToCache(vmKey); err != nil {
+				fmt.Printf("Warning: failed to update cache: %v\n", err)
+			}
 			return nil
 		}
 	}
 
-	// Ensure ISO directory exists
-	if err := os.MkdirAll(paths.ISO, 0755); err != nil {
-		return fmt.Errorf("failed to create ISO directory: %w", err)
+	// Ensure global ISO directory exists
+	if err := EnsureGlobalDirectories(); err != nil {
+		return fmt.Errorf("failed to create directories: %w", err)
 	}
 
 	sizeGB := float64(vm.ISO.Size) / 1024 / 1024 / 1024
@@ -227,6 +250,11 @@ func DownloadISO(vmKey string, force bool) error {
 
 	if err := downloadFile(vm.ISO.URL, isoPath); err != nil {
 		return fmt.Errorf("failed to download ISO: %w", err)
+	}
+
+	// Add to cache for idempotency
+	if err := AddISOToCache(vmKey); err != nil {
+		fmt.Printf("Warning: failed to update cache: %v\n", err)
 	}
 
 	fmt.Printf("✓ ISO downloaded to %s\n", isoPath)
