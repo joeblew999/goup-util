@@ -652,6 +652,74 @@ Examples:
 	},
 }
 
+var utmBuildCmd = &cobra.Command{
+	Use:   "build <vm-name> [platform] <app-directory>",
+	Short: "Build an app inside the VM natively",
+	Long: `Build a Gio application inside the VM using the VM's native toolchain.
+
+This is different from 'utm run' which cross-compiles on macOS. This command
+executes the build inside the VM, producing a native binary. Useful when
+cross-compilation isn't sufficient (e.g., CGO dependencies, native libraries).
+
+Requires goup-util and Go to be installed in the VM.
+Use 'goup-util utm exec <vm> -- self setup' to install the toolchain.
+
+Examples:
+  # Build hybrid-dashboard for Windows inside the VM
+  goup-util utm build "Windows 11" windows examples/hybrid-dashboard
+
+  # Build with platform auto-detected from VM OS
+  goup-util utm build "Windows 11" examples/hybrid-dashboard`,
+	Args: cobra.RangeArgs(2, 3),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		vmName := args[0]
+		var platform, appDir string
+
+		if len(args) == 3 {
+			platform = args[1]
+			appDir = args[2]
+		} else {
+			// Auto-detect platform: assume Windows for now
+			platform = "windows"
+			appDir = args[1]
+		}
+
+		// Build the goup-util command to run inside the VM
+		buildCmd := fmt.Sprintf("goup-util build %s %s", platform, appDir)
+
+		fmt.Printf("Building %s for %s in VM '%s'...\n", appDir, platform, vmName)
+		if err := utm.ExecInVM(vmName, buildCmd); err != nil {
+			return fmt.Errorf("build in VM failed: %w", err)
+		}
+
+		fmt.Printf("✓ Built %s for %s in VM '%s'\n", appDir, platform, vmName)
+
+		// Optionally pull the built binary back to host
+		pull, _ := cmd.Flags().GetBool("pull")
+		if pull {
+			appName := filepath.Base(appDir)
+			var remoteBinary, localBinary string
+
+			switch platform {
+			case "windows":
+				remoteBinary = fmt.Sprintf("%s\\.bin\\windows\\%s.exe", appDir, appName)
+				localBinary = filepath.Join(appDir, ".bin", "windows", appName+".exe")
+			default:
+				remoteBinary = fmt.Sprintf("%s/.bin/%s/%s", appDir, platform, appName)
+				localBinary = filepath.Join(appDir, ".bin", platform, appName)
+			}
+
+			fmt.Printf("Pulling %s to %s...\n", remoteBinary, localBinary)
+			if err := utm.PullFile(vmName, remoteBinary, localBinary); err != nil {
+				return fmt.Errorf("failed to pull binary: %w", err)
+			}
+			fmt.Printf("✓ Binary pulled to %s\n", localBinary)
+		}
+
+		return nil
+	},
+}
+
 var utmPortForwardCmd = &cobra.Command{
 	Use:   "port-forward <vm-name> <guest-port> <host-port>",
 	Short: "Set up port forwarding for a VM",
@@ -748,6 +816,10 @@ func init() {
 	utmCmd.AddCommand(utmPortForwardCmd)
 	utmCmd.AddCommand(utmScreenshotCmd)
 	utmCmd.AddCommand(utmRunCmd)
+	utmCmd.AddCommand(utmBuildCmd)
+
+	// Build flags
+	utmBuildCmd.Flags().Bool("pull", false, "Pull built binary back to host after building")
 
 	// Create flags
 	utmCreateCmd.Flags().Bool("force", false, "Force recreate VM if exists")

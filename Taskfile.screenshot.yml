@@ -239,7 +239,8 @@ tasks:
       - task: ios:all
       - echo ""
       - echo "=== Windows VM Screenshots ==="
-      - "task: windows:all || echo 'Windows skipped (no UTM VM running)'"
+      - task: windows:all
+        ignore_error: true
       - echo ""
       - echo "All platform screenshots saved to {{.SCREENSHOT_DIR}}/"
 
@@ -390,13 +391,16 @@ tasks:
       - task: example:all
       - echo ""
       - echo "=== 2/4 Android Screenshots (adb) ==="
-      - "task: android:all || echo 'Android skipped (no device connected)'"
+      - task: android:all
+        ignore_error: true
       - echo ""
       - echo "=== 3/4 iOS Simulator Screenshots (simctl) ==="
-      - "task: ios:all || echo 'iOS skipped (no simulator booted)'"
+      - task: ios:all
+        ignore_error: true
       - echo ""
       - echo "=== 4/4 Windows VM Screenshots (UTM) ==="
-      - "task: windows:all || echo 'Windows skipped (no UTM VM running)'"
+      - task: windows:all
+        ignore_error: true
       - echo ""
       - echo "All screenshots saved to {{.SCREENSHOT_DIR}}/"
       - ls -la {{.SCREENSHOT_DIR}}/

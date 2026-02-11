@@ -45,9 +45,9 @@ tasks:
     desc: Initial setup for development
     cmds:
       - echo "Setting up goup-util development environment..."
-      - task dev:workspace:init
+      - task: workspace:init
       - echo "Installing Android NDK..."
-      - task dev:sdk:ndk
+      - task: sdk:ndk
       - echo "Setup complete!"
 
   # ===========================================================================
@@ -109,14 +109,14 @@ tasks:
   clean:
     desc: Clean build artifacts
     cmds:
-      - task build:clean
+      - "{{.GOUP}} build clean || true"
       - rm -rf .bin/goup-util
       - rm -f goup-util goup-util-*
 
   clean:all:
     desc: Clean everything including SDKs
     cmds:
-      - task dev:clean
+      - task: clean
       - "{{.GOUP}} cleanup"
 
   # ===========================================================================
@@ -376,10 +376,19 @@ tasks:
       - "{{.GOUP}} utm run 'Windows 11' {{.WEBVIEWER_EXAMPLE}}"
 
   utm:windows:build:hybrid:
-    desc: Build hybrid-dashboard in Windows VM
+    desc: Build hybrid-dashboard natively in Windows VM
     cmds:
-      - echo "Building hybrid-dashboard in Windows VM..."
-      - "{{.GOUP}} utm exec 'Windows 11' -- build windows examples/hybrid-dashboard"
+      - "{{.GOUP}} utm build 'Windows 11' windows {{.HYBRID_EXAMPLE}}"
+
+  utm:windows:build:webviewer:
+    desc: Build webviewer natively in Windows VM
+    cmds:
+      - "{{.GOUP}} utm build 'Windows 11' windows {{.WEBVIEWER_EXAMPLE}}"
+
+  utm:windows:build:hybrid:pull:
+    desc: Build hybrid-dashboard in VM and pull binary back to host
+    cmds:
+      - "{{.GOUP}} utm build --pull 'Windows 11' windows {{.HYBRID_EXAMPLE}}"
 
   utm:windows:test:all:
     desc: Full Windows test suite via UTM
