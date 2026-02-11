@@ -87,11 +87,11 @@ The `examples/` directory contains working apps:
 
 | macOS | iOS Simulator |
 |-------|---------------|
-| ![macOS](/screenshots/hybrid-dashboard-macos.png) | ![iOS](/screenshots/appstore/ios/ios-6.7-inch.png) |
+| ![macOS](/screenshots/hybrid-dashboard-macos.png) | ![iOS](/screenshots/appstore/ios/iphone-6.7.png) |
 
-| Android Emulator | Windows (UTM VM) |
-|-------------------|-------------------|
-| ![Android](/screenshots/appstore/android/android-phone.png) | ![Windows](/screenshots/appstore/windows/windows-screenshot.png) |
+| macOS App Store | macOS Retina |
+|-----------------|--------------|
+| ![macOS Standard](/screenshots/appstore/macos/standard.png) | ![macOS Retina](/screenshots/appstore/macos/retina.png) |
 
 ## Requirements
 
