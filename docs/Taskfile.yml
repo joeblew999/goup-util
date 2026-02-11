@@ -2,16 +2,13 @@ version: '3'
 
 vars:
   DOCS_VERSION: 'latest'
-  DOCS_SRC: '{{.TASKFILE_DIR}}'
-  DOCS_BIN: '{{.TASKFILE_DIR}}/.bin'
-  DOCS_DATA: '{{.TASKFILE_DIR}}/.data'
   DOCS_PORT: '1313'
 
 tasks:
   src:clone:
     desc: Docs source is in git (no-op)
     status:
-      - test -d {{.DOCS_SRC}}/content
+      - test -d content
     cmds:
       - echo "Docs source is in git, nothing to clone"
 
@@ -22,31 +19,73 @@ tasks:
 
   build:
     desc: Build Hugo site
-    dir: '{{.DOCS_SRC}}'
     deps: [ensure]
     sources:
-      - '{{.DOCS_SRC}}/content/**/*'
-      - '{{.DOCS_SRC}}/layouts/**/*'
-      - '{{.DOCS_SRC}}/static/**/*'
-      - '{{.DOCS_SRC}}/hugo.toml'
+      - content/**/*
+      - layouts/**/*
+      - static/**/*
+      - hugo.toml
     generates:
-      - '{{.DOCS_BIN}}/**/*'
+      - .bin/**/*
     cmds:
-      - hugo --minify -d {{.DOCS_BIN}}
+      - hugo --minify -d .bin
 
   run:
-    desc: Run Hugo dev server with hot reload
-    dir: '{{.DOCS_SRC}}'
+    desc: Run Hugo dev server with hot reload (foreground)
     deps: [ensure]
     cmds:
       - hugo server -D --bind 0.0.0.0 --port {{.DOCS_PORT}}
 
+  start:
+    desc: Start Hugo dev server in background
+    deps: [ensure]
+    cmds:
+      - task: stop
+      - nohup hugo server -D --bind 0.0.0.0 --port {{.DOCS_PORT}} > .hugo-server.log 2>&1 &
+      - sleep 1
+      - |
+        if lsof -ti:{{.DOCS_PORT}} > /dev/null 2>&1; then
+          echo "Hugo server started on http://localhost:{{.DOCS_PORT}}/"
+        else
+          echo "Failed to start Hugo server. Check .hugo-server.log"
+          exit 1
+        fi
+
+  stop:
+    desc: Stop Hugo dev server
+    cmds:
+      - lsof -ti:{{.DOCS_PORT}} | xargs kill 2>/dev/null || true
+      - echo "Hugo server stopped"
+
+  status:
+    desc: Check if Hugo dev server is running
+    cmds:
+      - |
+        if lsof -ti:{{.DOCS_PORT}} > /dev/null 2>&1; then
+          echo "Hugo server running on http://localhost:{{.DOCS_PORT}}/"
+        else
+          echo "Hugo server is not running"
+        fi
+
   ensure:
+    desc: Ensure Hugo and theme are installed
+    cmds:
+      - task: ensure:hugo
+      - task: ensure:theme
+
+  ensure:hugo:
     desc: Ensure Hugo is installed (installs via go if missing)
     status:
       - command -v hugo
     cmds:
       - go install github.com/gohugoio/hugo@latest
+
+  ensure:theme:
+    desc: Ensure Hugo theme is installed
+    status:
+      - test -d themes/hugo-book
+    cmds:
+      - git clone --depth 1 https://github.com/alex-shpak/hugo-book.git themes/hugo-book
 
   bin:download:
     desc: Hugo is a system tool (no-op)
@@ -57,9 +96,8 @@ tasks:
 
   test:
     desc: Check Hugo build works
-    dir: '{{.DOCS_SRC}}'
     cmds:
-      - hugo --minify -d {{.DOCS_BIN}}
+      - hugo --minify -d .bin
 
   deps:
     desc: No dependencies for Hugo docs
@@ -69,16 +107,16 @@ tasks:
   clean:
     desc: Clean build artifacts
     cmds:
-      - rm -rf {{.DOCS_BIN}}
+      - rm -rf .bin
     status:
-      - '! test -d {{.DOCS_BIN}}'
+      - '! test -d .bin'
 
   clean:data:
     desc: Clean data directory
     cmds:
-      - rm -rf {{.DOCS_DATA}}
+      - rm -rf .data
     status:
-      - '! test -d {{.DOCS_DATA}}'
+      - '! test -d .data'
 
   clean:src:
     desc: Clean source directory (no-op, source is in git)
@@ -88,12 +126,11 @@ tasks:
   clean:all:
     desc: Clean everything (.bin, .data)
     cmds:
-      - rm -rf {{.DOCS_BIN}} {{.DOCS_DATA}} {{.DOCS_SRC}}/.hugo_build.lock
+      - rm -rf .bin .data .hugo_build.lock
 
   "new":
     desc: "Create new content (usage: task docs:new PAGE=architecture/new-page)"
     vars:
       PAGE: '{{.PAGE | default "posts/new-post"}}'
-    dir: '{{.DOCS_SRC}}'
     cmds:
       - hugo new content/{{.PAGE}}.md

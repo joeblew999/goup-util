@@ -14,6 +14,8 @@ Write HTML/CSS once → Deploy everywhere: Web, iOS, Android, Desktop
 ![Go Version](https://img.shields.io/badge/go-1.25%2B-blue)
 ![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20Android%20%7C%20Windows%20%7C%20Linux-green)
 
+**[Documentation](https://joeblew999.github.io/goup-util/)** | **[Quick Start](https://joeblew999.github.io/goup-util/users/quickstart/)** | **[Platform Support](https://joeblew999.github.io/goup-util/users/platforms/)** | **[Examples](examples/)**
+
 <p align="center">
   <img src="docs/screenshots/hybrid-dashboard-macos.png" alt="Hybrid Dashboard - Native app with web UI" width="600">
   <br>

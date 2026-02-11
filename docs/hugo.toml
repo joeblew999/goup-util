@@ -1,3 +1,17 @@
-baseURL = 'https://example.org/'
+baseURL = '/'
 languageCode = 'en-us'
-title = 'My New Hugo Site'
+title = 'goup-util'
+theme = 'hugo-book'
+
+[params]
+  BookToC = true
+  BookSection = '/'
+  BookRepo = 'https://github.com/joeblew999/goup-util'
+  BookEditPath = 'edit/main/docs/content'
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+  [markup.highlight]
+    style = "monokai"

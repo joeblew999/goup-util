@@ -35,8 +35,10 @@ screenshot*.png
 docs/.bin/
 docs/.data/
 docs/.hugo_build.lock
+docs/.hugo-server.log
 docs/public/
 docs/resources/
+docs/themes/
 
 # Local data (UTM VMs, ISOs, screenshots, etc.)
 .data/
