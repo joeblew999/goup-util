@@ -9,11 +9,65 @@ weight: 2
 
 Documentation for developers working on or contributing to goup-util.
 
-## Development
+## Development Setup
 
-- [CI/CD Integration](/dev/cicd/) - Continuous integration and deployment
-- [AI Collaboration](/dev/agents/) - Guides for AI assistants
+```bash
+# Clone and build
+git clone https://github.com/joeblew999/goup-util
+cd goup-util
+go build .
+
+# Run tests
+go test ./...
+
+# Use Task for common workflows
+task --list
+```
+
+## Project Structure
+
+```
+goup-util/
+  cmd/                # CLI commands (Cobra-based)
+  pkg/
+    self/             # Self-management (build/install goup-util itself)
+    buildcache/       # Idempotent build cache
+    config/           # SDK configuration and JSON definitions
+    icons/            # Platform icon generation
+    installer/        # SDK download and installation
+    packaging/        # Bundle creation and code signing
+    project/          # Project detection and structure
+    utm/              # UTM virtual machine control
+  examples/           # Working Gio example apps
+    hybrid-dashboard/ # Gio UI + webview (start here)
+    gio-plugin-webviewer/  # Multi-tab webview browser
+    gio-basic/        # Simple Gio UI
+    gio-plugin-hyperlink/  # Hyperlink plugin demo
+  docs/               # This documentation (Hugo)
+  .src/               # Cloned dependency source (gitignored)
+```
+
+**Key separation:** `pkg/self/` manages goup-util itself (building, installing, upgrading the tool). Everything else manages the apps that goup-util builds. Don't mix them.
+
+## Guides
+
+- **[CI/CD Integration](/dev/cicd/)** -- GitHub Actions workflows for automated builds
+- **[AI Collaboration](/dev/agents/)** -- Reference guides for AI assistants working on this codebase
+- **[Webview Analysis](/architecture/webview/)** -- Cross-platform webview deep dive
 
 ## Contributing
 
-See the main repository for contribution guidelines.
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run `go test ./...` and `go vet ./...`
+5. Submit a pull request
+
+### Conventions
+
+- Standard Go conventions
+- Cobra for CLI commands
+- Idempotent operations (safe to run multiple times)
+- Platform-specific code in separate files (`*_darwin.go`, `*_android.go`)
+- All `self` commands output JSON (see `pkg/self/output/`)
+- Use Taskfile for workflows (`task --list`)

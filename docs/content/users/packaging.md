@@ -254,30 +254,20 @@ fi
 
 ## Taskfile Integration
 
-All packaging operations have corresponding Taskfile tasks:
+Common packaging operations have corresponding Taskfile tasks:
 
-### Build Tasks
 ```bash
-task build:hybrid:macos          # Build (idempotent)
-task build:hybrid:macos:force    # Force rebuild
-task build:hybrid:macos:check    # Check if rebuild needed
-```
+# Build examples
+task build:hybrid:macos          # Build hybrid-dashboard for macOS
+task build:webviewer:macos       # Build webviewer for macOS
 
-### Bundle Tasks
-```bash
-task bundle:hybrid:macos         # Create signed bundle
-```
+# CI tasks
+task ci:check                    # Check if examples need rebuilding
+task ci:build                    # Build all examples (idempotent)
+task ci:build:force              # Force rebuild all examples
 
-### Package Tasks
-```bash
-task package:macos:dmg           # Create DMG (macOS only)
-```
-
-### CI Tasks
-```bash
-task ci:check                    # Check all examples
-task ci:build                    # Build all (idempotent)
-task ci:build:force             # Force rebuild all
+# See all available tasks
+task --list
 ```
 
 ---
@@ -315,20 +305,6 @@ Build operations are idempotent via `pkg/buildcache/`:
 - Smart rebuild decisions
 
 ---
-
-## Migration from Old System
-
-### Old Way (bash script)
-```bash
-bash pkg/packaging/build-macos.sh
-```
-
-### New Way (pure Go)
-```bash
-goup-util bundle macos examples/hybrid-dashboard
-```
-
-**The bash script is deprecated** but kept for reference in `pkg/packaging/deprecated/build-macos.sh`.
 
 ---
 

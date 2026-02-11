@@ -7,295 +7,247 @@ weight: 1
 
 # CI/CD Integration
 
-goup-util is designed for seamless integration with continuous integration and deployment pipelines.
+goup-util integrates with GitHub Actions for automated cross-platform builds.
 
 ## GitHub Actions
 
-### Basic Workflow
+### macOS Build
+
+```yaml
+name: Build macOS
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Build goup-util
+        run: go build .
+
+      - name: Build macOS app
+        run: go run . build macos examples/hybrid-dashboard
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-app
+          path: examples/hybrid-dashboard/.bin/macos/
+```
+
+### Android Build
+
+```yaml
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install Android SDK and NDK
+        run: |
+          go run . install android-sdk
+          go run . install android-ndk
+
+      - name: Build Android APK
+        run: go run . build android examples/hybrid-dashboard
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: examples/hybrid-dashboard/.bin/android/
+```
+
+### iOS Build (macOS runner required)
+
+```yaml
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Build iOS app
+        run: go run . build ios examples/hybrid-dashboard
+```
+
+### Windows Build
+
+```yaml
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Build Windows app
+        run: go run . build windows examples/hybrid-dashboard
+```
+
+### Multi-Platform Workflow
 
 ```yaml
 name: Cross-Platform Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      - run: go test ./...
+      - run: go vet ./...
 
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: 1.19
-
-    - name: Install Task
-      run: sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d
-
-    - name: Setup goup-util
-      run: |
-        task build
-        task setup:android
-
-    - name: Build for all platforms
-      run: |
-        goup-util build android ./my-app
-        goup-util build linux ./my-app
-        goup-util build web ./my-app
-
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: builds
-        path: my-app/.bin/
-```
-
-### iOS Builds (macOS Runner)
-
-```yaml
-  build-ios:
+  build-macos:
     runs-on: macos-latest
-
+    needs: test
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      - run: go run . build macos examples/hybrid-dashboard
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: examples/hybrid-dashboard/.bin/macos/
 
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: 1.19
-
-    - name: Setup iOS development
-      run: |
-        task build
-        task setup:ios
-
-    - name: Build iOS app
-      run: goup-util build ios ./my-app
-```
-
-### Windows Builds
-
-```yaml
-  build-windows:
-    runs-on: windows-latest
-
+  build-android:
+    runs-on: ubuntu-latest
+    needs: test
     steps:
-    - uses: actions/checkout@v3
-
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: 1.19
-
-    - name: Setup Windows development
-      run: |
-        task build
-        task setup:windows
-
-    - name: Build Windows app
-      run: goup-util build windows-msix ./my-app
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      - run: |
+          go run . install android-sdk
+          go run . install android-ndk
+          go run . build android examples/hybrid-dashboard
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: examples/hybrid-dashboard/.bin/android/
 ```
 
-## GitLab CI
+## SDK Caching
+
+Cache SDKs across CI runs to avoid re-downloading:
 
 ```yaml
-stages:
-  - build
-  - test
-  - deploy
-
-variables:
-  GO_VERSION: "1.19"
-
-before_script:
-  - apt-get update -qq && apt-get install -y -qq git curl
-  - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
-  - sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d
-
-build:android:
-  stage: build
-  image: golang:${GO_VERSION}
-  script:
-    - task build
-    - task setup:android
-    - goup-util build android ./my-app
-  artifacts:
-    paths:
-      - my-app/.bin/
-    expire_in: 1 week
-
-build:web:
-  stage: build
-  image: golang:${GO_VERSION}
-  script:
-    - task build
-    - goup-util build web ./my-app
-  artifacts:
-    paths:
-      - my-app/.bin/
-    expire_in: 1 week
-```
-
-## Docker Support
-
-### Multi-stage Build
-
-```dockerfile
-# Build stage
-FROM golang:1.19-alpine AS builder
-
-RUN apk add --no-cache git curl bash
-
-# Install Task
-RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d
-
-WORKDIR /app
-COPY . .
-
-# Build goup-util and setup environment
-RUN task build
-RUN task setup:android
-
-# Build the application
-RUN goup-util build android ./my-app
-RUN goup-util build linux ./my-app
-
-# Runtime stage
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-WORKDIR /root/
-
-# Copy built applications
-COPY --from=builder /app/my-app/.bin/ ./builds/
-
-CMD ["./builds/my-app-linux"]
-```
-
-### Development Container
-
-```dockerfile
-FROM golang:1.19
-
-# Install dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    git \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Task
-RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d
-
-# Setup working directory
-WORKDIR /workspace
-
-# Pre-setup common SDKs
-COPY . .
-RUN task build
-RUN task setup:android
-
-CMD ["bash"]
-```
-
-## Environment Variables
-
-Configure builds using environment variables:
-
-```bash
-# SDK paths
-export ANDROID_SDK_ROOT=/opt/android-sdk
-export ANDROID_NDK_ROOT=/opt/android-ndk
-
-# Build configuration
-export GOUP_CACHE_DIR=/tmp/goup-cache
-export GOUP_SDK_DIR=/opt/sdks
-
-# Platform-specific settings
-export IOS_TEAM_ID=YOUR_TEAM_ID
-export WINDOWS_CERT_THUMBPRINT=YOUR_CERT
-```
-
-## Build Optimization
-
-### Caching
-
-```yaml
-# GitHub Actions caching
 - name: Cache SDKs
-  uses: actions/cache@v3
+  uses: actions/cache@v4
   with:
     path: |
-      sdks/
-      ~/.cache/goup-util
-    key: ${{ runner.os }}-sdks-${{ hashFiles('**/sdk-*.json') }}
+      ~/goup-util-sdks/
+      ~/.cache/goup-util/
+    key: ${{ runner.os }}-sdks-${{ hashFiles('pkg/config/sdk-*.json') }}
     restore-keys: |
       ${{ runner.os }}-sdks-
 ```
 
-### Parallel Builds
+## Build Caching
+
+goup-util's build cache is automatic. It hashes source files and skips rebuilds when nothing changed:
 
 ```bash
-# Build multiple platforms in parallel
-goup-util build android ./my-app &
-goup-util build linux ./my-app &
-goup-util build web ./my-app &
-wait
+# First build -- compiles
+go run . build macos examples/hybrid-dashboard
+
+# Second build -- skips (no changes)
+go run . build macos examples/hybrid-dashboard
+# Output: up-to-date (use --force to rebuild)
+
+# Force rebuild
+go run . build --force macos examples/hybrid-dashboard
+
+# Check if rebuild needed (for CI scripts)
+go run . build --check macos examples/hybrid-dashboard
+echo $?  # 0 = up-to-date, 1 = needs rebuild
 ```
 
-## Deployment Integration
+## Release Workflow
 
-### Automated Releases
+### Tagged Release with Artifacts
 
 ```yaml
-- name: Create Release
-  if: startsWith(github.ref, 'refs/tags/')
-  uses: softprops/action-gh-release@v1
-  with:
-    files: |
-      my-app/.bin/*.apk
-      my-app/.bin/*.exe
-      my-app/.bin/*.app
-      my-app/.bin/*.msix
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Build and bundle
+        run: |
+          go run . build macos examples/hybrid-dashboard
+          go run . bundle macos examples/hybrid-dashboard
+          go run . package macos examples/hybrid-dashboard
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            examples/hybrid-dashboard/.dist/*.tar.gz
 ```
 
-### Store Deployment
+## Windows from macOS (UTM)
+
+goup-util includes UTM virtual machine control for building and testing Windows apps from macOS:
 
 ```bash
-# Upload to Google Play
-goup-util deploy android ./my-app --store google-play
+# List VMs
+goup-util utm list
 
-# Upload to App Store
-goup-util deploy ios ./my-app --store app-store
+# Start a Windows VM
+goup-util utm start "Windows 11"
 
-# Upload to Microsoft Store
-goup-util deploy windows ./my-app --store microsoft-store
+# Run a command in the VM
+goup-util utm exec "Windows 11" "goup-util build windows examples/hybrid-dashboard"
 ```
 
-## Monitoring & Notifications
+This enables macOS-based CI to produce Windows builds without a separate Windows runner.
 
-### Build Status
-
-```bash
-# Slack notification on build completion
-curl -X POST -H 'Content-type: application/json' \
-    --data '{"text":"Build completed for all platforms!"}' \
-    $SLACK_WEBHOOK_URL
-```
-
-### Error Reporting
+## Environment Variables
 
 ```bash
-# Capture build logs
-goup-util build all ./my-app 2>&1 | tee build.log
+# Override SDK installation directory
+export GOUP_SDK_DIR=/custom/sdk/path
 
-# Send error reports
-if [ $? -ne 0 ]; then
-    # Send to error tracking service
-    curl -X POST $ERROR_ENDPOINT -d @build.log
-fi
+# Android SDK paths (set automatically by goup-util install)
+export ANDROID_SDK_ROOT=~/goup-util-sdks/android-sdk
+export ANDROID_NDK_ROOT=~/goup-util-sdks/ndk/26.1.10909125
 ```

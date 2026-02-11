@@ -11,16 +11,18 @@ weight: 1
 
 ### Technology Stack
 
-**Framework**: Gio UI (gioui.org v0.8.0)
+**Framework**: Gio UI (gioui.org v0.9.1-compatible)
 - Pure Go immediate-mode UI framework
 - Cross-platform: Linux, macOS, Windows, Android, iOS, FreeBSD, OpenBSD, WebAssembly
 - No C dependencies for core framework
 - GPU-accelerated rendering
 
-**WebView Plugin**: gioui-plugins/gio-plugins v0.8.0
+**WebView Plugin**: gioui-plugins/gio-plugins v0.9.1
 - Native webview integration for Gio
 - Uses platform-specific webview implementations
 - Package: `github.com/gioui-plugins/gio-plugins/webviewer`
+
+**Important:** Pin versions carefully. See [Platform Support](/users/platforms/#gio-version-compatibility) for exact version commands.
 
 ### Current Example Implementation
 
@@ -126,7 +128,7 @@ Based on the code and architecture:
 - May need custom implementation
 
 ### 5. **Version Pinning**
-- Using specific versions (v0.8.0)
+- Using specific versions (v0.9.1)
 - Plugin ecosystem maturity unclear
 - Update strategy not defined
 

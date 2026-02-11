@@ -4,137 +4,103 @@ date: 2025-12-21
 draft: false
 ---
 
-# goup-util Documentation
+# goup-util
 
-Welcome to the goup-util documentation.
+A build tool for cross-platform hybrid applications using Go and Gio UI.
 
-## What is goup-util?
+Write your app in Go, deploy it to macOS, iOS, Android, and Windows from a single codebase. Combine native Gio UI controls with native webviews for hybrid apps.
 
-**goup-util** is a build tool for creating **cross-platform hybrid applications** using Go and Gio UI.
+## What goup-util Does
 
-Build pure Go apps that run everywhere:
-- 🖥️ **Desktop**: macOS, Windows, Linux
-- 📱 **Mobile**: iOS, Android
-- 🌐 **Web**: Browser (WASM)
-- 🔀 **Hybrid**: Native Gio UI + native webviews
-
-## Quick Links
-
-- **[Quick Start Guide](/users/quickstart/)** - Get up and running in 5 minutes
-- **[Webviewer Shell](/users/webviewer-shell/)** - Run any website as a desktop app (no coding needed)
-- **[Platform Support](/users/platforms/)** - Platform-specific features and requirements
-- **[Packaging Guide](/users/packaging/)** - Create distribution-ready packages
-- **[Webview Analysis](/architecture/webview/)** - Deep dive into hybrid app architecture
-- **[AI Collaboration](/dev/agents/)** - Guides for AI assistants working on this project
-
-## Core Capabilities
-
-### Build for All Platforms
+- **Builds** Gio applications for macOS, iOS, Android, and Windows
+- **Bundles** signed app packages for distribution (macOS code signing, Android APK signing)
+- **Manages SDKs** (Android SDK, NDK) with automated install and caching
+- **Generates icons** for all platforms from a single source image
+- **Packages** apps into distribution archives (tar.gz, zip)
 
 ```bash
-# macOS app
-go run . build macos examples/hybrid-dashboard
+# Build a hybrid app for macOS
+goup-util build macos examples/hybrid-dashboard
 
-# iOS app
-go run . build ios examples/hybrid-dashboard
+# Build for Android
+goup-util build android examples/hybrid-dashboard
 
-# Android APK
-go run . build android examples/hybrid-dashboard
+# Create a signed macOS bundle
+goup-util bundle macos examples/hybrid-dashboard
 
-# Windows app
-go run . build windows examples/hybrid-dashboard
+# Generate platform icons
+goup-util icons examples/hybrid-dashboard
 ```
 
-### SDK Management
+## The Hybrid App Architecture
 
-Automated installation and management of platform SDKs:
-
-```bash
-# Install Android SDK and NDK
-go run . install android-sdk
-go run . install android-ndk
-
-# List available SDKs
-go run . list
-```
-
-### Asset Generation
-
-Automatic icon generation for all platforms:
-
-```bash
-# Generate icons from icon-source.png
-go run . icons examples/hybrid-dashboard
-```
-
-### Screenshot Capture
-
-Built-in screenshot capabilities for documentation:
-
-```bash
-# Capture app screenshots
-task screenshot-hybrid
-
-# Generate App Store screenshots
-task screenshot-appstore-all
-```
-
-## The Hybrid App Vision
-
-Build apps that combine **native Gio UI** (controls, navigation) with **native webviews** (rich content):
+goup-util enables apps that combine **native Gio UI** (Go-based controls, navigation, layout) with **native webviews** (WKWebView on macOS/iOS, Chromium WebView on Android, WebView2 on Windows):
 
 ```
-┌─────────────────────────────────────┐
-│     Your App (Pure Go)              │
-│                                     │
-│  ┌─────────────────────────────┐   │
-│  │  Gio UI (Native Controls)   │   │
-│  │  - Tabs, buttons, layout    │   │
-│  └─────────────────────────────┘   │
-│                                     │
-│  ┌─────────────────────────────┐   │
-│  │  Native WebView             │   │
-│  │  - HTML/CSS/JavaScript      │   │
-│  │  - Go ↔ JS bridge           │   │
-│  └─────────────────────────────┘   │
-└─────────────────────────────────────┘
++-------------------------------------+
+|     Your App (Pure Go)              |
+|                                     |
+|  +-----------------------------+   |
+|  |  Gio UI (Native Controls)   |   |
+|  |  Tabs, buttons, layout      |   |
+|  +-----------------------------+   |
+|                                     |
+|  +-----------------------------+   |
+|  |  Native WebView             |   |
+|  |  HTML/CSS/JavaScript        |   |
+|  |  Platform web engine        |   |
+|  +-----------------------------+   |
++-------------------------------------+
+
+One codebase -> macOS, iOS, Android, Windows
 ```
 
-**One codebase → Runs everywhere**
+This is for apps where you want native performance and native platform integration, but also want to render rich web content. Think: a Go desktop app that embeds a dashboard, a mobile app with web-based settings pages, or a native shell around your existing web app.
 
-## Key Features
+## Guides
 
-- ✅ **Pure Go Development** - One language for all platforms
-- ✅ **Hybrid Architecture** - Native UI + webview content
-- ✅ **SDK Management** - Automated install and caching
-- ✅ **Asset Generation** - Icons for all platforms
-- ✅ **Idempotent Builds** - Safe to run multiple times
-- ✅ **Screenshot Capture** - Built-in App Store screenshot generation
-- ✅ **[Webviewer Shell](/users/webviewer-shell/)** - Pre-built binary to run any website as a desktop app
+### For Users
+
+- **[Quick Start](/users/quickstart/)** -- Install goup-util, build your first app
+- **[Platform Support](/users/platforms/)** -- What works on each platform, requirements, known limitations
+- **[Packaging](/users/packaging/)** -- Build, bundle, and package apps for distribution
+- **[Webviewer Shell](/users/webviewer-shell/)** -- Run any website as a desktop app with zero coding
+
+### For Developers
+
+- **[Architecture](/architecture/)** -- How goup-util works, webview analysis, project structure
+- **[CI/CD](/dev/cicd/)** -- GitHub Actions integration for automated builds
+- **[AI Collaboration](/dev/agents/)** -- Guides for AI assistants working on this project
 
 ## Examples
 
-The `examples/` directory contains working demonstrations:
+The `examples/` directory contains working apps:
 
-- **hybrid-dashboard** - Gio UI + webview hybrid app (recommended starting point)
-- **gio-basic** - Simple Gio UI demo
-- **gio-plugin-hyperlink** - Hyperlink plugin integration
-- **gio-plugin-webviewer** - Multi-tab webview browser / [Webviewer Shell](/users/webviewer-shell/) (zero-compile)
+| Example | Description | Key Feature |
+|---------|-------------|-------------|
+| `hybrid-dashboard` | Gio UI + webview hybrid app | Recommended starting point |
+| `gio-plugin-webviewer` | Multi-tab webview browser | Full webview API demo / [Webviewer Shell](/users/webviewer-shell/) |
+| `gio-basic` | Simple Gio UI | Gio without webview |
+| `gio-plugin-hyperlink` | System browser links | Open URLs in default browser |
 
-## Getting Help
+## Screenshots
 
-- Check TODO.md for known issues and roadmap
-- Read CLAUDE.md for development guidelines
-- File issues at https://github.com/joeblew999/goup-util/issues
+| macOS | iOS Simulator |
+|-------|---------------|
+| ![macOS](/screenshots/hybrid-dashboard-macos.png) | ![iOS](/screenshots/appstore/ios/ios-6.7-inch.png) |
 
-## Philosophy
+| Android Emulator | Windows (UTM VM) |
+|-------------------|-------------------|
+| ![Android](/screenshots/appstore/android/android-phone.png) | ![Windows](/screenshots/appstore/windows/windows-screenshot.png) |
 
-**KISS (Keep It Simple, Stupid)** - goup-util aims to provide just enough functionality to build and package cross-platform hybrid apps without unnecessary complexity.
+## Requirements
 
-**Pure Go** - Everything is written in Go. No polyglot toolchains required.
+- [Go 1.24+](https://golang.org/)
+- macOS, Linux, or Windows host
+- Platform SDKs for cross-platform builds (Android SDK/NDK, Xcode)
 
-**Developer-Focused** - Clean CLI interface, clear error messages, helpful documentation.
+## Links
 
----
-
-**Ready to build hybrid apps in pure Go?** Start with the [Quick Start Guide](/users/quickstart/).
+- [GitHub Repository](https://github.com/joeblew999/goup-util)
+- [Issues](https://github.com/joeblew999/goup-util/issues)
+- [Releases](https://github.com/joeblew999/goup-util/releases)

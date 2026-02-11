@@ -7,149 +7,161 @@ weight: 2
 
 # Platform Support
 
-goup-util supports building native applications for all major platforms from a single codebase.
+goup-util builds native Gio applications for macOS, iOS, Android, and Windows. Each platform uses the system's native webview engine for hybrid apps.
 
-## Mobile Platforms
+## Platform Matrix
 
-### 📱 iOS
-- **Output**: Native iOS applications (.app bundles)
-- **Distribution**: App Store ready with proper signing
-- **Features**:
-  - Automatic icon generation for all device sizes
-  - Proper Info.plist configuration
-  - Asset catalog management
-  - Simulator and device testing
+| Platform | Build Command | Webview Engine | Host OS Required | Status |
+|----------|--------------|----------------|------------------|--------|
+| macOS | `build macos` | WKWebView (Safari) | macOS | Working |
+| iOS | `build ios` | WKWebView (Safari) | macOS + Xcode | Working |
+| iOS Simulator | `build ios-simulator` | WKWebView | macOS + Xcode | Working |
+| Android | `build android` | Chromium WebView | Any (needs Android SDK) | Working |
+| Windows | `build windows` | WebView2 (Edge) | Windows or cross-compile | Working |
 
+## macOS
+
+**Build:**
 ```bash
-# Build for iOS
-goup-util build ios ./my-app
-
-# Generate iOS-specific assets
-goup-util icons ios ./my-app
+goup-util build macos examples/hybrid-dashboard
 ```
 
-### 🤖 Android
-- **Output**: Android Package files (.apk)
-- **Distribution**: Google Play Store compatible
-- **Features**:
-  - Multi-density icon generation
-  - Proper manifest configuration
-  - Resource optimization
-  - APK signing support
+**Output:** `.app` bundle in `<app>/.bin/macos/`
 
+**Requirements:**
+- macOS host
+- Xcode Command Line Tools (`xcode-select --install`)
+
+**Webview:** WKWebView (Safari engine). Full HTML5, Service Workers, OPFS, WebSocket, IndexedDB, WebAssembly support.
+
+**Distribution:** Use `goup-util bundle macos` for code-signed bundles, then `goup-util package macos` for tar.gz archives. See [Packaging](/users/packaging/).
+
+**Deep linking:** Supported via `--schemes` flag:
 ```bash
-# Build for Android
-goup-util build android ./my-app
-
-# Generate Android assets
-goup-util icons android ./my-app
+goup-util build macos examples/hybrid-dashboard --schemes "myapp://,https://example.com"
 ```
 
-## Desktop Platforms
+## iOS
 
-### 🍎 macOS
-- **Output**: Native macOS applications (.app bundles)
-- **Distribution**: Mac App Store ready or direct distribution
-- **Features**:
-  - Proper app bundle structure
-  - Code signing integration
-  - DMG creation for distribution
-  - Native system integration
-
+**Build:**
 ```bash
-# Build for macOS
-goup-util build macos ./my-app
+# For device
+goup-util build ios examples/hybrid-dashboard
+
+# For simulator
+goup-util build ios-simulator examples/hybrid-dashboard
 ```
 
-### 🪟 Windows
-- **Output**: Windows executables (.exe) and MSIX packages
-- **Distribution**: Microsoft Store compatible
-- **Features**:
-  - MSIX package creation
-  - Windows 10/11 compatibility
-  - Proper manifest generation
-  - Code signing support
+**Output:** `.app` bundle in `<app>/.bin/ios/` or `<app>/.bin/ios-simulator/`
 
+**Requirements:**
+- macOS host
+- Xcode (install from App Store)
+- For device builds: Apple Developer account and provisioning profile
+
+**Webview:** WKWebView (Safari engine). Same capabilities as macOS.
+
+**Signing:**
 ```bash
-# Build Windows executable
-goup-util build windows ./my-app
-
-# Create MSIX package
-goup-util build windows-msix ./my-app
+goup-util build ios examples/hybrid-dashboard --signkey /path/to/profile.mobileprovision
 ```
 
-### 🐧 Linux
-- **Output**: Native Linux binaries
-- **Distribution**: AppImage, Flatpak, or traditional packages
-- **Features**:
-  - Multiple architecture support
-  - Desktop integration
-  - Package format flexibility
-
+**Deep linking:**
 ```bash
-# Build for Linux
-goup-util build linux ./my-app
+goup-util build ios examples/hybrid-dashboard --schemes "myapp://,https://example.com"
 ```
 
-## Web Platform
+## Android
 
-### 🌐 Progressive Web Apps (PWA)
-- **Output**: Modern web applications
-- **Distribution**: Web deployment or app store submission
-- **Features**:
-  - Service worker generation
-  - Web app manifest
-  - Responsive design
-  - Offline functionality
-
+**Build:**
 ```bash
-# Build for web
-goup-util build web ./my-app
+goup-util build android examples/hybrid-dashboard
 ```
 
-## Cross-Platform Features
+**Output:** `.apk` in `<app>/.bin/android/`
 
-### 🎨 Asset Management
-All platforms benefit from automatic asset generation:
-- **Icons**: Platform-specific sizes and formats
-- **Splash Screens**: Proper dimensions for each platform
-- **Resources**: Optimized for each target platform
+**Requirements:**
+- Any host OS
+- Android SDK and NDK (goup-util installs these):
+  ```bash
+  goup-util install android-sdk
+  goup-util install android-ndk
+  ```
 
-### 📦 Package Management
-- **Dependencies**: Automatically managed for each platform
-- **SDKs**: Isolated, version-controlled environments
-- **Build Tools**: Platform-specific toolchains
+**Webview:** System Chromium WebView. Full modern web API support.
 
-### 🔧 Configuration
-- **Project-aware**: Understands your project structure
-- **Platform-specific**: Customizable per platform
-- **Build optimization**: Tailored for each target
+**Signing:**
+```bash
+goup-util build android examples/hybrid-dashboard --signkey /path/to/keystore.jks
+```
 
-## Platform Requirements
+**Deep linking and intent queries:**
+```bash
+goup-util build android examples/hybrid-dashboard \
+  --schemes "myapp://,https://example.com" \
+  --queries "com.google.android.apps.maps"
+```
 
-| Platform | Host OS | Additional Tools |
-|----------|---------|------------------|
-| iOS | macOS | Xcode Command Line Tools |
-| Android | Any | Android SDK (auto-installed) |
-| macOS | macOS | Xcode Command Line Tools |
-| Windows | Any | Windows SDK (auto-installed) |
-| Linux | Any | Standard build tools |
-| Web | Any | Modern web tools |
+## Windows
 
-## Build Matrix
+**Build:**
+```bash
+goup-util build windows examples/hybrid-dashboard
+```
 
-Build for multiple platforms simultaneously:
+**Output:** `.exe` in `<app>/.bin/windows/`
+
+**Requirements:**
+- Windows host (or cross-compilation from macOS/Linux with CGo)
+- For webview apps: WebView2 runtime (included in Windows 10/11)
+
+**Webview:** WebView2 (Edge/Chromium engine). Full modern web API support.
+
+**Note:** Cross-compiling Windows apps from macOS works for pure Go apps. Webview-based apps may require a Windows build environment. goup-util supports [UTM virtual machines](/dev/cicd/) for Windows builds from macOS.
+
+## Linux
+
+**Status:** Gio UI supports Linux natively. goup-util does not currently have a dedicated `build linux` command, but you can build Gio apps for Linux using standard Go:
 
 ```bash
-# Build for all platforms
-goup-util build all ./my-app
+GOOS=linux GOARCH=amd64 go build -o myapp ./examples/hybrid-dashboard
+```
 
-# Build for mobile only
-goup-util build mobile ./my-app
+**Webview:** WebKitGTK. Requires `libwebkit2gtk-4.0-dev` system package.
 
-# Build for desktop only
-goup-util build desktop ./my-app
+## Web / WASM
 
-# Custom combinations
-goup-util build ios,android,web ./my-app
+**Status:** Not currently supported by goup-util. Gio UI compiles to WASM, but the webview plugin does not work in a browser context (a webview inside a browser doesn't make sense). Pure Gio UI apps (without webview) can be compiled to WASM using standard Go tools.
+
+## Gio Version Compatibility
+
+**This is critical.** Mismatched Gio and gio-plugins versions cause runtime panics.
+
+Use these specific versions for webview-based apps:
+
+```bash
+go get gioui.org@7bcb315ee174
+go get github.com/gioui-plugins/gio-plugins@v0.9.1
+go mod tidy
+```
+
+This gives you:
+- `gioui.org v0.9.1-0.20251215212054-7bcb315ee174`
+- `github.com/gioui-plugins/gio-plugins v0.9.1`
+
+Do **not** use `@latest` -- it may pull incompatible versions.
+
+## All Build Flags
+
+```bash
+goup-util build [platform] [app-directory] [flags]
+
+Flags:
+  --force            Force rebuild even if up-to-date
+  --check            Check if rebuild needed (exit 0=no, 1=yes)
+  --output           Custom output directory
+  --schemes          Deep linking URI schemes (comma-separated)
+  --queries          Android app package queries (comma-separated)
+  --signkey          Signing key path (keystore, Keychain key, or provisioning profile)
+  --skip-icons       Skip icon generation during build
 ```

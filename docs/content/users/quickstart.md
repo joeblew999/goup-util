@@ -5,17 +5,17 @@ draft: false
 weight: 1
 ---
 
-# Quick Start Guide
+# Quick Start
 
-Get up and running with goup-util in under 5 minutes.
+Get up and running with goup-util in 5 minutes.
 
 ## Prerequisites
 
-- [Go 1.21+](https://golang.org/)
-- [Task](https://taskfile.dev/) (optional, but recommended)
+- [Go 1.24+](https://golang.org/)
 - macOS, Linux, or Windows
+- [Task](https://taskfile.dev/) (optional but recommended for running predefined workflows)
 
-## Installation
+## Install goup-util
 
 ```bash
 # Clone the repository
@@ -25,103 +25,165 @@ cd goup-util
 # Build goup-util
 go build .
 
-# Or use task
-task build:self
+# Verify it works
+./goup-util --help
 ```
 
-## Run Your First Example
+Or install system-wide:
 
 ```bash
-# Build and run the hybrid dashboard example (macOS)
+go run . self setup
+```
+
+## Build Your First App
+
+The `hybrid-dashboard` example is the best starting point -- it's a Gio UI app with an embedded webview.
+
+### macOS
+
+```bash
+# Build the hybrid dashboard
+goup-util build macos examples/hybrid-dashboard
+
+# Open it
+open examples/hybrid-dashboard/.bin/macos/hybrid-dashboard.app
+```
+
+Or use Task:
+```bash
 task run:hybrid
-
-# Or manually
-go run . build macos examples/hybrid-dashboard
-open examples/hybrid-dashboard/.bin/hybrid-dashboard.app
 ```
 
-## Install Platform SDKs
-
-For Android and iOS development, you'll need platform SDKs:
+### Android
 
 ```bash
-# Android SDK and NDK
-go run . install android-sdk
-go run . install android-ndk
+# Install Android SDK and NDK (one-time)
+goup-util install android-sdk
+goup-util install android-ndk
 
-# iOS/macOS (requires manual Xcode installation from App Store)
-# Then install command-line tools:
+# Build APK
+goup-util build android examples/hybrid-dashboard
+```
+
+### iOS (requires macOS + Xcode)
+
+```bash
+# Install Xcode from App Store first, then:
 xcode-select --install
+
+# Build for iOS Simulator
+goup-util build ios-simulator examples/hybrid-dashboard
+
+# Build for device
+goup-util build ios examples/hybrid-dashboard
 ```
 
-## Build for Different Platforms
+### Windows
 
 ```bash
-# macOS app
-go run . build macos examples/hybrid-dashboard
-
-# iOS app (requires macOS)
-go run . build ios examples/hybrid-dashboard
-
-# Android APK
-go run . build android examples/hybrid-dashboard
-
-# Windows app (cross-compile may not work, use Windows machine)
-go run . build windows examples/hybrid-dashboard
+# On a Windows machine:
+goup-util build windows examples/hybrid-dashboard
 ```
+
+## Gio Version Compatibility
+
+**Important:** If you're creating a new project that uses gio-plugins (webviewer, hyperlink), you must pin specific versions. Mismatched versions cause runtime panics.
+
+```bash
+go get gioui.org@7bcb315ee174
+go get github.com/gioui-plugins/gio-plugins@v0.9.1
+go mod tidy
+```
+
+See [Platform Support](/users/platforms/#gio-version-compatibility) for details.
 
 ## Generate Icons
 
+Generate platform-specific icons from a source image:
+
 ```bash
-# Generate all platform icons from source image
-go run . icons examples/hybrid-dashboard
+goup-util icons examples/hybrid-dashboard
 ```
 
-## Common Tasks
+This reads `icon-source.png` from the project directory and generates icons for all platforms (icns, ico, Android drawables).
+
+Requirements:
+- `icon-source.png` must exist in the project root
+- Square PNG, 512x512 or larger recommended
+
+## Common Commands
 
 ```bash
-# List all available tasks
+# Build and run in one step
+goup-util run macos examples/hybrid-dashboard
+
+# Force rebuild (ignore cache)
+goup-util build --force macos examples/hybrid-dashboard
+
+# Check if rebuild needed
+goup-util build --check macos examples/hybrid-dashboard
+
+# Build with deep linking schemes
+goup-util build macos examples/hybrid-dashboard --schemes "myapp://"
+
+# List available SDKs
+goup-util list
+
+# Show configuration
+goup-util config
+
+# Check goup-util installation health
+goup-util self doctor
+```
+
+## Using Task
+
+goup-util comes with a comprehensive [Taskfile](https://taskfile.dev/) for common workflows:
+
+```bash
+# See all available tasks
 task --list
+
+# Quick demo (build and run hybrid dashboard)
+task dev:demo
 
 # Build all examples for macOS
 task build:examples:macos
 
-# Run screenshot capture
-task screenshot-hybrid
-
-# Check goup-util installation
-go run . self doctor
+# Start Hugo docs server
+task hugo:start
 ```
 
-## Zero-Compile Option (No Go Required)
+## Zero-Compile Option
 
-Want to run a website as a desktop app without any coding?
+Want to ship a website as a desktop app without writing any Go code?
 
-See the [Webviewer Shell](/users/webviewer-shell/) guide — download a pre-built binary, edit `app.json` with your URL, and run. No Go, no SDKs, no compilation.
+The [Webviewer Shell](/users/webviewer-shell/) is a pre-built binary that loads any URL from an `app.json` config file. Download, edit the URL, run. No Go, no SDKs, no compilation.
 
 ## Next Steps
 
-- Read [Webviewer Shell](/users/webviewer-shell/) for the zero-compile option
-- Read [Platform Support](/users/platforms/) for platform-specific details
-- See [Packaging Guide](/users/packaging/) for distribution packaging
-- Explore [Webview Analysis](/architecture/webview/) for hybrid app architecture
-- Check [AI Collaboration](/dev/agents/) for AI collaboration patterns
+- **[Platform Support](/users/platforms/)** -- Platform-specific details, requirements, and known limitations
+- **[Packaging](/users/packaging/)** -- Create signed bundles and distribution archives
+- **[Webviewer Shell](/users/webviewer-shell/)** -- Zero-compile option for shipping web apps
+- **[Architecture](/architecture/)** -- How goup-util and the webview system work
 
 ## Troubleshooting
 
 **Build fails with "SDK not found"**
-- Run `go run . install <sdk-name>` to install required SDKs
+- Run `goup-util install <sdk-name>` to install the required SDK
+- Run `goup-util list` to see available SDKs
 
 **Icons not generating**
-- Ensure `icon-source.png` exists in your project
-- Use a square PNG (512x512 or larger recommended)
+- Ensure `icon-source.png` exists in your project directory
+- Use a square PNG, 512x512 or larger
 
-**macOS screenshot permission denied**
-- Go to System Settings → Privacy & Security → Screen Recording
-- Grant permission to Terminal or your IDE
+**macOS "can't be opened because Apple cannot check it"**
+- Right-click the app, click Open, then click Open in the dialog
+- Or run: `xattr -cr path/to/app.app`
 
-## Getting Help
+**Gio version panic**
+- Pin versions: `go get gioui.org@7bcb315ee174 && go get github.com/gioui-plugins/gio-plugins@v0.9.1 && go mod tidy`
 
-- Run `go run . --help` for command reference
-- Check TODO.md for known issues and roadmap
-- File issues at https://github.com/joeblew999/goup-util/issues
+**Getting help**
+- `goup-util --help` for command reference
+- File issues at [github.com/joeblew999/goup-util/issues](https://github.com/joeblew999/goup-util/issues)
