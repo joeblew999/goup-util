@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -534,6 +536,122 @@ Examples:
 	},
 }
 
+var utmScreenshotCmd = &cobra.Command{
+	Use:   "screenshot <vm-name> [output-file]",
+	Short: "Capture a screenshot from the VM",
+	Long: `Capture a screenshot from a running VM.
+
+Uses PowerShell to capture the screen inside the VM, then pulls the
+image back to the host. Does NOT require goup-util to be installed in the VM.
+
+The VM must have the QEMU guest agent running.
+
+Examples:
+  # Capture screenshot from Windows VM
+  goup-util utm screenshot "Windows 11" windows-screenshot.png
+
+  # Capture with default filename
+  goup-util utm screenshot "Windows 11"`,
+	Args: cobra.RangeArgs(1, 2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		vmName := args[0]
+		output := "utm-screenshot.png"
+		if len(args) > 1 {
+			output = args[1]
+		}
+
+		// Remote temp path in the VM
+		remotePath := "C:\\Users\\User\\goup-util-screenshot.png"
+
+		// Use PowerShell to capture screenshot (no goup-util needed in VM)
+		// This uses .NET's System.Drawing to capture the primary screen
+		psScript := fmt.Sprintf(`powershell -Command "Add-Type -AssemblyName System.Windows.Forms; Add-Type -AssemblyName System.Drawing; $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $bmp = New-Object System.Drawing.Bitmap($bounds.Width, $bounds.Height); $graphics = [System.Drawing.Graphics]::FromImage($bmp); $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size); $bmp.Save('%s'); $graphics.Dispose(); $bmp.Dispose()"`, remotePath)
+
+		fmt.Printf("Capturing screenshot in VM '%s'...\n", vmName)
+		if err := utm.ExecInVM(vmName, psScript); err != nil {
+			// Fallback: try goup-util if PowerShell fails
+			fmt.Println("PowerShell screenshot failed, trying goup-util in VM...")
+			goupCmd := fmt.Sprintf("goup-util screenshot --force %s", remotePath)
+			if err2 := utm.ExecInVM(vmName, goupCmd); err2 != nil {
+				return fmt.Errorf("screenshot failed in VM: %w (PowerShell: %v)", err2, err)
+			}
+		}
+
+		// Pull the screenshot back to host
+		fmt.Printf("Pulling screenshot to %s...\n", output)
+		if err := utm.PullFile(vmName, remotePath, output); err != nil {
+			return fmt.Errorf("failed to pull screenshot: %w", err)
+		}
+
+		// Clean up remote file
+		cleanupCmd := fmt.Sprintf("del %s", remotePath)
+		_ = utm.ExecInVM(vmName, cleanupCmd) // Best-effort cleanup
+
+		fmt.Printf("✓ Screenshot saved to %s\n", output)
+		return nil
+	},
+}
+
+var utmRunCmd = &cobra.Command{
+	Use:   "run <vm-name> <app-directory>",
+	Short: "Build app for Windows and run it in the VM",
+	Long: `Cross-compile a Gio application for Windows, push it to the VM, and run it.
+
+This automates the full workflow:
+1. Build the app for Windows (cross-compile on macOS)
+2. Push the binary to the VM
+3. Launch it inside the VM
+
+The VM must have the QEMU guest agent running.
+
+Examples:
+  # Build and run hybrid-dashboard in Windows VM
+  goup-util utm run "Windows 11" examples/hybrid-dashboard
+
+  # Build and run webviewer example
+  goup-util utm run "Windows 11" examples/gio-plugin-webviewer`,
+	Args: cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		vmName := args[0]
+		appDir := args[1]
+
+		// Build for Windows
+		fmt.Printf("Building %s for Windows...\n", appDir)
+		buildCmdStr := fmt.Sprintf("goup-util build windows %s", appDir)
+		buildExec := exec.Command("sh", "-c", buildCmdStr)
+		buildExec.Stdout = os.Stdout
+		buildExec.Stderr = os.Stderr
+		if err := buildExec.Run(); err != nil {
+			return fmt.Errorf("Windows build failed: %w", err)
+		}
+
+		// Determine the output binary path
+		appName := filepath.Base(appDir)
+		localBinary := filepath.Join(appDir, ".bin", "windows", appName+".exe")
+
+		// Check binary exists
+		if _, err := os.Stat(localBinary); os.IsNotExist(err) {
+			return fmt.Errorf("built binary not found at %s", localBinary)
+		}
+
+		// Push binary to VM
+		remoteBinary := fmt.Sprintf("C:\\Users\\User\\%s.exe", appName)
+		fmt.Printf("Pushing %s to VM '%s'...\n", localBinary, vmName)
+		if err := utm.PushFile(vmName, localBinary, remoteBinary); err != nil {
+			return fmt.Errorf("failed to push binary: %w", err)
+		}
+
+		// Run in VM
+		fmt.Printf("Launching %s in VM...\n", appName)
+		if err := utm.ExecInVM(vmName, remoteBinary); err != nil {
+			return fmt.Errorf("failed to run in VM: %w", err)
+		}
+
+		fmt.Printf("✓ App running in VM '%s'\n", vmName)
+		return nil
+	},
+}
+
 var utmPortForwardCmd = &cobra.Command{
 	Use:   "port-forward <vm-name> <guest-port> <host-port>",
 	Short: "Set up port forwarding for a VM",
@@ -628,6 +746,8 @@ func init() {
 	utmCmd.AddCommand(utmExportCmd)
 	utmCmd.AddCommand(utmImportCmd)
 	utmCmd.AddCommand(utmPortForwardCmd)
+	utmCmd.AddCommand(utmScreenshotCmd)
+	utmCmd.AddCommand(utmRunCmd)
 
 	// Create flags
 	utmCreateCmd.Flags().Bool("force", false, "Force recreate VM if exists")

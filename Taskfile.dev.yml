@@ -351,14 +351,29 @@ tasks:
     cmds:
       - "{{.GOUP}} utm exec 'Windows 11' -- screenshot --info"
 
+  utm:windows:screenshot:
+    desc: Capture screenshot from Windows VM
+    vars:
+      OUTPUT: '{{.OUTPUT | default "windows-screenshot.png"}}'
+    cmds:
+      - "{{.GOUP}} utm screenshot 'Windows 11' {{.OUTPUT}}"
+
   utm:windows:screenshot:test:
     desc: Full screenshot test in Windows VM
     cmds:
       - echo "Testing screenshot capture in Windows VM..."
-      - "{{.GOUP}} utm exec 'Windows 11' -- screenshot test-windows.png"
-      - echo "Pulling screenshot..."
-      - "{{.GOUP}} utm pull 'Windows 11' test-windows.png ./docs/screenshots/"
+      - "{{.GOUP}} utm screenshot 'Windows 11' docs/screenshots/test-windows.png"
       - echo "Screenshot saved to docs/screenshots/test-windows.png"
+
+  utm:windows:run:hybrid:
+    desc: Build and run hybrid-dashboard in Windows VM
+    cmds:
+      - "{{.GOUP}} utm run 'Windows 11' {{.HYBRID_EXAMPLE}}"
+
+  utm:windows:run:webviewer:
+    desc: Build and run webviewer in Windows VM
+    cmds:
+      - "{{.GOUP}} utm run 'Windows 11' {{.WEBVIEWER_EXAMPLE}}"
 
   utm:windows:build:hybrid:
     desc: Build hybrid-dashboard in Windows VM
@@ -372,15 +387,15 @@ tasks:
       - echo "=== Full Windows Test Suite ==="
       - echo ""
       - echo "1. Checking VM status..."
-      - task dev:utm:windows:status
+      - task: utm:windows:status
       - echo ""
       - echo "2. Testing screenshot info..."
-      - task dev:utm:windows:screenshot:info
+      - task: utm:windows:screenshot:info
       - echo ""
-      - echo "3. Building hybrid-dashboard..."
-      - task dev:utm:windows:build:hybrid
+      - echo "3. Building and running hybrid-dashboard..."
+      - task: utm:windows:run:hybrid
       - echo ""
       - echo "4. Taking screenshot..."
-      - task dev:utm:windows:screenshot:test
+      - task: utm:windows:screenshot:test
       - echo ""
       - echo "=== Windows tests complete! ==="

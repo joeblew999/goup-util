@@ -182,6 +182,38 @@ tasks:
       - task: hyperlink:ios
 
   # ===========================================================================
+  # WINDOWS (build + run in UTM VM via goup-util)
+  # ===========================================================================
+
+  webviewer:windows:
+    desc: Build webviewer and run in Windows VM (via UTM)
+    cmds:
+      - "{{.GOUP}} utm run 'Windows 11' {{.WEBVIEWER_EXAMPLE}}"
+
+  hybrid:windows:
+    desc: Build hybrid-dashboard and run in Windows VM (via UTM)
+    cmds:
+      - "{{.GOUP}} utm run 'Windows 11' {{.HYBRID_EXAMPLE}}"
+
+  basic:windows:
+    desc: Build basic example and run in Windows VM (via UTM)
+    cmds:
+      - "{{.GOUP}} utm run 'Windows 11' {{.BASIC_EXAMPLE}}"
+
+  hyperlink:windows:
+    desc: Build hyperlink example and run in Windows VM (via UTM)
+    cmds:
+      - "{{.GOUP}} utm run 'Windows 11' {{.HYPERLINK_EXAMPLE}}"
+
+  all:windows:
+    desc: Build and run all examples in Windows VM (via UTM)
+    cmds:
+      - task: webviewer:windows
+      - task: hybrid:windows
+      - task: basic:windows
+      - task: hyperlink:windows
+
+  # ===========================================================================
   # DEEP LINKING TESTS
   # ===========================================================================
 

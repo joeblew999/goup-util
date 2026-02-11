@@ -20,11 +20,14 @@ var runCmd = &cobra.Command{
 This command builds the app (if needed) and launches it. The app is automatically
 opened using the platform-specific path, so you don't need to know where it's built.
 
-Platforms: macos, ios-simulator (macOS only for now)
+Platforms: macos, android, ios-simulator
+
+For Windows, use: goup-util utm run "Windows 11" <app-dir>
 
 Examples:
   goup-util run macos ./myapp
-  goup-util run macos examples/hybrid-dashboard`,
+  goup-util run android examples/hybrid-dashboard
+  goup-util run ios-simulator examples/hybrid-dashboard`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		platform := args[0]

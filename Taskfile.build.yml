@@ -179,6 +179,14 @@ tasks:
       - "{{.GOUP}} build android {{.WEBVIEWER_EXAMPLE}}"
       - "{{.GOUP}} build android {{.HYBRID_EXAMPLE}}"
 
+  windows:
+    desc: Build all examples for Windows
+    cmds:
+      - "{{.GOUP}} build windows {{.BASIC_EXAMPLE}}"
+      - "{{.GOUP}} build windows {{.HYPERLINK_EXAMPLE}}"
+      - "{{.GOUP}} build windows {{.WEBVIEWER_EXAMPLE}}"
+      - "{{.GOUP}} build windows {{.HYBRID_EXAMPLE}}"
+
   # Build gogio tool from .src (respects .src pattern)
   gogio:
     desc: Build gogio tool from .src/gio-cmd
@@ -208,6 +216,7 @@ tasks:
       - task: macos
       - task: ios
       - task: android
+      - task: windows
       - task: web
 
   # ===========================================================================
