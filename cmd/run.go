@@ -5,7 +5,9 @@ import (
 	"os/exec"
 	"runtime"
 
+	"github.com/joeblew999/goup-util/pkg/adb"
 	"github.com/joeblew999/goup-util/pkg/project"
+	"github.com/joeblew999/goup-util/pkg/simctl"
 	"github.com/joeblew999/goup-util/pkg/utils"
 	"github.com/spf13/cobra"
 )
@@ -28,8 +30,8 @@ Examples:
 		platform := args[0]
 		appDir := args[1]
 
-		// Validate platform - only support platforms we can run locally
-		validPlatforms := []string{"macos"}
+		// Validate platform - support platforms we can run locally
+		validPlatforms := []string{"macos", "android"}
 		if runtime.GOOS == "darwin" {
 			validPlatforms = append(validPlatforms, "ios-simulator")
 		}
@@ -65,6 +67,10 @@ Examples:
 			if err := buildMacOS(proj, platform, opts); err != nil {
 				return fmt.Errorf("build failed: %w", err)
 			}
+		case "android":
+			if err := buildAndroid(proj, platform, opts); err != nil {
+				return fmt.Errorf("build failed: %w", err)
+			}
 		case "ios-simulator":
 			if err := buildIOS(proj, platform, opts, true); err != nil {
 				return fmt.Errorf("build failed: %w", err)
@@ -78,12 +84,42 @@ Examples:
 		switch platform {
 		case "macos":
 			return launchMacOSApp(appPath)
+		case "android":
+			return launchAndroidApp(appPath, proj.Name)
 		case "ios-simulator":
-			return launchIOSSimulator(appPath)
+			return launchIOSSimulator(appPath, proj.Name)
 		}
 
 		return nil
 	},
+}
+
+func launchAndroidApp(apkPath, appName string) error {
+	client := adb.New()
+	if !client.Available() {
+		return fmt.Errorf("adb not found at %s\nInstall with: goup-util install platform-tools", client.ADBPath())
+	}
+
+	// Ensure a device is connected
+	if !client.HasDevice() {
+		return fmt.Errorf("no Android device connected. Start an emulator with: goup-util android emulator start <avd-name>")
+	}
+
+	// Install the APK
+	fmt.Printf("Installing %s...\n", apkPath)
+	if err := client.Install(apkPath); err != nil {
+		return fmt.Errorf("install failed: %w", err)
+	}
+
+	// Launch the app — gogio uses "localhost.<appname>" as package by default
+	pkg := "localhost." + appName
+	fmt.Printf("Launching %s...\n", pkg)
+	if err := client.Launch(pkg); err != nil {
+		return fmt.Errorf("launch failed: %w", err)
+	}
+
+	fmt.Printf("✓ App running on device\n")
+	return nil
 }
 
 func launchMacOSApp(appPath string) error {
@@ -91,24 +127,36 @@ func launchMacOSApp(appPath string) error {
 	return cmd.Run()
 }
 
-func launchIOSSimulator(appPath string) error {
-	// Boot a simulator if needed, then install and launch
-	// First, try to open simulator
-	bootCmd := exec.Command("open", "-a", "Simulator")
-	if err := bootCmd.Run(); err != nil {
-		fmt.Printf("Note: Could not open Simulator app: %v\n", err)
+func launchIOSSimulator(appPath, appName string) error {
+	client := simctl.New()
+	if !client.Available() {
+		return fmt.Errorf("xcrun simctl not available\nInstall Xcode command line tools: xcode-select --install")
+	}
+
+	// Ensure a simulator is booted
+	if !client.HasBooted() {
+		// Try to open Simulator.app which boots the default device
+		fmt.Println("No simulator booted, opening Simulator.app...")
+		if err := client.OpenSimulatorApp(); err != nil {
+			return fmt.Errorf("could not open Simulator app: %w\nBoot a simulator with: goup-util ios boot \"iPhone 16\"", err)
+		}
+		fmt.Println("Waiting for simulator to boot...")
 	}
 
 	// Install the app
-	installCmd := exec.Command("xcrun", "simctl", "install", "booted", appPath)
-	if err := installCmd.Run(); err != nil {
-		return fmt.Errorf("failed to install on simulator: %w", err)
+	fmt.Printf("Installing %s...\n", appPath)
+	if err := client.Install(appPath); err != nil {
+		return fmt.Errorf("install failed: %w", err)
 	}
 
-	// Get the bundle ID from the app
-	// For now, assume the app name matches the bundle ID base
-	// In a real implementation, we'd read Info.plist
-	fmt.Printf("App installed. Launch it from the Simulator.\n")
+	// Launch the app — gogio uses "localhost.<appname>" as bundle ID by default
+	bundleID := "localhost." + appName
+	fmt.Printf("Launching %s...\n", bundleID)
+	if err := client.Launch(bundleID); err != nil {
+		return fmt.Errorf("launch failed: %w", err)
+	}
+
+	fmt.Printf("✓ App running on simulator\n")
 	return nil
 }
 

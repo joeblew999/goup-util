@@ -12,7 +12,7 @@ Get up and running with goup-util in under 5 minutes.
 
 ```bash
 # Clone the repository
-git clone https://github.com/joeblew99/goup-util
+git clone https://github.com/joeblew999/goup-util
 cd goup-util
 
 # Build goup-util
@@ -88,6 +88,7 @@ go run . self doctor
 
 ## Next Steps
 
+- Read [Webviewer Shell](WEBVIEWER-SHELL.md) for the zero-compile option (no Go required)
 - Read [Platform Support](platforms.md) for platform-specific details
 - See [PACKAGING.md](PACKAGING.md) for distribution packaging
 - Explore [WEBVIEW-ANALYSIS.md](WEBVIEW-ANALYSIS.md) for hybrid app architecture
@@ -110,4 +111,4 @@ go run . self doctor
 
 - Run `go run . --help` for command reference
 - Check [TODO.md](../TODO.md) for known issues and roadmap
-- File issues at https://github.com/joeblew99/goup-util/issues
+- File issues at https://github.com/joeblew999/goup-util/issues

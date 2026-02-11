@@ -136,7 +136,7 @@ The `examples/` directory contains working demonstrations:
 
 - Check [TODO.md](../TODO.md) for known issues and roadmap
 - Read [CLAUDE.md](../CLAUDE.md) for development guidelines
-- File issues at https://github.com/joeblew99/goup-util/issues
+- File issues at https://github.com/joeblew999/goup-util/issues
 
 ## Philosophy
 

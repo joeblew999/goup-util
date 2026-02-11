@@ -101,6 +101,38 @@ tasks:
       - task: hybrid:windows:deeplink
 
   # ===========================================================================
+  # BUILD WEBVIEWER SHELL (zero-compile: users just provide app.json with a URL)
+  # ===========================================================================
+
+  webviewer:macos:
+    desc: Build webviewer shell for macOS
+    cmds:
+      - "{{.GOUP}} build macos {{.WEBVIEWER_EXAMPLE}}"
+
+  webviewer:ios:
+    desc: Build webviewer shell for iOS
+    cmds:
+      - "{{.GOUP}} build ios {{.WEBVIEWER_EXAMPLE}}"
+
+  webviewer:android:
+    desc: Build webviewer shell for Android
+    cmds:
+      - "{{.GOUP}} build android {{.WEBVIEWER_EXAMPLE}}"
+
+  webviewer:windows:
+    desc: Build webviewer shell for Windows
+    cmds:
+      - "{{.GOUP}} build windows {{.WEBVIEWER_EXAMPLE}}"
+
+  webviewer:all:
+    desc: Build webviewer shell for all platforms
+    cmds:
+      - task: webviewer:macos
+      - task: webviewer:ios
+      - task: webviewer:android
+      - task: webviewer:windows
+
+  # ===========================================================================
   # BUILD BASIC EXAMPLE
   # ===========================================================================
 
@@ -127,6 +159,7 @@ tasks:
     desc: Build all examples for macOS
     cmds:
       - "{{.GOUP}} build macos {{.BASIC_EXAMPLE}}"
+      - "{{.GOUP}} build macos {{.HYPERLINK_EXAMPLE}}"
       - "{{.GOUP}} build macos {{.WEBVIEWER_EXAMPLE}}"
       - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
 
@@ -134,6 +167,7 @@ tasks:
     desc: Build all examples for iOS
     cmds:
       - "{{.GOUP}} build ios {{.BASIC_EXAMPLE}}"
+      - "{{.GOUP}} build ios {{.HYPERLINK_EXAMPLE}}"
       - "{{.GOUP}} build ios {{.WEBVIEWER_EXAMPLE}}"
       - "{{.GOUP}} build ios {{.HYBRID_EXAMPLE}}"
 
@@ -141,6 +175,7 @@ tasks:
     desc: Build all examples for Android
     cmds:
       - "{{.GOUP}} build android {{.BASIC_EXAMPLE}}"
+      - "{{.GOUP}} build android {{.HYPERLINK_EXAMPLE}}"
       - "{{.GOUP}} build android {{.WEBVIEWER_EXAMPLE}}"
       - "{{.GOUP}} build android {{.HYBRID_EXAMPLE}}"
 

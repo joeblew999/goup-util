@@ -1,5 +1,8 @@
-# Build demo app binaries for releases
+# Build demo app binaries and webviewer shell for releases
 # Uses Task to build - same tasks that work locally work in CI
+#
+# The webviewer shell is a pre-built binary that loads any website via app.json.
+# Users download the zip, edit app.json with their URL, and run. No compilation needed.
 name: Demo Release
 
 on:
@@ -39,28 +42,44 @@ jobs:
       - name: Build hybrid-dashboard for iOS
         run: task build:hybrid:ios
 
-      - name: Package macOS artifact
+      - name: Build webviewer shell for macOS
+        run: task build:webviewer:macos
+
+      - name: Package hybrid-dashboard macOS
         run: |
           cd examples/hybrid-dashboard/.bin/macos
           zip -r ../hybrid-dashboard-macos.zip hybrid-dashboard.app
 
-      - name: Package iOS artifact
+      - name: Package hybrid-dashboard iOS
         run: |
           cd examples/hybrid-dashboard/.bin/ios
           zip -r ../hybrid-dashboard-ios.zip hybrid-dashboard.app
 
-      - name: Upload macOS artifact
+      - name: Package webviewer shell macOS (includes app.json + README)
+        run: |
+          cd examples/gio-plugin-webviewer/.bin/macos
+          cp ../../app.json .
+          cp ../../README.txt .
+          zip -r ../webviewer-shell-macos.zip gio-plugin-webviewer.app app.json README.txt
+
+      - name: Upload hybrid-dashboard macOS
         uses: actions/upload-artifact@v4
         with:
           name: demo-macos
           path: examples/hybrid-dashboard/.bin/hybrid-dashboard-macos.zip
 
-      - name: Upload iOS artifact
+      - name: Upload hybrid-dashboard iOS
         uses: actions/upload-artifact@v4
         with:
           name: demo-ios
           path: examples/hybrid-dashboard/.bin/hybrid-dashboard-ios.zip
         continue-on-error: true  # iOS signing may fail in CI without certs
+
+      - name: Upload webviewer shell macOS
+        uses: actions/upload-artifact@v4
+        with:
+          name: webviewer-shell-macos
+          path: examples/gio-plugin-webviewer/.bin/webviewer-shell-macos.zip
 
   build-windows:
     runs-on: windows-latest
@@ -86,14 +105,29 @@ jobs:
       - name: Build hybrid-dashboard for Windows
         run: task build:hybrid:windows
 
-      - name: Package Windows artifact
+      - name: Build webviewer shell for Windows
+        run: task build:webviewer:windows
+
+      - name: Package hybrid-dashboard Windows
         run: Compress-Archive -Path examples/hybrid-dashboard/.bin/windows/*.exe -DestinationPath examples/hybrid-dashboard/.bin/hybrid-dashboard-windows.zip
 
-      - name: Upload Windows artifact
+      - name: Package webviewer shell Windows (includes app.json + README)
+        run: |
+          Copy-Item examples/gio-plugin-webviewer/app.json examples/gio-plugin-webviewer/.bin/windows/
+          Copy-Item examples/gio-plugin-webviewer/README.txt examples/gio-plugin-webviewer/.bin/windows/
+          Compress-Archive -Path examples/gio-plugin-webviewer/.bin/windows/*.exe, examples/gio-plugin-webviewer/.bin/windows/app.json, examples/gio-plugin-webviewer/.bin/windows/README.txt -DestinationPath examples/gio-plugin-webviewer/.bin/webviewer-shell-windows.zip
+
+      - name: Upload hybrid-dashboard Windows
         uses: actions/upload-artifact@v4
         with:
           name: demo-windows
           path: examples/hybrid-dashboard/.bin/hybrid-dashboard-windows.zip
+
+      - name: Upload webviewer shell Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: webviewer-shell-windows
+          path: examples/gio-plugin-webviewer/.bin/webviewer-shell-windows.zip
 
   release:
     needs: [build-apple, build-windows]
@@ -115,5 +149,7 @@ jobs:
             artifacts/demo-macos/*.zip
             artifacts/demo-ios/*.zip
             artifacts/demo-windows/*.zip
+            artifacts/webviewer-shell-macos/*.zip
+            artifacts/webviewer-shell-windows/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

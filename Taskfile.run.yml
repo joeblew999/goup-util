@@ -64,6 +64,105 @@ tasks:
       - "{{.GOUP}} run macos {{.BASIC_EXAMPLE}}"
 
   # ===========================================================================
+  # WEBVIEWER SHELL (zero-compile exercise)
+  # ===========================================================================
+
+  shell:
+    desc: "Build webviewer shell, set config, and launch (usage: task run:shell URL=https://example.com)"
+    vars:
+      URL: '{{.URL | default "https://test-hono.gedw99.workers.dev/?local"}}'
+      APP_NAME: '{{.APP_NAME | default "Gio WebViewer"}}'
+      SHELL_DIR: "{{.WEBVIEWER_EXAMPLE}}/.bin/macos"
+    cmds:
+      - "{{.GOUP}} build macos {{.WEBVIEWER_EXAMPLE}}"
+      - |
+        cat > {{.SHELL_DIR}}/app.json << 'ENDJSON'
+        {
+            "url": "{{.URL}}",
+            "name": "{{.APP_NAME}}",
+            "width": 1200,
+            "height": 800,
+            "update": {
+                "repo": "joeblew999/goup-util",
+                "asset": "webviewer-shell"
+            }
+        }
+        ENDJSON
+      - echo "Launching shell with URL {{.URL}}"
+      - open {{.SHELL_DIR}}/gio-plugin-webviewer.app
+
+  shell:update:
+    desc: Test webviewer shell self-update (checks GitHub releases)
+    vars:
+      SHELL_BIN: "{{.WEBVIEWER_EXAMPLE}}/.bin/macos/gio-plugin-webviewer.app/Contents/MacOS/gio-plugin-webviewer"
+    cmds:
+      - "{{.SHELL_BIN}} --update || echo 'Update check completed (no release asset published yet)'"
+
+  # ===========================================================================
+  # ANDROID (build + deploy to device via goup-util)
+  # ===========================================================================
+
+  webviewer:android:
+    desc: Build, install, and launch webviewer on connected Android device
+    cmds:
+      - "{{.GOUP}} run android {{.WEBVIEWER_EXAMPLE}}"
+
+  hybrid:android:
+    desc: Build, install, and launch hybrid-dashboard on connected Android device
+    cmds:
+      - "{{.GOUP}} run android {{.HYBRID_EXAMPLE}}"
+
+  basic:android:
+    desc: Build, install, and launch basic example on connected Android device
+    cmds:
+      - "{{.GOUP}} run android {{.BASIC_EXAMPLE}}"
+
+  hyperlink:android:
+    desc: Build, install, and launch hyperlink example on connected Android device
+    cmds:
+      - "{{.GOUP}} run android {{.HYPERLINK_EXAMPLE}}"
+
+  all:android:
+    desc: Build and install all examples on connected Android device
+    cmds:
+      - task: webviewer:android
+      - task: hybrid:android
+      - task: basic:android
+      - task: hyperlink:android
+
+  # ===========================================================================
+  # iOS SIMULATOR (build + deploy to simulator via goup-util)
+  # ===========================================================================
+
+  webviewer:ios:
+    desc: Build, install, and launch webviewer on iOS simulator
+    cmds:
+      - "{{.GOUP}} run ios-simulator {{.WEBVIEWER_EXAMPLE}}"
+
+  hybrid:ios:
+    desc: Build, install, and launch hybrid-dashboard on iOS simulator
+    cmds:
+      - "{{.GOUP}} run ios-simulator {{.HYBRID_EXAMPLE}}"
+
+  basic:ios:
+    desc: Build, install, and launch basic example on iOS simulator
+    cmds:
+      - "{{.GOUP}} run ios-simulator {{.BASIC_EXAMPLE}}"
+
+  hyperlink:ios:
+    desc: Build, install, and launch hyperlink example on iOS simulator
+    cmds:
+      - "{{.GOUP}} run ios-simulator {{.HYPERLINK_EXAMPLE}}"
+
+  all:ios:
+    desc: Build and install all examples on iOS simulator
+    cmds:
+      - task: webviewer:ios
+      - task: hybrid:ios
+      - task: basic:ios
+      - task: hyperlink:ios
+
+  # ===========================================================================
   # DEEP LINKING TESTS
   # ===========================================================================
 

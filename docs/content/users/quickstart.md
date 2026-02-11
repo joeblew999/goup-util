@@ -19,7 +19,7 @@ Get up and running with goup-util in under 5 minutes.
 
 ```bash
 # Clone the repository
-git clone https://github.com/joeblew99/goup-util
+git clone https://github.com/joeblew999/goup-util
 cd goup-util
 
 # Build goup-util
@@ -93,8 +93,15 @@ task screenshot-hybrid
 go run . self doctor
 ```
 
+## Zero-Compile Option (No Go Required)
+
+Want to run a website as a desktop app without any coding?
+
+See the [Webviewer Shell](/users/webviewer-shell/) guide — download a pre-built binary, edit `app.json` with your URL, and run. No Go, no SDKs, no compilation.
+
 ## Next Steps
 
+- Read [Webviewer Shell](/users/webviewer-shell/) for the zero-compile option
 - Read [Platform Support](/users/platforms/) for platform-specific details
 - See [Packaging Guide](/users/packaging/) for distribution packaging
 - Explore [Webview Analysis](/architecture/webview/) for hybrid app architecture
@@ -117,4 +124,4 @@ go run . self doctor
 
 - Run `go run . --help` for command reference
 - Check TODO.md for known issues and roadmap
-- File issues at https://github.com/joeblew99/goup-util/issues
+- File issues at https://github.com/joeblew999/goup-util/issues

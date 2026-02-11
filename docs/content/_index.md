@@ -21,6 +21,7 @@ Build pure Go apps that run everywhere:
 ## Quick Links
 
 - **[Quick Start Guide](/users/quickstart/)** - Get up and running in 5 minutes
+- **[Webviewer Shell](/users/webviewer-shell/)** - Run any website as a desktop app (no coding needed)
 - **[Platform Support](/users/platforms/)** - Platform-specific features and requirements
 - **[Packaging Guide](/users/packaging/)** - Create distribution-ready packages
 - **[Webview Analysis](/architecture/webview/)** - Deep dive into hybrid app architecture
@@ -109,6 +110,7 @@ Build apps that combine **native Gio UI** (controls, navigation) with **native w
 - ✅ **Asset Generation** - Icons for all platforms
 - ✅ **Idempotent Builds** - Safe to run multiple times
 - ✅ **Screenshot Capture** - Built-in App Store screenshot generation
+- ✅ **[Webviewer Shell](/users/webviewer-shell/)** - Pre-built binary to run any website as a desktop app
 
 ## Examples
 
@@ -117,13 +119,13 @@ The `examples/` directory contains working demonstrations:
 - **hybrid-dashboard** - Gio UI + webview hybrid app (recommended starting point)
 - **gio-basic** - Simple Gio UI demo
 - **gio-plugin-hyperlink** - Hyperlink plugin integration
-- **gio-plugin-webviewer** - Multi-tab webview browser
+- **gio-plugin-webviewer** - Multi-tab webview browser / [Webviewer Shell](/users/webviewer-shell/) (zero-compile)
 
 ## Getting Help
 
 - Check TODO.md for known issues and roadmap
 - Read CLAUDE.md for development guidelines
-- File issues at https://github.com/joeblew99/goup-util/issues
+- File issues at https://github.com/joeblew999/goup-util/issues
 
 ## Philosophy
 

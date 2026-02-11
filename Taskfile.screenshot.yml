@@ -1,18 +1,19 @@
 # https://taskfile.dev
-# Screenshot tasks using robotgo (requires CGO)
+# Screenshot tasks for all platforms
 #
 # Namespaced as 'screenshot:' in main Taskfile
-# Usage: task screenshot:capture, task screenshot:appstore:ios, etc.
+# Usage: task screenshot:capture, task screenshot:android, task screenshot:ios, etc.
+#
+# Desktop screenshots require CGO (robotgo).
+# Android/iOS screenshots use device-native tools (no CGO needed).
 #
 # Requires Screen Recording permission on macOS 10.15+
 #
 version: '3'
 
+# Vars BASIC_EXAMPLE, WEBVIEWER_EXAMPLE, etc. inherited from main Taskfile.yml
+
 vars:
-  BASIC_EXAMPLE: examples/gio-basic
-  WEBVIEWER_EXAMPLE: examples/gio-plugin-webviewer
-  HYPERLINK_EXAMPLE: examples/gio-plugin-hyperlink
-  HYBRID_EXAMPLE: examples/hybrid-dashboard
   SRC_DIR: .src
   SCREENSHOT_DIR: docs/screenshots
   APPSTORE_DIR: docs/screenshots/appstore
@@ -30,11 +31,11 @@ tasks:
       - CGO_ENABLED=1 go build -tags screenshot -o .bin/goup-util .
 
   # ===========================================================================
-  # BASIC COMMANDS
+  # DESKTOP SCREENSHOTS (robotgo, requires CGO)
   # ===========================================================================
 
   capture:
-    desc: Take a full screen screenshot
+    desc: Take a full screen screenshot (desktop)
     cmds:
       - CGO_ENABLED=1 go run -tags screenshot . screenshot screenshot.png
 
@@ -54,48 +55,165 @@ tasks:
       - CGO_ENABLED=1 go run -tags screenshot . screenshot --delay 3000 screenshot-delayed.png
 
   test:
-    desc: Test screenshot functionality
+    desc: Test screenshot functionality (all platforms)
     cmds:
-      - echo "Testing screenshot functionality..."
+      - echo "=== Desktop Screenshot Test ==="
       - CGO_ENABLED=1 go run -tags screenshot . screenshot --info
       - echo "Taking test screenshot..."
       - CGO_ENABLED=1 go run -tags screenshot . screenshot --force test-screenshot.png
       - ls -lh test-screenshot.png
       - rm -f test-screenshot.png
+      - echo ""
+      - echo "=== Android Screenshot Test ==="
+      - "{{.GOUP}} android screenshot test-android.png || echo 'No Android device (skipped)'"
+      - rm -f test-android.png
+      - echo ""
+      - echo "=== iOS Screenshot Test ==="
+      - "{{.GOUP}} ios screenshot test-ios.png || echo 'No iOS simulator booted (skipped)'"
+      - rm -f test-ios.png
+      - echo ""
       - echo "Screenshot test complete"
 
   # ===========================================================================
-  # EXAMPLE APP SCREENSHOTS
+  # ANDROID SCREENSHOTS (via adb screencap, no CGO needed)
+  # ===========================================================================
+
+  android:
+    desc: Capture Android emulator/device screenshot
+    vars:
+      OUTPUT: '{{.OUTPUT | default "android-screenshot.png"}}'
+    cmds:
+      - mkdir -p {{.SCREENSHOT_DIR}}
+      - "{{.GOUP}} android screenshot {{.SCREENSHOT_DIR}}/{{.OUTPUT}}"
+
+  android:hybrid:
+    desc: Build hybrid-dashboard for Android, deploy, and screenshot
+    cmds:
+      - mkdir -p {{.SCREENSHOT_DIR}}
+      - echo "Building hybrid-dashboard for Android..."
+      - "{{.GOUP}} build android {{.HYBRID_EXAMPLE}}"
+      - echo "Installing on device..."
+      - "{{.GOUP}} android install {{.HYBRID_EXAMPLE}}/.bin/android/gio-plugin-webviewer.apk"
+      - echo "Launching..."
+      - "{{.GOUP}} android launch localhost.main"
+      - echo "Waiting for app to render..."
+      - sleep 5
+      - echo "Capturing screenshot..."
+      - "{{.GOUP}} android screenshot {{.SCREENSHOT_DIR}}/android-hybrid-dashboard.png"
+      - echo "Screenshot saved to {{.SCREENSHOT_DIR}}/android-hybrid-dashboard.png"
+
+  android:webviewer:
+    desc: Build webviewer for Android, deploy, and screenshot
+    cmds:
+      - mkdir -p {{.SCREENSHOT_DIR}}
+      - echo "Building webviewer for Android..."
+      - "{{.GOUP}} build android {{.WEBVIEWER_EXAMPLE}}"
+      - echo "Installing on device..."
+      - "{{.GOUP}} android install {{.WEBVIEWER_EXAMPLE}}/.bin/android/gio-plugin-webviewer.apk"
+      - echo "Launching..."
+      - "{{.GOUP}} android launch localhost.main"
+      - echo "Waiting for app to render..."
+      - sleep 5
+      - echo "Capturing screenshot..."
+      - "{{.GOUP}} android screenshot {{.SCREENSHOT_DIR}}/android-webviewer.png"
+      - echo "Screenshot saved to {{.SCREENSHOT_DIR}}/android-webviewer.png"
+
+  android:all:
+    desc: Capture Android screenshots of all examples
+    cmds:
+      - echo "Capturing Android screenshots..."
+      - task: android:webviewer
+      - task: android:hybrid
+      - echo ""
+      - echo "Android screenshots saved to {{.SCREENSHOT_DIR}}/"
+      - ls -la {{.SCREENSHOT_DIR}}/android-*
+
+  # ===========================================================================
+  # iOS SIMULATOR SCREENSHOTS (via simctl, no CGO needed)
+  # ===========================================================================
+
+  ios:
+    desc: Capture iOS simulator screenshot
+    vars:
+      OUTPUT: '{{.OUTPUT | default "ios-screenshot.png"}}'
+    cmds:
+      - mkdir -p {{.SCREENSHOT_DIR}}
+      - "{{.GOUP}} ios screenshot --clean-status {{.SCREENSHOT_DIR}}/{{.OUTPUT}}"
+
+  ios:hybrid:
+    desc: Build hybrid-dashboard for iOS simulator, deploy, and screenshot
+    cmds:
+      - mkdir -p {{.SCREENSHOT_DIR}}
+      - echo "Building hybrid-dashboard for iOS simulator..."
+      - "{{.GOUP}} build ios-simulator {{.HYBRID_EXAMPLE}}"
+      - echo "Installing on simulator..."
+      - "{{.GOUP}} ios install {{.HYBRID_EXAMPLE}}/.bin/ios-simulator/gio-plugin-webviewer.app"
+      - echo "Launching..."
+      - "{{.GOUP}} ios launch localhost.main"
+      - echo "Waiting for app to render..."
+      - sleep 5
+      - echo "Capturing screenshot..."
+      - "{{.GOUP}} ios screenshot --clean-status {{.SCREENSHOT_DIR}}/ios-hybrid-dashboard.png"
+      - echo "Screenshot saved to {{.SCREENSHOT_DIR}}/ios-hybrid-dashboard.png"
+
+  ios:webviewer:
+    desc: Build webviewer for iOS simulator, deploy, and screenshot
+    cmds:
+      - mkdir -p {{.SCREENSHOT_DIR}}
+      - echo "Building webviewer for iOS simulator..."
+      - "{{.GOUP}} build ios-simulator {{.WEBVIEWER_EXAMPLE}}"
+      - echo "Installing on simulator..."
+      - "{{.GOUP}} ios install {{.WEBVIEWER_EXAMPLE}}/.bin/ios-simulator/gio-plugin-webviewer.app"
+      - echo "Launching..."
+      - "{{.GOUP}} ios launch localhost.main"
+      - echo "Waiting for app to render..."
+      - sleep 5
+      - echo "Capturing screenshot..."
+      - "{{.GOUP}} ios screenshot --clean-status {{.SCREENSHOT_DIR}}/ios-webviewer.png"
+      - echo "Screenshot saved to {{.SCREENSHOT_DIR}}/ios-webviewer.png"
+
+  ios:all:
+    desc: Capture iOS simulator screenshots of all examples
+    cmds:
+      - echo "Capturing iOS simulator screenshots..."
+      - task: ios:webviewer
+      - task: ios:hybrid
+      - echo ""
+      - echo "iOS screenshots saved to {{.SCREENSHOT_DIR}}/"
+      - ls -la {{.SCREENSHOT_DIR}}/ios-*
+
+  # ===========================================================================
+  # EXAMPLE APP SCREENSHOTS (desktop via robotgo)
   # ===========================================================================
 
   example:hybrid:
-    desc: Capture hybrid-dashboard screenshot
+    desc: Capture hybrid-dashboard screenshot (desktop)
     cmds:
       - mkdir -p {{.SCREENSHOT_DIR}}
       - CGO_ENABLED=1 go run -tags screenshot . run-and-capture {{.HYBRID_EXAMPLE}} {{.SCREENSHOT_DIR}}/hybrid-dashboard.png
 
   example:webviewer:
-    desc: Capture webviewer example screenshot
+    desc: Capture webviewer example screenshot (desktop)
     cmds:
       - mkdir -p {{.SCREENSHOT_DIR}}
       - CGO_ENABLED=1 go run -tags screenshot . run-and-capture {{.WEBVIEWER_EXAMPLE}} {{.SCREENSHOT_DIR}}/webviewer.png
 
   example:hyperlink:
-    desc: Capture hyperlink example screenshot
+    desc: Capture hyperlink example screenshot (desktop)
     cmds:
       - mkdir -p {{.SCREENSHOT_DIR}}
       - CGO_ENABLED=1 go run -tags screenshot . run-and-capture {{.HYPERLINK_EXAMPLE}} {{.SCREENSHOT_DIR}}/hyperlink.png
 
   example:basic:
-    desc: Capture basic example screenshot
+    desc: Capture basic example screenshot (desktop)
     cmds:
       - mkdir -p {{.SCREENSHOT_DIR}}
       - CGO_ENABLED=1 go run -tags screenshot . run-and-capture {{.BASIC_EXAMPLE}} {{.SCREENSHOT_DIR}}/basic.png
 
   example:all:
-    desc: Capture screenshots of all examples
+    desc: Capture screenshots of all examples (desktop)
     cmds:
-      - echo "Capturing all example screenshots..."
+      - echo "Capturing all desktop example screenshots..."
       - mkdir -p {{.SCREENSHOT_DIR}}
       - task: example:hybrid
       - task: example:webviewer
@@ -103,6 +221,24 @@ tasks:
       - echo ""
       - echo "Screenshots saved to {{.SCREENSHOT_DIR}}/"
       - ls -la {{.SCREENSHOT_DIR}}/
+
+  # ===========================================================================
+  # ALL PLATFORMS (unified)
+  # ===========================================================================
+
+  all:
+    desc: Capture screenshots on all available platforms (desktop + Android + iOS)
+    cmds:
+      - echo "=== Desktop Screenshots ==="
+      - task: example:all
+      - echo ""
+      - echo "=== Android Screenshots ==="
+      - task: android:all
+      - echo ""
+      - echo "=== iOS Simulator Screenshots ==="
+      - task: ios:all
+      - echo ""
+      - echo "All platform screenshots saved to {{.SCREENSHOT_DIR}}/"
 
   # ===========================================================================
   # .SRC DEMO SCREENSHOTS
@@ -145,6 +281,14 @@ tasks:
       - CGO_ENABLED=1 go run -tags screenshot . run-and-capture --preset ipad-12.9 {{.HYBRID_EXAMPLE}} {{.APPSTORE_DIR}}/ios/ipad-12.9.png
       - ls -lh {{.APPSTORE_DIR}}/ios/
 
+  appstore:ios:device:
+    desc: Generate iOS App Store screenshots from simulator (native resolution)
+    cmds:
+      - mkdir -p {{.APPSTORE_DIR}}/ios
+      - echo "Capturing iOS App Store screenshots from simulator..."
+      - "{{.GOUP}} ios screenshot --clean-status {{.APPSTORE_DIR}}/ios/simulator.png"
+      - ls -lh {{.APPSTORE_DIR}}/ios/
+
   appstore:macos:
     desc: Generate macOS App Store screenshots
     cmds:
@@ -156,13 +300,11 @@ tasks:
       - ls -lh {{.APPSTORE_DIR}}/macos/
 
   appstore:android:
-    desc: Generate Android Play Store screenshots
+    desc: Generate Android Play Store screenshots from device/emulator
     cmds:
       - mkdir -p {{.APPSTORE_DIR}}/android
-      - echo "Capturing Android Play Store screenshots..."
-      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture --preset android-phone {{.HYBRID_EXAMPLE}} {{.APPSTORE_DIR}}/android/phone.png
-      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture --preset android-phone-landscape {{.HYBRID_EXAMPLE}} {{.APPSTORE_DIR}}/android/phone-landscape.png
-      - CGO_ENABLED=1 go run -tags screenshot . run-and-capture --preset android-tablet-10 {{.HYBRID_EXAMPLE}} {{.APPSTORE_DIR}}/android/tablet.png
+      - echo "Capturing Android Play Store screenshots from device..."
+      - "{{.GOUP}} android screenshot {{.APPSTORE_DIR}}/android/device.png"
       - ls -lh {{.APPSTORE_DIR}}/android/
 
   appstore:windows:

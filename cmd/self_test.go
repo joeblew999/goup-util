@@ -23,7 +23,7 @@ func TestBootstrapScriptGenerationLocal(t *testing.T) {
 	}
 
 	config := self.Config{
-		Repo:           "joeblew99/goup-util",
+		Repo:           "joeblew999/goup-util",
 		SupportedArchs: "darwin-amd64, darwin-arm64, linux-amd64, linux-arm64, windows-amd64, windows-arm64",
 		MacOSArchs:     []string{"amd64", "arm64"},
 		WindowsArchs:   []string{"amd64", "arm64"},
@@ -93,7 +93,7 @@ func TestBootstrapScriptGenerationLocal(t *testing.T) {
 func TestBootstrapScriptGenerationRemote(t *testing.T) {
 	// Test REMOTE mode bootstrap script generation
 	config := self.Config{
-		Repo:           "joeblew99/goup-util",
+		Repo:           "joeblew999/goup-util",
 		SupportedArchs: "darwin-amd64, darwin-arm64, linux-amd64, linux-arm64, windows-amd64, windows-arm64",
 		MacOSArchs:     []string{"amd64", "arm64"},
 		WindowsArchs:   []string{"amd64", "arm64"},
@@ -209,7 +209,7 @@ func TestConfigValidation(t *testing.T) {
 	// Test Config validation
 	t.Run("valid config", func(t *testing.T) {
 		config := self.Config{
-			Repo:           "joeblew99/goup-util",
+			Repo:           "joeblew999/goup-util",
 			SupportedArchs: "darwin-arm64",
 			MacOSArchs:     []string{"arm64"},
 			WindowsArchs:   []string{"amd64"},
@@ -232,7 +232,7 @@ func TestConfigValidation(t *testing.T) {
 
 	t.Run("LOCAL mode missing LocalBinDir", func(t *testing.T) {
 		config := self.Config{
-			Repo:     "joeblew99/goup-util",
+			Repo:     "joeblew999/goup-util",
 			UseLocal: true,
 			// Missing LocalBinDir
 		}

@@ -69,7 +69,7 @@ Working demonstrations in `examples/`:
 
 - [TODO.md](../TODO.md) - Known issues and roadmap
 - [CLAUDE.md](../CLAUDE.md) - Development guidelines
-- [GitHub Issues](https://github.com/joeblew99/goup-util/issues) - Report bugs
+- [GitHub Issues](https://github.com/joeblew999/goup-util/issues) - Report bugs
 
 ---
 

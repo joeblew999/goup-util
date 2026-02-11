@@ -97,6 +97,7 @@ func (p *GioProject) Paths() *ProjectPaths {
 		GoMod:        filepath.Join(p.RootDir, "go.mod"),
 		MainGo:       filepath.Join(p.RootDir, "main.go"),
 		MSIXData:     filepath.Join(p.RootDir, "msix-data.yml"),
+		AppConfig:    filepath.Join(p.RootDir, "app.json"),
 	}
 }
 
@@ -112,6 +113,7 @@ type ProjectPaths struct {
 	GoMod        string      // go.mod file
 	MainGo       string      // main.go file
 	MSIXData     string      // msix-data.yml file
+	AppConfig    string      // app.json file
 }
 
 // GetSourceIcon returns the path to the source icon file

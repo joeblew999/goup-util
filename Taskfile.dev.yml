@@ -21,7 +21,7 @@ tasks:
   test:
     desc: Run tests
     cmds:
-      - go test ./...
+      - task: ci:test
 
   config:
     desc: Show goup-util configuration
@@ -95,12 +95,12 @@ tasks:
   self:build:
     desc: Build goup-util for all platforms
     cmds:
-      - "{{.GOUP}} self build"
+      - task: ci:self:build
 
   self:test:
     desc: Test self build locally
     cmds:
-      - "{{.GOUP}} self test"
+      - task: ci:self:test
 
   # ===========================================================================
   # CLEANUP
@@ -109,7 +109,7 @@ tasks:
   clean:
     desc: Clean build artifacts
     cmds:
-      - task examples:clean
+      - task build:clean
       - rm -rf .bin/goup-util
       - rm -f goup-util goup-util-*
 
@@ -171,6 +171,112 @@ tasks:
       - echo "" >> docs/CLI-REFERENCE.md
       - echo "*Generated on $(date -u '+%Y-%m-%d')*" >> docs/CLI-REFERENCE.md
       - echo "CLI reference generated at docs/CLI-REFERENCE.md"
+
+  # ===========================================================================
+  # ANDROID DEVICE MANAGEMENT
+  # ===========================================================================
+
+  android:devices:
+    desc: List connected Android devices
+    cmds:
+      - "{{.GOUP}} android devices"
+
+  android:logs:
+    desc: "Stream Android logs for Gio apps (Ctrl+C to stop)"
+    cmds:
+      - "{{.GOUP}} android logs"
+
+  android:logs:all:
+    desc: "Stream all Android device logs (Ctrl+C to stop)"
+    cmds:
+      - "{{.GOUP}} android logs --all"
+
+  android:emulator:list:
+    desc: List available Android emulators
+    cmds:
+      - "{{.GOUP}} android emulator list"
+
+  android:emulator:start:
+    desc: "Start Android emulator (usage: task dev:android:emulator:start AVD=Pixel_7_API_35)"
+    requires:
+      vars: [AVD]
+    cmds:
+      - "{{.GOUP}} android emulator start {{.AVD}}"
+
+  android:screenshot:
+    desc: Take screenshot from connected Android device
+    vars:
+      OUTPUT: '{{.OUTPUT | default "android-screenshot.png"}}'
+    cmds:
+      - "{{.GOUP}} android screenshot {{.OUTPUT}}"
+
+  android:webview:
+    desc: Check WebView version on connected Android device
+    cmds:
+      - "{{.GOUP}} android webview"
+
+  android:uninstall:
+    desc: "Uninstall app from device (usage: task dev:android:uninstall PKG=localhost.main)"
+    requires:
+      vars: [PKG]
+    cmds:
+      - "{{.GOUP}} android uninstall {{.PKG}}"
+
+  # ===========================================================================
+  # iOS SIMULATOR MANAGEMENT
+  # ===========================================================================
+
+  ios:devices:
+    desc: List available iOS simulators
+    cmds:
+      - "{{.GOUP}} ios devices"
+
+  ios:runtimes:
+    desc: List available iOS runtimes
+    cmds:
+      - "{{.GOUP}} ios runtimes"
+
+  ios:boot:
+    desc: "Boot an iOS simulator (usage: task dev:ios:boot DEVICE='iPhone 15')"
+    requires:
+      vars: [DEVICE]
+    cmds:
+      - "{{.GOUP}} ios boot '{{.DEVICE}}'"
+
+  ios:shutdown:
+    desc: "Shutdown an iOS simulator (usage: task dev:ios:shutdown DEVICE='iPhone 15')"
+    requires:
+      vars: [DEVICE]
+    cmds:
+      - "{{.GOUP}} ios shutdown '{{.DEVICE}}'"
+
+  ios:screenshot:
+    desc: Take screenshot from booted iOS simulator
+    vars:
+      OUTPUT: '{{.OUTPUT | default "ios-screenshot.png"}}'
+    cmds:
+      - "{{.GOUP}} ios screenshot {{.OUTPUT}}"
+
+  ios:screenshot:clean:
+    desc: Take screenshot with clean status bar (9:41, full battery)
+    vars:
+      OUTPUT: '{{.OUTPUT | default "ios-screenshot.png"}}'
+    cmds:
+      - "{{.GOUP}} ios screenshot --clean-status {{.OUTPUT}}"
+
+  ios:install:
+    desc: "Install app on booted simulator (usage: task dev:ios:install APP=path/to/app.app)"
+    requires:
+      vars: [APP]
+    cmds:
+      - "{{.GOUP}} ios install {{.APP}}"
+
+  ios:uninstall:
+    desc: "Uninstall app from simulator (usage: task dev:ios:uninstall BUNDLE=localhost.main)"
+    requires:
+      vars: [BUNDLE]
+    cmds:
+      - "{{.GOUP}} ios uninstall {{.BUNDLE}}"
 
   # ===========================================================================
   # UTM / WINDOWS TESTING

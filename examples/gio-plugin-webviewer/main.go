@@ -1,13 +1,20 @@
 package main
 
 import (
+	_ "embed"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"image"
 	"image/color"
+	"io"
 	"math"
+	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
 	"time"
 
 	"gioui.org/font"
@@ -25,6 +32,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/text"
+	"gioui.org/unit"
 	"gioui.org/widget"
 	"github.com/gioui-plugins/gio-plugins/webviewer/webview"
 )
@@ -42,8 +50,203 @@ var (
 	IconJavascript, _     = widget.NewIcon(icons.AVPlayArrow)
 )
 
+//go:embed app.json
+var embeddedConfig []byte
+
+// appConfig defines the runtime configuration loaded from app.json.
+type appConfig struct {
+	URL    string       `json:"url"`
+	Name   string       `json:"name,omitempty"`
+	Width  int          `json:"width,omitempty"`
+	Height int          `json:"height,omitempty"`
+	Update updateConfig `json:"update,omitempty"`
+}
+
+// updateConfig tells the shell where to find updates on GitHub.
+type updateConfig struct {
+	Repo  string `json:"repo"`  // GitHub owner/repo (e.g. "joeblew999/goup-util")
+	Asset string `json:"asset"` // Asset name prefix (e.g. "webviewer-shell")
+}
+
+// loadAppConfig tries to load app.json from the executable's directory first,
+// then the current working directory. Returns defaults if not found.
+func loadAppConfig() *appConfig {
+	cfg := &appConfig{
+		URL:    "https://google.com",
+		Name:   "Gio WebViewer",
+		Width:  1200,
+		Height: 800,
+	}
+
+	// Try executable directory first (for pre-built shell binaries)
+	if exePath, err := os.Executable(); err == nil {
+		if data, err := os.ReadFile(filepath.Join(filepath.Dir(exePath), "app.json")); err == nil {
+			json.Unmarshal(data, cfg)
+			return cfg
+		}
+	}
+
+	// Try current working directory
+	if data, err := os.ReadFile("app.json"); err == nil {
+		json.Unmarshal(data, cfg)
+		return cfg
+	}
+
+	// Fallback: use embedded app.json (works on all platforms including Android)
+	if len(embeddedConfig) > 0 {
+		json.Unmarshal(embeddedConfig, cfg)
+	}
+
+	return cfg
+}
+
+// selfUpdate downloads the latest release asset and replaces the current binary.
+// Only works on desktop (macOS, Windows, Linux). Mobile uses app stores.
+func selfUpdate(cfg *appConfig) error {
+	switch runtime.GOOS {
+	case "darwin", "linux", "windows":
+		// OK — desktop can self-update
+	default:
+		return fmt.Errorf("self-update not supported on %s (use app store)", runtime.GOOS)
+	}
+	if cfg.Update.Repo == "" || cfg.Update.Asset == "" {
+		return fmt.Errorf("update not configured in app.json (need update.repo and update.asset)")
+	}
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", cfg.Update.Repo)
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		return fmt.Errorf("failed to check for updates: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("failed to fetch release info: %s", resp.Status)
+	}
+
+	var release struct {
+		TagName string `json:"tag_name"`
+		Assets  []struct {
+			Name               string `json:"name"`
+			BrowserDownloadURL string `json:"browser_download_url"`
+		} `json:"assets"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		return fmt.Errorf("failed to parse release info: %w", err)
+	}
+
+	// Find matching asset: e.g. "webviewer-shell-macos.zip" for asset prefix "webviewer-shell"
+	// Match by prefix + current OS
+	osName := runtime.GOOS
+	if osName == "darwin" {
+		osName = "macos"
+	}
+	wantPrefix := fmt.Sprintf("%s-%s", cfg.Update.Asset, osName)
+
+	var downloadURL, assetName string
+	for _, a := range release.Assets {
+		if len(a.Name) >= len(wantPrefix) && a.Name[:len(wantPrefix)] == wantPrefix {
+			downloadURL = a.BrowserDownloadURL
+			assetName = a.Name
+			break
+		}
+	}
+
+	if downloadURL == "" {
+		return fmt.Errorf("no matching asset for %s in release %s", wantPrefix, release.TagName)
+	}
+
+	fmt.Printf("Downloading %s (%s)...\n", assetName, release.TagName)
+
+	// Download to temp file
+	tmpFile, err := os.CreateTemp("", "webviewer-update-*")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
+
+	dlResp, err := http.Get(downloadURL)
+	if err != nil {
+		return fmt.Errorf("failed to download: %w", err)
+	}
+	defer dlResp.Body.Close()
+
+	if dlResp.StatusCode != 200 {
+		return fmt.Errorf("download failed: %s", dlResp.Status)
+	}
+
+	if _, err := io.Copy(tmpFile, dlResp.Body); err != nil {
+		return fmt.Errorf("failed to save download: %w", err)
+	}
+	tmpFile.Close()
+
+	// Get current executable path
+	exePath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("failed to get executable path: %w", err)
+	}
+	exePath, _ = filepath.EvalSymlinks(exePath)
+	exeDir := filepath.Dir(exePath)
+
+	// Unzip the downloaded archive into the executable's directory
+	if err := unzipUpdate(tmpFile.Name(), exeDir); err != nil {
+		return fmt.Errorf("failed to extract update: %w", err)
+	}
+
+	fmt.Printf("Updated to %s\n", release.TagName)
+	return nil
+}
+
+// checkForUpdate quietly checks GitHub for a newer release and prints a notice.
+// Runs in a goroutine so it never blocks app startup.
+func checkForUpdate(cfg *appConfig) {
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", cfg.Update.Repo)
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		return // silently ignore network errors
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return
+	}
+
+	var release struct {
+		TagName string `json:"tag_name"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		return
+	}
+
+	if release.TagName != "" {
+		fmt.Printf("[update] Latest release: %s — run with --update to install\n", release.TagName)
+	}
+}
+
+// unzipUpdate extracts a zip file to the destination directory.
+func unzipUpdate(zipPath, destDir string) error {
+	// Use system unzip/tar — keeps it simple and handles .app bundles correctly
+	switch runtime.GOOS {
+	case "darwin", "linux":
+		cmd := exec.Command("unzip", "-o", zipPath, "-d", destDir)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		return cmd.Run()
+	case "windows":
+		cmd := exec.Command("powershell", "-Command",
+			fmt.Sprintf("Expand-Archive -Force -Path '%s' -DestinationPath '%s'", zipPath, destDir))
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		return cmd.Run()
+	default:
+		return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
+	}
+}
+
 func main() {
 	proxy := flag.String("proxy", "", "proxy")
+	update := flag.Bool("update", false, "self-update from GitHub releases")
 	if proxy != nil && *proxy != "" {
 		u, err := url.Parse(*proxy)
 		if err != nil {
@@ -55,15 +258,51 @@ func main() {
 	}
 	flag.Parse()
 
+	// Load config from app.json (if present)
+	cfg := loadAppConfig()
+
+	// Validate URL for non-dev users
+	if cfg.URL == "" {
+		fmt.Fprintln(os.Stderr, "ERROR: No URL configured. Edit app.json and set \"url\" to your website address.")
+		fmt.Fprintln(os.Stderr, "Example: {\"url\": \"https://your-website.com\", \"name\": \"My App\"}")
+		os.Exit(1)
+	}
+	if u, err := url.Parse(cfg.URL); err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+		fmt.Fprintf(os.Stderr, "ERROR: Invalid URL in app.json: %q\n", cfg.URL)
+		fmt.Fprintln(os.Stderr, "URL must start with http:// or https://")
+		fmt.Fprintln(os.Stderr, "Example: {\"url\": \"https://your-website.com\"}")
+		os.Exit(1)
+	}
+
+	// Handle --update flag
+	if *update {
+		if err := selfUpdate(cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "Update failed: %v\n", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
+	DefaultURL = cfg.URL
+	fmt.Printf("Loading %s (%s)\n", cfg.Name, cfg.URL)
+
+	// Check for updates in the background (non-blocking)
+	if cfg.Update.Repo != "" && cfg.Update.Asset != "" {
+		go checkForUpdate(cfg)
+	}
+
 	webview.SetDebug(true)
 	window := &app.Window{}
+	window.Option(app.Title(cfg.Name))
+	window.Option(app.Size(unit.Dp(cfg.Width), unit.Dp(cfg.Height)))
 
 	browsers := NewBrowser()
 	browsers.add()
+	browsers.InitialURL = DefaultURL
+	browsers.Address[0].SetText(DefaultURL)
 
 	go func() {
 		ops := new(op.Ops)
-		// first := true
 		for {
 			evt := gioplugins.Hijack(window)
 
@@ -116,6 +355,11 @@ type Browsers struct {
 
 	HeaderFlex []layout.FlexChild
 	TabsFlex   []layout.FlexChild
+
+	// InitialURL is navigated to automatically on first Layout.
+	InitialURL string
+	navigated  bool
+	frameCount int
 }
 
 func NewBrowser() *Browsers {
@@ -198,6 +442,8 @@ func (b *Browsers) remove(i int) {
 }
 
 func (b *Browsers) Layout(gtx layout.Context) layout.Dimensions {
+	b.frameCount++
+
 	if b.Add.Clicked(gtx) {
 		b.add()
 	}
@@ -222,6 +468,9 @@ func (b *Browsers) Layout(gtx layout.Context) layout.Dimensions {
 		submittedIndex = b.Selected
 	}
 
+	// Auto-navigate initial URL after webview has initialized
+	autoNavigate := b.InitialURL != "" && !b.navigated && b.frameCount > 10
+
 	for i, t := range b.Address {
 		submited := i == submittedIndex
 
@@ -234,6 +483,12 @@ func (b *Browsers) Layout(gtx layout.Context) layout.Dimensions {
 			case widget.SubmitEvent:
 				submited = true
 			}
+		}
+
+		// Trigger auto-navigation on first tab using same path as Go button
+		if autoNavigate && i == 0 {
+			submited = true
+			b.navigated = true
 		}
 
 		if submited {

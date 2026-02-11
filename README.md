@@ -499,10 +499,10 @@ wellknown.HandleURI("myapp://dashboard?tab=analytics")
 
 ```bash
 # macOS (via curl)
-curl -fsSL https://raw.githubusercontent.com/joeblew99/goup-util/main/scripts/macos-bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/joeblew999/goup-util/main/scripts/macos-bootstrap.sh | bash
 
 # Windows (via PowerShell as Administrator)
-iwr https://raw.githubusercontent.com/joeblew99/goup-util/main/scripts/windows-bootstrap.ps1 -UseBasicParsing | iex
+iwr https://raw.githubusercontent.com/joeblew999/goup-util/main/scripts/windows-bootstrap.ps1 -UseBasicParsing | iex
 ```
 
 This installs:
@@ -515,14 +515,14 @@ This installs:
 
 ```bash
 # Clone the repository
-git clone https://github.com/joeblew99/goup-util.git
+git clone https://github.com/joeblew999/goup-util.git
 cd goup-util
 
 # Build from source
 go build .
 
 # Or use pre-built binaries from GitHub Releases
-# https://github.com/joeblew99/goup-util/releases/latest
+# https://github.com/joeblew999/goup-util/releases/latest
 ```
 
 **Update goup-util**:
@@ -579,7 +579,7 @@ task setup             # Initialize workspace + install NDKs
 
 **Quick start with Task:**
 ```bash
-git clone https://github.com/joeblew99/goup-util.git
+git clone https://github.com/joeblew999/goup-util.git
 cd goup-util
 task setup    # One command to set everything up
 task demo     # See hybrid-dashboard in action!

@@ -17,26 +17,29 @@ tasks:
     desc: Check if any examples need rebuilding (for CI)
     cmds:
       - echo "Checking build status for all examples..."
-      - "{{.GOUP}} build --check macos {{.HYBRID_EXAMPLE}} && echo 'hybrid: up-to-date' || echo 'hybrid: needs rebuild'"
-      - "{{.GOUP}} build --check macos {{.WEBVIEWER_EXAMPLE}} && echo 'webviewer: up-to-date' || echo 'webviewer: needs rebuild'"
       - "{{.GOUP}} build --check macos {{.BASIC_EXAMPLE}} && echo 'basic: up-to-date' || echo 'basic: needs rebuild'"
+      - "{{.GOUP}} build --check macos {{.HYPERLINK_EXAMPLE}} && echo 'hyperlink: up-to-date' || echo 'hyperlink: needs rebuild'"
+      - "{{.GOUP}} build --check macos {{.WEBVIEWER_EXAMPLE}} && echo 'webviewer: up-to-date' || echo 'webviewer: needs rebuild'"
+      - "{{.GOUP}} build --check macos {{.HYBRID_EXAMPLE}} && echo 'hybrid: up-to-date' || echo 'hybrid: needs rebuild'"
 
   build:
     desc: Build all examples (only if needed - idempotent)
     cmds:
       - echo "Building all examples (skipping if up-to-date)..."
-      - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
-      - "{{.GOUP}} build macos {{.WEBVIEWER_EXAMPLE}}"
       - "{{.GOUP}} build macos {{.BASIC_EXAMPLE}}"
+      - "{{.GOUP}} build macos {{.HYPERLINK_EXAMPLE}}"
+      - "{{.GOUP}} build macos {{.WEBVIEWER_EXAMPLE}}"
+      - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
       - echo "Build complete (used cache where possible)"
 
   build:force:
     desc: Force rebuild all examples (ignores cache)
     cmds:
       - echo "Force rebuilding all examples..."
-      - "{{.GOUP}} build --force macos {{.HYBRID_EXAMPLE}}"
-      - "{{.GOUP}} build --force macos {{.WEBVIEWER_EXAMPLE}}"
       - "{{.GOUP}} build --force macos {{.BASIC_EXAMPLE}}"
+      - "{{.GOUP}} build --force macos {{.HYPERLINK_EXAMPLE}}"
+      - "{{.GOUP}} build --force macos {{.WEBVIEWER_EXAMPLE}}"
+      - "{{.GOUP}} build --force macos {{.HYBRID_EXAMPLE}}"
       - echo "All examples rebuilt from scratch"
 
   test:
@@ -48,17 +51,11 @@ tasks:
     desc: Build and test all examples on all platforms
     cmds:
       - echo "Building for macOS..."
-      - "{{.GOUP}} build macos {{.BASIC_EXAMPLE}}"
-      - "{{.GOUP}} build macos {{.WEBVIEWER_EXAMPLE}}"
-      - "{{.GOUP}} build macos {{.HYBRID_EXAMPLE}}"
+      - task: build:macos
       - echo "Building for iOS..."
-      - "{{.GOUP}} build ios {{.BASIC_EXAMPLE}}"
-      - "{{.GOUP}} build ios {{.WEBVIEWER_EXAMPLE}}"
-      - "{{.GOUP}} build ios {{.HYBRID_EXAMPLE}}"
+      - task: build:ios
       - echo "Building for Android..."
-      - "{{.GOUP}} build android {{.BASIC_EXAMPLE}}"
-      - "{{.GOUP}} build android {{.WEBVIEWER_EXAMPLE}}"
-      - "{{.GOUP}} build android {{.HYBRID_EXAMPLE}}"
+      - task: build:android
       - echo "All examples built successfully!"
 
   # ===========================================================================
@@ -76,15 +73,19 @@ tasks:
       - echo "Ready to release!"
 
   release:tag:
-    desc: Create and push a new release tag
+    desc: "Create and push a release tag (usage: task ci:release:tag VERSION=v0.1.0)"
+    requires:
+      vars: [VERSION]
     cmds:
       - echo "Current tags:"
       - git tag -l | tail -5
       - echo ""
-      - 'echo "Enter new version (e.g., v0.1.0):"'
-      - 'read -p "Version: " VERSION && git tag -a "$VERSION" -m "Release $VERSION" && git push origin main && git push origin "$VERSION"'
+      - echo "Tagging {{.VERSION}}..."
+      - git tag -a "{{.VERSION}}" -m "Release {{.VERSION}}"
+      - git push origin main
+      - git push origin "{{.VERSION}}"
       - echo ""
-      - echo "Tag pushed! GitHub Actions will build binaries."
+      - echo "Tag {{.VERSION}} pushed! GitHub Actions will build binaries."
 
   release:full:
     desc: Full release workflow (test, tag, push)
