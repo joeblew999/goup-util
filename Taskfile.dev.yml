@@ -264,6 +264,16 @@ tasks:
     cmds:
       - "{{.GOUP}} ios screenshot --clean-status {{.OUTPUT}}"
 
+  ios:logs:
+    desc: "Stream iOS simulator logs for Gio apps (Ctrl+C to stop)"
+    cmds:
+      - "{{.GOUP}} ios logs"
+
+  ios:logs:all:
+    desc: "Stream all iOS simulator logs (Ctrl+C to stop)"
+    cmds:
+      - "{{.GOUP}} ios logs --all"
+
   ios:install:
     desc: "Install app on booted simulator (usage: task dev:ios:install APP=path/to/app.app)"
     requires:

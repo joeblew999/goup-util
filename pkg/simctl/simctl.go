@@ -214,6 +214,19 @@ func (c *Client) GetAppContainer(bundleID, containerType string) (string, error)
 	return c.run("get_app_container", "booted", bundleID, containerType)
 }
 
+// Logs streams simulator system log to stdout. Blocks until interrupted.
+// If predicate is non-empty, it's used as a filter (e.g. "processImagePath contains 'localhost'").
+func (c *Client) Logs(predicate string) error {
+	args := []string{"simctl", "spawn", "booted", "log", "stream", "--level", "info"}
+	if predicate != "" {
+		args = append(args, "--predicate", predicate)
+	}
+	cmd := exec.Command("xcrun", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
 // ListDeviceTypes returns available device types (iPhone 15, iPad Pro, etc.).
 func (c *Client) ListDeviceTypes() (string, error) {
 	return c.run("list", "devicetypes")

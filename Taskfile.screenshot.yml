@@ -328,14 +328,30 @@ tasks:
       - echo "See {{.APPSTORE_DIR}}/"
 
   # ===========================================================================
-  # DOCUMENTATION
+  # DOCUMENTATION (one-command screenshot all examples)
   # ===========================================================================
 
   docs:
-    desc: Capture all screenshots for documentation
+    desc: "Screenshot ALL examples for docs (desktop only, no CGO: use docs:all for all platforms)"
     cmds:
       - echo "Capturing documentation screenshots..."
       - task: example:all
       - echo ""
       - echo "Screenshots saved to {{.SCREENSHOT_DIR}}/"
-      - echo "Update README.md to reference these images"
+      - ls -la {{.SCREENSHOT_DIR}}/
+
+  docs:all:
+    desc: "Screenshot ALL examples on ALL platforms into docs/screenshots/"
+    cmds:
+      - mkdir -p {{.SCREENSHOT_DIR}}
+      - echo "=== 1/3 Desktop Screenshots (robotgo) ==="
+      - task: example:all
+      - echo ""
+      - echo "=== 2/3 Android Screenshots (adb) ==="
+      - "task: android:all || echo 'Android skipped (no device connected)'"
+      - echo ""
+      - echo "=== 3/3 iOS Simulator Screenshots (simctl) ==="
+      - "task: ios:all || echo 'iOS skipped (no simulator booted)'"
+      - echo ""
+      - echo "All screenshots saved to {{.SCREENSHOT_DIR}}/"
+      - ls -la {{.SCREENSHOT_DIR}}/

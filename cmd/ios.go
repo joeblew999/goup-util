@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/joeblew999/goup-util/pkg/simctl"
 	"github.com/spf13/cobra"
@@ -195,6 +196,29 @@ var iosScreenshotCmd = &cobra.Command{
 	},
 }
 
+var iosLogsCmd = &cobra.Command{
+	Use:   "logs",
+	Short: "Stream iOS simulator logs (Ctrl+C to stop)",
+	Long: `Stream filtered log output from the booted iOS simulator.
+Use --all to show all logs instead of just Gio/Go-related ones.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := newSimctlClient()
+		if err != nil {
+			return err
+		}
+		if !client.HasBooted() {
+			return fmt.Errorf("no simulator is booted. Boot one with: goup-util ios boot \"iPhone 16\"")
+		}
+		all, _ := cmd.Flags().GetBool("all")
+		if all {
+			fmt.Println("Streaming all simulator logs (Ctrl+C to stop)...")
+			return client.Logs("")
+		}
+		fmt.Println("Streaming Gio app logs (Ctrl+C to stop)...")
+		return client.Logs("processImagePath contains 'localhost'")
+	},
+}
+
 var iosRuntimesCmd = &cobra.Command{
 	Use:   "runtimes",
 	Short: "List available iOS runtimes",
@@ -213,30 +237,59 @@ var iosRuntimesCmd = &cobra.Command{
 }
 
 // resolveSimulatorUDID resolves a name or UDID to a UDID.
-// If the input looks like a UDID (contains hyphens and is long enough), use it directly.
-// Otherwise search by name.
+// Supports exact match, prefix match, and contains match (in that priority order).
+// If the input looks like a UDID (>30 chars), use it directly.
 func resolveSimulatorUDID(client *simctl.Client, identifier string) (string, error) {
 	// If it looks like a UDID, use directly
 	if len(identifier) > 30 {
 		return identifier, nil
 	}
 
-	// Search by name
 	devices, err := client.Devices()
 	if err != nil {
 		return "", err
 	}
+
+	idLower := strings.ToLower(identifier)
+
+	// Pass 1: exact match
 	for _, d := range devices {
-		if d.Name == identifier {
+		if strings.ToLower(d.Name) == idLower {
 			return d.UDID, nil
 		}
 	}
-	return "", fmt.Errorf("simulator not found: %s\nRun 'goup-util ios devices' to see available simulators", identifier)
+
+	// Pass 2: prefix match (e.g. "iPhone 16" matches "iPhone 16 Pro")
+	for _, d := range devices {
+		if strings.HasPrefix(strings.ToLower(d.Name), idLower) {
+			fmt.Printf("Matched: %s\n", d.Name)
+			return d.UDID, nil
+		}
+	}
+
+	// Pass 3: contains match (e.g. "iPad Pro" matches "iPad Pro 13-inch (M4)")
+	for _, d := range devices {
+		if strings.Contains(strings.ToLower(d.Name), idLower) {
+			fmt.Printf("Matched: %s\n", d.Name)
+			return d.UDID, nil
+		}
+	}
+
+	// Show available devices in the error
+	var names []string
+	for _, d := range devices {
+		names = append(names, fmt.Sprintf("  %s (%s)", d.Name, d.Runtime))
+	}
+	return "", fmt.Errorf("simulator not found: %q\n\nAvailable simulators:\n%s\n\nRun 'goup-util ios devices' for full list",
+		identifier, strings.Join(names, "\n"))
 }
 
 func init() {
 	// Screenshot flags
 	iosScreenshotCmd.Flags().Bool("clean-status", false, "Set clean status bar (9:41, full battery) for App Store screenshots")
+
+	// Logs flags
+	iosLogsCmd.Flags().Bool("all", false, "Show all simulator logs (not just Gio-filtered)")
 
 	// iOS subcommands
 	iosCmd.AddCommand(iosDevicesCmd)
@@ -246,6 +299,7 @@ func init() {
 	iosCmd.AddCommand(iosUninstallCmd)
 	iosCmd.AddCommand(iosLaunchCmd)
 	iosCmd.AddCommand(iosScreenshotCmd)
+	iosCmd.AddCommand(iosLogsCmd)
 	iosCmd.AddCommand(iosRuntimesCmd)
 
 	rootCmd.AddCommand(iosCmd)

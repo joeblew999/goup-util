@@ -112,6 +112,13 @@ Examples:
 			SignKey:   signKey,
 		}
 
+		// Ensure gogio is available (needed for all platforms except linux)
+		if platform != "linux" {
+			if err := ensureGogio(); err != nil {
+				return err
+			}
+		}
+
 		switch platform {
 		case "macos":
 			return buildMacOS(proj, platform, opts)
@@ -131,6 +138,14 @@ Examples:
 
 		return nil
 	},
+}
+
+// ensureGogio checks that gogio is available and provides install instructions if not.
+func ensureGogio() error {
+	if _, err := exec.LookPath("gogio"); err != nil {
+		return fmt.Errorf("gogio not found in PATH\n\nInstall it with:\n  go install gioui.org/cmd/gogio@latest\n\nThen ensure $GOPATH/bin (or $GOBIN) is in your PATH")
+	}
+	return nil
 }
 
 func buildMacOS(proj *project.GioProject, platform string, opts BuildOptions) error {
