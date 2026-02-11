@@ -1,8 +1,12 @@
 version: '3'
 
 vars:
-  DOCS_VERSION: 'latest'
-  DOCS_PORT: '1313'
+  HUGO_VERSION: '0.155.3'
+  HUGO: hugo
+  HUGO_PORT: '1313'
+  HUGO_THEME: hugo-book
+  HUGO_THEME_REPO: 'https://github.com/alex-shpak/hugo-book.git'
+  HUGO_BASE_URL: 'https://joeblew999.github.io/goup-util/'
 
 tasks:
   src:clone:
@@ -28,24 +32,30 @@ tasks:
     generates:
       - .bin/**/*
     cmds:
-      - hugo --minify -d .bin
+      - '{{.HUGO}} --minify -d .bin'
+
+  build:ci:
+    desc: Build Hugo site for CI (with baseURL override)
+    deps: [ensure]
+    cmds:
+      - '{{.HUGO}} --minify --baseURL {{.HUGO_BASE_URL}}'
 
   run:
     desc: Run Hugo dev server with hot reload (foreground)
     deps: [ensure]
     cmds:
-      - hugo server -D --bind 0.0.0.0 --port {{.DOCS_PORT}}
+      - '{{.HUGO}} server -D --bind 0.0.0.0 --port {{.HUGO_PORT}}'
 
   start:
     desc: Start Hugo dev server in background
     deps: [ensure]
     cmds:
       - task: stop
-      - nohup hugo server -D --bind 0.0.0.0 --port {{.DOCS_PORT}} > .hugo-server.log 2>&1 &
+      - nohup {{.HUGO}} server -D --bind 0.0.0.0 --port {{.HUGO_PORT}} > .hugo-server.log 2>&1 &
       - sleep 1
       - |
-        if lsof -ti:{{.DOCS_PORT}} > /dev/null 2>&1; then
-          echo "Hugo server started on http://localhost:{{.DOCS_PORT}}/"
+        if lsof -ti:{{.HUGO_PORT}} > /dev/null 2>&1; then
+          echo "Hugo server started on http://localhost:{{.HUGO_PORT}}/"
         else
           echo "Failed to start Hugo server. Check .hugo-server.log"
           exit 1
@@ -54,15 +64,15 @@ tasks:
   stop:
     desc: Stop Hugo dev server
     cmds:
-      - lsof -ti:{{.DOCS_PORT}} | xargs kill 2>/dev/null || true
+      - lsof -ti:{{.HUGO_PORT}} | xargs kill 2>/dev/null || true
       - echo "Hugo server stopped"
 
   status:
     desc: Check if Hugo dev server is running
     cmds:
       - |
-        if lsof -ti:{{.DOCS_PORT}} > /dev/null 2>&1; then
-          echo "Hugo server running on http://localhost:{{.DOCS_PORT}}/"
+        if lsof -ti:{{.HUGO_PORT}} > /dev/null 2>&1; then
+          echo "Hugo server running on http://localhost:{{.HUGO_PORT}}/"
         else
           echo "Hugo server is not running"
         fi
@@ -76,28 +86,28 @@ tasks:
   ensure:hugo:
     desc: Ensure Hugo is installed (installs via go if missing)
     status:
-      - command -v hugo
+      - command -v {{.HUGO}}
     cmds:
-      - go install github.com/gohugoio/hugo@latest
+      - go install github.com/gohugoio/hugo@v{{.HUGO_VERSION}}
 
   ensure:theme:
     desc: Ensure Hugo theme is installed
     status:
-      - test -d themes/hugo-book
+      - test -d themes/{{.HUGO_THEME}}
     cmds:
-      - git clone --depth 1 https://github.com/alex-shpak/hugo-book.git themes/hugo-book
+      - git clone --depth 1 {{.HUGO_THEME_REPO}} themes/{{.HUGO_THEME}}
 
   bin:download:
     desc: Hugo is a system tool (no-op)
     status:
-      - command -v hugo
+      - command -v {{.HUGO}}
     cmds:
       - echo "Hugo is installed via system package manager"
 
   test:
     desc: Check Hugo build works
     cmds:
-      - hugo --minify -d .bin
+      - '{{.HUGO}} --minify -d .bin'
 
   deps:
     desc: No dependencies for Hugo docs
@@ -129,8 +139,8 @@ tasks:
       - rm -rf .bin .data .hugo_build.lock
 
   "new":
-    desc: "Create new content (usage: task docs:new PAGE=architecture/new-page)"
+    desc: "Create new content (usage: task hugo:new PAGE=architecture/new-page)"
     vars:
       PAGE: '{{.PAGE | default "posts/new-post"}}'
     cmds:
-      - hugo new content/{{.PAGE}}.md
+      - '{{.HUGO}} new content/{{.PAGE}}.md'

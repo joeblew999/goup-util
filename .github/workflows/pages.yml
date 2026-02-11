@@ -1,4 +1,5 @@
 # Deploy Hugo documentation to GitHub Pages
+# Hugo version is defined in docs/Taskfile.hugo.yml (HUGO_VERSION var)
 name: Deploy Docs
 
 on:
@@ -21,24 +22,20 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      HUGO_VERSION: "0.155.3"
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Hugo
-        run: |
-          wget -O hugo.deb https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.deb
-          sudo dpkg -i hugo.deb
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
 
-      - name: Install hugo-book theme
-        run: |
-          mkdir -p docs/themes
-          git clone --depth 1 https://github.com/alex-shpak/hugo-book.git docs/themes/hugo-book
+      - uses: arduino/setup-task@v2
 
-      - name: Build Hugo site
-        working-directory: docs
-        run: hugo --minify --baseURL https://joeblew999.github.io/goup-util/
+      - name: Install Hugo and theme
+        run: task hugo:ensure
+
+      - name: Build Hugo site (CI mode with baseURL)
+        run: task hugo:build:ci
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

@@ -9,7 +9,7 @@
 #   screenshot:*   Screenshot capture (requires CGO)
 #   ci:*           CI/CD and release
 #   src:*          .src dependency management
-#   docs:*         Documentation
+#   hugo:*         Documentation (Hugo)
 #
 # UTM: Use 'goup-util utm' CLI commands instead of Taskfile
 #
@@ -48,8 +48,8 @@ includes:
     taskfile: .src/Taskfile.yml
     dir: .src
     optional: true
-  docs:
-    taskfile: docs/Taskfile.yml
+  hugo:
+    taskfile: docs/Taskfile.hugo.yml
     dir: docs
     optional: true
 
@@ -67,7 +67,7 @@ tasks:
         echo "  screenshot:*   Screenshots (capture, appstore)"
         echo "  ci:*           CI/CD (build, release)"
         echo "  src:*          Dependencies (.src management)"
-        echo "  docs:*         Documentation"
+        echo "  hugo:*         Documentation (Hugo)"
         echo ""
         echo "Quick start:"
         echo "  task dev:demo          Build & run hybrid-dashboard"
